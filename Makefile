@@ -30,5 +30,7 @@ ${WORKSPACE}/solace-axway-agent: dep
 		-a -o ${WORKSPACE}/bin/solace-axway-agent ${WORKSPACE}/main.go
 # CHANGE_BINARY_NAME - to change the name of the generated binary name, change 'apic_discovery_agent' in the above line				
 
-build:${WORKSPACE}/solace-axway-agent
+build:${WORKSPACE}/solace-axway-agent-tux
 	@echo "Build complete"
+
+build-tux:

@@ -1,0 +1,248 @@
+---
+components:
+  parameters:
+    region_id:
+      schema:
+        type: string
+        enum:
+          - fr
+          - de
+          - it
+    make:
+      schema:
+        type: string
+        enum:
+          - 108
+          - 2008
+    model:
+      schema:
+        type: string
+        enum:
+          - M2018
+          - MTPA
+    vin:
+      schema:
+        type: string
+  schemas:
+    failure:
+      $schema: 'http://json-schema.org/draft-07/schema#'
+      type: object
+      additionalProperties: false
+      title: Car Co failure alarm event
+      required:
+        - header
+        - body
+      properties:
+        header:
+          type: object
+          additionalProperties: false
+          required:
+            - timestamp
+          properties:
+            timestamp:
+              type: string
+        body:
+          type: object
+          additionalProperties: false
+          required:
+            - type
+            - components
+            - details
+          properties:
+            type:
+              title: failure type
+              type: string
+            component:
+              title: component failed
+              type: string
+            details:
+              title: details of failure
+              type: string
+      $id: >-
+        http://eventportal.solace.cloud/apim/car-co/failure/failure.json
+    safety:
+      $schema: 'http://json-schema.org/draft-07/schema#'
+      type: object
+      additionalProperties: false
+      title: Car Co safety alarm event
+      required:
+        - header
+        - body
+      properties:
+        header:
+          type: object
+          additionalProperties: false
+          required:
+            - timestamp
+          properties:
+            timestamp:
+              type: string
+        body:
+          type: object
+          additionalProperties: false
+          required:
+            - tyre_pressure
+            - battery_charge
+            - oil_level
+          properties:
+            tyre_pressure:
+              title: tyre
+              type: number
+            battery_charge:
+              title: battery
+              type: number
+            oil_level:
+              title: oil
+              type: integer
+      $id: >-
+        http://eventportal.solace.cloud/apim/car-co/safety/safety.json
+    consumption:
+      $schema: "http://json-schema.org/draft-07/schema#"
+      type: object
+      additionalProperties: false
+      title: Car Co consumption event payload
+      required:
+        - header
+        - body
+      properties:
+        header:
+          type: object
+          additionalProperties: false
+          required:
+            - timestamp
+          properties:
+            timestamp:
+              type: string
+        body:
+          type: object
+          additionalProperties: false
+          required:
+            - fuel
+            - tyre
+            - battery
+            - oil
+          properties:
+            fuel:
+              title: fuel
+              type: integer
+            tyre:
+              title: tyre
+              type: number
+            battery:
+              title: battery
+              type: number
+            oil:
+              title: oil
+              type: integer
+      $id: >-
+        http://eventportal.solace.cloud/apim/car-co/consumption/consumption.json
+  messages:
+    failure:
+      payload:
+        $ref: '#/components/schemas/failure'
+      schemaFormat: application/vnd.aai.asyncapi+json;version=2.0.0
+      contentType: application/json
+      examples:
+        - payload: {"header":{"timestamp":"2021-04-21-06:07:11-UTC"},"body":{"type":"breakdown","component":"gear_box","details":"not_shifting_gears"}}
+        - payload: {"header":{"timestamp":"2021-04-21-07:07:11-UTC"},"body":{"type":"maintenance","component":"brake_lights_dash","details":"replacement_required"}}
+    safety:
+      payload:
+        $ref: '#/components/schemas/safety'
+      schemaFormat: application/vnd.aai.asyncapi+json;version=2.0.0
+      contentType: application/json
+      examples:
+        - payload: {"header":{"timestamp":"2021-04-20-14:33:40-UTC"},"body":{"tyre_pressure":1.2,"battery_charge":1.4,"oil_level":75}}
+        - payload: {"header":{"timestamp":"2021-04-20-14:33:43-UTC"},"body":{"tyre_pressure":1.2,"battery_charge":1.4,"oil_level":75}}
+    consumption:
+      payload:
+        $ref: '#/components/schemas/consumption'
+      schemaFormat: application/vnd.aai.asyncapi+json;version=2.0.0
+      contentType: application/json
+      examples:
+        - payload: {"header":{"timestamp":"2021-04-20-11:28:47-UTC"},"body":{"fuel":10,"tyre":1.8,"battery":2.4,"oil":90}}
+        - payload: {"header":{"timestamp":"2021-04-20-11:28:49-UTC"},"body":{"fuel":10,"tyre":1.8,"battery":2.4,"oil":90}}
+channels:
+  apim/car-co/api/V1/json/{region_id}/{make}/{model}/{vin}/consumption:
+    publish:
+      summary: "subscribe to consumption events from vehicle"
+      description: |
+        Consumption events are sent periodically.
+      operationId: onConsumption
+      bindings:
+        mqtt:
+          bindingVersion: ‘0.1.0’
+          qos: 1
+        http:
+          bindingVersion: ‘0.1.0’
+          type: request
+          method: POST
+      message:
+        $ref: '#/components/messages/consumption'
+    parameters:
+      region_id:
+        $ref: '#/components/parameters/region_id'
+      make:
+        $ref: '#/components/parameters/make'
+      model:
+        $ref: '#/components/parameters/model'
+      vin:
+        $ref: '#/components/parameters/vin'
+  apim/car-co/api/V1/json/{region_id}/{make}/{model}/{vin}/safety:
+    publish:
+      summary: "subscribe to safety alarm events from vehicle"
+      description: |
+        Safety alarms are sent when certain diagnostics level fall below their safe driving levels.
+      operationId: onSafetyAlarm
+      bindings:
+        mqtt:
+          bindingVersion: ‘0.1.0’
+          qos: 1
+        http:
+          bindingVersion: ‘0.1.0’
+          type: request
+          method: POST
+      message:
+        $ref: '#/components/messages/safety'
+    parameters:
+      region_id:
+        $ref: '#/components/parameters/region_id'
+      make:
+        $ref: '#/components/parameters/make'
+      model:
+        $ref: '#/components/parameters/model'
+      vin:
+        $ref: '#/components/parameters/vin'
+  apim/car-co/api/V1/json/{region_id}/{make}/{model}/{vin}/failure:
+    publish:
+      summary: "subscribe to failure alarm events from vehicle"
+      description: |
+        Failure alarms are raised when urgent action is required to maintain/replace/recover components or vehicle.
+      operationId: onFailureAlarm
+      bindings:
+        mqtt:
+          bindingVersion: ‘0.1.0’
+          qos: 1
+        http:
+          bindingVersion: ‘0.1.0’
+          type: request
+          method: POST
+      message:
+        $ref: '#/components/messages/failure'
+    parameters:
+      region_id:
+        $ref: '#/components/parameters/region_id'
+      make:
+        $ref: '#/components/parameters/make'
+      model:
+        $ref: '#/components/parameters/model'
+      vin:
+        $ref: '#/components/parameters/vin'
+asyncapi: "2.0.0"
+info:
+  description: "Another Real-time vehicle information: usage, safety and consumption events."
+  title: "Event API Product:Vehicle Partner"
+  x-view: "provider"
+  version: "v1.0.0"
+  x-origin:
+    vendor: solace
+    name: apim-connector

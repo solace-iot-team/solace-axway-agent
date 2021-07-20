@@ -10,14 +10,6 @@ __debug_bin
 debug
 *.log
 
-# Ignore key files in root
-/private_key.pem
-/public_key*
-
-# Ignore zip files in root
-./apic_traceability_agent.zip
-./apic_discovery_agent.zip
-
 # ignores if running sonarscanner locally
 .scannerwork
 
@@ -33,6 +25,4 @@ coverage.html
 cache_save_file.json
 pkg/config/path
 
-openapitools.json
-main-resources.json
-sub-resources.json
+

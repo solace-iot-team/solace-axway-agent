@@ -26,6 +26,9 @@ jobs:
           make build
           echo 'check the filesystem'
           pwd
+          echo 'checking bin'
+          cd bin
+          pwd
           ls -la
 
   deploy:

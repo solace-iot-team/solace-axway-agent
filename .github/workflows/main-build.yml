@@ -30,6 +30,13 @@ jobs:
           cd bin
           pwd
           ls -la
+      - name: Test Deploy to Docker registry
+        uses: docker/build-push-action@v2
+        with:
+          context: bin
+          push: false
+          tags: |
+            solaceiotteam/solace-axway-agent:alpha
 
   deploy:
     runs-on: ubuntu-latest
@@ -47,6 +54,6 @@ jobs:
       uses: docker/build-push-action@v2
       with:
         context: bin
-        push: true
+        push: false
         tags: |
           solaceiotteam/solace-axway-agent:alpha

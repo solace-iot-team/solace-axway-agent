@@ -7,7 +7,7 @@ require (
 	github.com/deepmap/oapi-codegen v1.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.8.1
-	github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20210712093244-6d1007939239
+	github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20210720091931-be01c536a367
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
 	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect

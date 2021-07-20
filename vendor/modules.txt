@@ -97,7 +97,7 @@ github.com/prometheus/procfs/internal/util
 github.com/sirupsen/logrus
 # github.com/snowzach/rotatefilehook v0.0.0-20180327172521-2f64f265f58c
 github.com/snowzach/rotatefilehook
-# github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20210712093244-6d1007939239
+# github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20210720091931-be01c536a367
 github.com/solace-iot-team/agent-sdk/pkg/agent
 github.com/solace-iot-team/agent-sdk/pkg/api
 github.com/solace-iot-team/agent-sdk/pkg/apic

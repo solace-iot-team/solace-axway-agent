@@ -29,6 +29,10 @@ jobs:
     needs: [build]
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
     steps:
+    - name: check file system
+      run: |
+        pwd
+        ls -la
     - name: Deploy to Docker registry
       uses: docker/build-push-action@v2
       with:

@@ -24,7 +24,6 @@ FROM alpine:latest
 RUN apk --no-cache add ca-certificates
 
 WORKDIR /root
-COPY solace_axway_agent.yml solace_axway_agent.yml
 
 COPY --from=build /build/solace-axway-agent solace-axway-agent
 

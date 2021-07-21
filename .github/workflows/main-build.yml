@@ -30,9 +30,8 @@ jobs:
         run: |
           make dep
           make build
-          echo "path to build"
-          pwd
-          ls -la
+
+
       - name: Test Deploy to Docker registry
         uses: docker/build-push-action@v2
         with:

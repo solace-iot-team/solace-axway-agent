@@ -31,13 +31,23 @@ jobs:
           make dep
           make build
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    steps:
 
-      - name: Test Deploy to Docker registry
+      - name: Set versions properties
+        run:  |
+          AGENTVERSION=$(<agentversion.txt)
+          echo "AGENTVERSION=$AGENTVERSION">> $GITHUB_ENV
+          echo "AGENTVERSION: $AGENTVERSION"
+
+      - name: Build and Deploy to Docker registry
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: false
+          push: true
           tags: |
             solaceiotteam/solace-axway-agent:alpha
-
-
+            solaceiotteam/apim-demo-portal:${{env.AGENTVERSION}}

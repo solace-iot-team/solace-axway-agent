@@ -1,14 +1,21 @@
 FROM golang:1.13-alpine3.12 AS build
 
-WORKDIR /app
+ENV GO111MODULE=on \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
+
+RUN apk add --no-cache git make bash
+WORKDIR /build
+
 COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
-COPY main.go .
-COPY pkg .
+COPY . .
+COPY Makefile .
 
-RUN go build -o /solace-axway-agent
+RUN go build -o solace-axway-agent .
 
 
 ######## Start a new stage from scratch #######
@@ -16,9 +23,10 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root/
+WORKDIR /root
+COPY solace_axway_agent.yml solace_axway_agent.yml
 
-COPY --from=build /solace-axway-agent /solace-axway-agent
+COPY --from=build /build/solace-axway-agent solace-axway-agent
 
 # Command to run the executable
-ENTRYPOINT ["/solace-axway-agent"]
+CMD ["sh", "-c", "/root/solace-axway-agent  --pathConfig /var/agentconfig"]

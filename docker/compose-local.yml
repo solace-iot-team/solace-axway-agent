@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  agent:
+    image: "solace-axway-agent:alpha"
+    volumes:
+      - /Users/jt/myproject/solace/axway-agent/docker-compose-agent-config:/var/agentconfig
+      - /Users/jt/myproject/solace/axway-agent/docker-compose-agent-config:/var/agentkeys
+

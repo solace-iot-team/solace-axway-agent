@@ -10,7 +10,7 @@ COPY ../sample/mysample.txt .
 COPY /home/runner/work/solace-axway-agent/solace-axway-agent .
 # Copy the Pre-built binary file from the previous stage
 
-COPY ../bin/solace-axway-agent .
+# COPY ../bin/solace-axway-agent .
 
 # Command to run the executable
 CMD ["./solace-axway-agent"]

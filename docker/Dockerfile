@@ -5,6 +5,8 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
+COPY ../sample/mysample.txt .
+
 # Copy the Pre-built binary file from the previous stage
 COPY ../bin/solace-axway-agent .
 

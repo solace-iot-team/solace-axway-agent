@@ -33,4 +33,3 @@ ${WORKSPACE}/solace-axway-agent: dep
 build:${WORKSPACE}/solace-axway-agent
 	@echo "Build complete"
 
-build-tux:

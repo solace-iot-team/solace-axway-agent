@@ -53,4 +53,4 @@ jobs:
           push: true
           tags: |
             solaceiotteam/solace-axway-agent:alpha
-            solaceiotteam/apim-demo-portal:${{env.VERSION}}
+            solaceiotteam/solace-axway-agent:${{env.VERSION}}

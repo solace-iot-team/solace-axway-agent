@@ -20,6 +20,7 @@ jobs:
           password: ${{ secrets.DOCKER_ACCESSTOKEN }}
 
       - uses: actions/checkout@v2
+
       - uses: actions/setup-go@v2
         with:
           go-version: '^1.13.15'
@@ -37,11 +38,13 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
     steps:
 
+      - uses: actions/checkout@v2
+
       - name: Set versions properties
         run:  |
-          AGENTVERSION=$(<agentversion.txt)
-          echo "AGENTVERSION=$AGENTVERSION">> $GITHUB_ENV
-          echo "AGENTVERSION: $AGENTVERSION"
+          VERSION=$(<version)
+          echo "VERSION=$VERSION">> $GITHUB_ENV
+          echo "VERSION: $VERSION"
 
       - name: Build and Deploy to Docker registry
         uses: docker/build-push-action@v2
@@ -50,4 +53,4 @@ jobs:
           push: true
           tags: |
             solaceiotteam/solace-axway-agent:alpha
-            solaceiotteam/apim-demo-portal:${{env.AGENTVERSION}}
+            solaceiotteam/apim-demo-portal:${{env.VERSION}}

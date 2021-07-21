@@ -12,8 +12,7 @@ COPY go.mod .
 COPY go.sum .
 RUN go mod download
 
-COPY . .
-COPY Makefile .
+COPY docker .
 
 RUN go build -o solace-axway-agent .
 

@@ -33,7 +33,7 @@ jobs:
       - name: Test Deploy to Docker registry
         uses: docker/build-push-action@v2
         with:
-          context: bin
+          context: docker
           push: false
           tags: |
             solaceiotteam/solace-axway-agent:alpha

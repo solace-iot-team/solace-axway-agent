@@ -27,5 +27,5 @@ WORKDIR /root
 COPY --from=build /build/solace-axway-agent solace-axway-agent
 
 # Command to run the executable
-#CMD ["sh", "-c", "/root/solace-axway-agent  --pathConfig /var/agentconfig"]
-CMD ["sh", "-c", "/root/solace-axway-agent"]
+CMD ["sh", "-c", "/root/solace-axway-agent  --pathConfig /var/agent/config"]
+

@@ -15,11 +15,11 @@ type AgentConfig struct {
 type GatewayConfig struct {
 	corecfg.IConfigValidator
 	corecfg.IResourceConfigCallback
-	ConnectorURL           string `config:"connector_url"`
-	ConnectorAdminUser     string `config:"connector_admin_user"`
-	ConnectorAdminPassword string `config:"connector_admin_password"`
-	ConnectorOrgUser       string `config:"connector_org_user"`
-	ConnectorOrgPassword   string `config:"connector_org_password"`
+	ConnectorURL           string `config:"connectorUrl"`
+	ConnectorAdminUser     string `config:"connectorAdminUser"`
+	ConnectorAdminPassword string `config:"connectorAdminPassword"`
+	ConnectorOrgUser       string `config:"connectorOrgUser"`
+	ConnectorOrgPassword   string `config:"connectorOrgPassword"`
 }
 
 // ValidateCfg - Validates the gateway config

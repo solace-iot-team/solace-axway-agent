@@ -25,7 +25,8 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /root
 
 COPY --from=build /build/solace-axway-agent solace-axway-agent
+COPY sample/agent-config.yml solace_axway_agent.yml
 
 # Command to run the executable
-CMD ["sh", "-c", "/root/solace-axway-agent  --pathConfig /var/agent/config"]
+CMD ["sh", "-c", "/root/solace-axway-agent"]
 

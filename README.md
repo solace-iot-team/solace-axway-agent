@@ -36,9 +36,26 @@ For each Axway `Environment` a Solace Connector `Organization` must be provision
 
 ## Run agent
 
+Configuration of the agent can get provided by an config-file ('solace_axway_agent.yml') or by defining environment variables (still a minimum config-file must be provided).
+
+
 ### Prepare `solace-axway-agent.yml` configuration
 * Prepare and configure `solace-axway-agent.yml` file. Sample provided in this repo.
+* Or set environment variables
 
-### Execute `solace-axway-agent`
+### Execute `solace-axway-agent` 
 * `./solace-axway-agent --pathConfig /Users/jt/myproject/solace/axway-agent/solace-agent-config`
 
+### Check Health
+
+Health checks (accessibility) of Axway Central and Solace Connector can get accessed via a web service exposed by the agent:
+
+Sample of an agent running on localhost:
+
+* `curl http://localhost:8989/status/central`
+* `curl http://localhost:8989/status/solace`
+
+
+# Concepts
+
+* An Axway Environment is mapped against a Solace Connector Organization (env-name = org-name)

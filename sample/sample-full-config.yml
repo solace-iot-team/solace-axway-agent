@@ -1,0 +1,18 @@
+log:
+  level: debug
+central:
+  pollInterval: 10s
+  url: https://central.eu-fr.axway.com
+  organizationID: 111111
+  environment: the-environment
+  auth:
+    clientID: SOME_CLIENT_ID
+    privateKey: "/path/to/private/key/private_key.pem"
+    publicKey: "/path/to/public/key/public_key.pem"
+
+gateway-section:
+  connectorUrl: URL_TO_SOLACE_CONNECTOR
+  connectorAdminUser: ADMINUSER
+  connectorAdminPassword: ADMINPASSWORD
+  connectorOrgUser: ORGUSER
+  connectorOrgPassword: ORGPASSWORD

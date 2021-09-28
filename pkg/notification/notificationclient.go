@@ -45,6 +45,8 @@ type UnsubscribeMetaDataDto struct {
 	Team            string
 }
 
+var message = "DEFAULT MESSAGE"
+
 // Error - Created detailed HTTP-Error
 func (c *ConclientHTTPError) Error() string {
 	return fmt.Sprintf("Call [%s] was not successfull. [Http-Status:%d] [Response:%s]", c.ClientFunction, c.HTTPStatusCode, c.Response)
@@ -65,6 +67,7 @@ var notifierClient *Access
 
 //Initialize sets connector client as admin and as org-admin
 func Initialize(notifierCfg *config.NotifierConfig) error {
+	message = notifierCfg.NotifierHealthMessage
 	client, err := NewNotificationClient(notifierCfg)
 	if err != nil {
 		return err
@@ -143,6 +146,7 @@ func defaultTimeout() time.Duration {
 // Healthcheck - verify connection to Solace connector
 func (c *Access) Healthcheck(name string) *hc.Status {
 	// Set a default response
+	log.Trace("[BEGIN] Triggered Health Check Message to Notification Endpoint")
 	s := hc.Status{
 		Result: hc.OK,
 	}
@@ -159,8 +163,9 @@ func (c *Access) Healthcheck(name string) *hc.Status {
 			Result:  hc.FAIL,
 			Details: "Not successfull",
 		}
+		return &s
 	}
-	log.Trace("[ok] Posted Health Check Message to Notification Endpoint")
+	log.Trace("[OK] Posted Health Check Message to Notification Endpoint")
 	return &s
 }
 
@@ -168,7 +173,7 @@ func (c *Access) Healthcheck(name string) *hc.Status {
 func (c *Access) IsHealthCheck() (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
-	body := PostNotifierHealthJSONRequestBody{Echo: "Health Check Ping [" + time.Now().Format(time.RFC3339) + "]"}
+	body := PostNotifierHealthJSONRequestBody{Echo: "Health Check Ping [" + time.Now().Format(time.RFC3339) + "] [" + message + "]"}
 	result, err := c.Client.PostNotifierHealthWithResponse(ctx, body)
 	if err != nil {
 		return false, err

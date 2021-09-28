@@ -112,6 +112,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	}
 
 	notifierConfig = &config.NotifierConfig{
+		NotifierHealthMessage:      rootProps.StringPropertyValue("notifier.healthmessage"),
 		NotifierURL:                rootProps.StringPropertyValue("notifier.url"),
 		NotifierApiConsumerKey:     rootProps.StringPropertyValue("notifier.apiConsumerKey"),
 		NotifierApiConsumerSecret:  rootProps.StringPropertyValue("notifier.apiConsumerSecret"),

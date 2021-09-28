@@ -10,11 +10,13 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/gateway"
+	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 )
 
 // RootCmd - Agent root command
 var RootCmd corecmd.AgentRootCmd
-var gatewayConfig *config.GatewayConfig
+var connectorConfig *config.ConnectorConfig
+var notifierConfig *config.NotifierConfig
 
 func init() {
 	log.SetLevel(logrus.TraceLevel)
@@ -36,12 +38,18 @@ func run() error {
 }
 
 func listenToSubscriptions() error {
-	err := connector.Initialize(gatewayConfig)
+	err := connector.Initialize(connectorConfig)
 	if err != nil {
 		panic(err)
 	}
+	errNotification := notification.Initialize(notifierConfig)
+	if errNotification != nil {
+		panic(errNotification)
+	}
+
 	//log.Info(agent.GetCentralClient().DumpToken())
 	subMan := agent.GetCentralClient().GetSubscriptionManager()
+
 	subMan.RegisterProcessor(apic.SubscriptionApproved, handleApprovedSubscription)
 	subMan.RegisterProcessor(apic.SubscriptionUnsubscribeInitiated, handleUnsubscribeSubscription)
 	subMan.Start()
@@ -94,22 +102,32 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	rootProps := RootCmd.GetProperties()
 	// Parse the config from bound properties and setup gateway config
-	gatewayConfig = &config.GatewayConfig{
-		ConnectorURL:           rootProps.StringPropertyValue("gateway-section.connectorUrl"),
-		ConnectorAdminUser:     rootProps.StringPropertyValue("gateway-section.connectorAdminUser"),
-		ConnectorAdminPassword: rootProps.StringPropertyValue("gateway-section.connectorAdminPassword"),
-		ConnectorOrgUser:       rootProps.StringPropertyValue("gateway-section.connectorOrgUser"),
-		ConnectorOrgPassword:   rootProps.StringPropertyValue("gateway-section.connectorOrgPassword"),
+	connectorConfig = &config.ConnectorConfig{
+		ConnectorURL:                rootProps.StringPropertyValue("connector.url"),
+		ConnectorAdminUser:          rootProps.StringPropertyValue("connector.adminUser"),
+		ConnectorAdminPassword:      rootProps.StringPropertyValue("connector.adminPassword"),
+		ConnectorOrgUser:            rootProps.StringPropertyValue("connector.orgUser"),
+		ConnectorOrgPassword:        rootProps.StringPropertyValue("connector.orgPassword"),
+		ConnectorInsecureSkipVerify: rootProps.BoolPropertyValue("connector.acceptInsecureCertificates"),
+	}
+
+	notifierConfig = &config.NotifierConfig{
+		NotifierURL:                rootProps.StringPropertyValue("notifier.url"),
+		NotifierApiConsumerKey:     rootProps.StringPropertyValue("notifier.apiConsumerKey"),
+		NotifierApiConsumerSecret:  rootProps.StringPropertyValue("notifier.apiConsumerSecret"),
+		NotifierApiAuthType:        rootProps.StringPropertyValue("notifier.apiAuthType"),
+		NotifierInsecureSkipVerify: rootProps.BoolPropertyValue("notifier.acceptInsecureCertificates"),
 	}
 
 	agentConfig := config.AgentConfig{
-		CentralCfg: centralConfig,
-		GatewayCfg: gatewayConfig,
+		CentralCfg:  centralConfig,
+		GatewayCfg:  connectorConfig,
+		NotifierCfg: notifierConfig,
 	}
 	return agentConfig, nil
 }
 
 // GetAgentConfig - Returns the agent config
-func GetAgentConfig() *config.GatewayConfig {
-	return gatewayConfig
+func GetAgentConfig() *config.ConnectorConfig {
+	return connectorConfig
 }

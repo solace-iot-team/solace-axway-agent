@@ -52,7 +52,6 @@ paths:
           application/json:
             schema: 
               $ref: "#/components/schemas/NotificationUnsubscribeEvent"
-
       responses:
         '200':
           description: Ok
@@ -60,6 +59,40 @@ paths:
           description: Bad formatted content
         '403':
           description: Forbidden
+  /monitor/success:
+    post:
+      summary: Monitoring information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitoringEvent"
+      responses:
+        '200':
+          description: Ok
+        '400':
+          description: Bad formatted content
+        '403':
+          description: Forbidden
+
+  /monitor/failure:
+    post:
+      summary: Monitoring information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitoringEvent"
+      responses:
+        '200':
+          description: Ok
+        '400':
+          description: Bad formatted content
+        '403':
+          description: Forbidden
+
 components:
   schemas:
     HealthEvent:
@@ -69,6 +102,81 @@ components:
       properties:
         echo:
           type: string
+    MonitoringEvent:
+      type: object
+      required:
+        - specversion
+        - type
+        - source
+        - id
+        - time
+        - datacontenttype
+        - data
+      properties:
+        specversion:
+          type: string
+        type:
+          type: string
+          enum:
+            - "com.solace.iot-team.asyncapi.notification.monitor.v1"
+        source:
+          type: string
+        id:
+          type: string
+        time:
+          type: string
+        datacontenttype:
+          type: string
+          enum:
+            - "application/json"
+        data:
+          $ref: '#/components/schemas/MonitorData'
+
+    MonitorData:
+      type: object
+      required:
+        - trigger
+        - success
+        - correlationId
+        - environment
+        - team
+        - api
+        - product
+        - application
+        - subscription
+        - subscriber
+        - subscriberEmail
+        - applicationData
+        - asyncApis
+      properties:
+        trigger:
+          type: string
+          enum:
+            - subscribe
+            - unsubscribe
+        success:
+          type: boolean
+        correlationId:
+          type: string
+        message:
+          type: string
+        environment:
+          type: string
+        team:
+          type: string
+        api:
+          type: string
+        product:
+          type: string
+        application:
+          type: string
+        subscription:
+          type: string
+        subscriber:
+          type: string
+        subscriberEmail:
+          type: string
+
     NotificationSubscribeEvent:
       type: object
       required:

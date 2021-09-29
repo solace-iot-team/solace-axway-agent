@@ -10030,6 +10030,7 @@ func ParseGetAppApiSpecificationResponse(rsp *http.Response) (*GetAppApiSpecific
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			fmt.Println(string(bodyBytes))
 			return nil, err
 		}
 		response.JSON200 = &dest

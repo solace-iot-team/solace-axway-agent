@@ -64,13 +64,15 @@ func handleUnsubscribeSubscription(subscription apic.Subscription) {
 		return
 	}
 	if subscription.GetRemoteAPIID() == "" && container.Valid {
-		//log.Info(" DUMP: ",container.Debug())
 		err := container.ProcessUnsubscribeSubscription()
 		if err != nil {
 			log.Error(err)
 			//TODO add some debug context-id to find log message
+			container.NotifyFailure("unsubscribe", "Failed to de-provision api", "undefined")
 			subscription.UpdateState(apic.SubscriptionFailedToUnsubscribe, "Failed to de-provision AsyncAPI")
+
 		} else {
+			container.NotifySuccess("unsubscribe", "de-provisioned api", "undefined")
 			subscription.UpdateState(apic.SubscriptionUnsubscribed, "AsyncAPI de-provisioned at PubSub+ Broker")
 		}
 	}
@@ -90,8 +92,10 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 		if err != nil {
 			log.Error(err)
 			//TODO add some debug context-id to find log message
+			container.NotifyFailure("subscribe", "Failed to provision api", "undefined")
 			subscription.UpdateState(apic.SubscriptionFailedToSubscribe, "Failed to provision AsyncAPI")
 		} else {
+			container.NotifySuccess("subscribe", "provisioned api", "undefined")
 			subscription.UpdateState(apic.SubscriptionActive, "AsyncAPI provisioned to PubSub+ Broker")
 		}
 	}

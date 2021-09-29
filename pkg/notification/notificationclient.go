@@ -45,6 +45,21 @@ type UnsubscribeMetaDataDto struct {
 	Team            string
 }
 
+type MonitorDataDto struct {
+	Trigger         MonitorDataTrigger
+	Success         bool
+	Message         *string
+	CorrelationId   string
+	Api             string
+	Application     string
+	Environment     string
+	Product         string
+	Subscriber      string
+	Subscriberemail string
+	Subscription    string
+	Team            string
+}
+
 var message = "DEFAULT MESSAGE"
 
 // Error - Created detailed HTTP-Error
@@ -173,8 +188,8 @@ func (c *Access) Healthcheck(name string) *hc.Status {
 func (c *Access) IsHealthCheck() (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
-	body := PostNotifierHealthJSONRequestBody{Echo: "Health Check Ping [" + time.Now().Format(time.RFC3339) + "] [" + message + "]"}
-	result, err := c.Client.PostNotifierHealthWithResponse(ctx, body)
+	body := PostHealthJSONRequestBody{Echo: "Health Check Ping [" + time.Now().Format(time.RFC3339) + "] [" + message + "]"}
+	result, err := c.Client.PostHealthWithResponse(ctx, body)
 	if err != nil {
 		return false, err
 	}
@@ -187,7 +202,7 @@ func (c *Access) IsHealthCheck() (bool, error) {
 func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
-	body := PostNotifierSubscribeJSONRequestBody{
+	body := PostSubscribeJSONRequestBody{
 		Data: SubscribeData{
 			Api:             dto.Api,
 			Application:     dto.Application,
@@ -207,7 +222,7 @@ func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 		Time:            time.Now().Format(time.RFC3339),
 		Type:            "com.solace.iot-team.asyncapi.notification.subscribe.v1",
 	}
-	result, err := c.Client.PostNotifierSubscribeWithResponse(ctx, body)
+	result, err := c.Client.PostSubscribeWithResponse(ctx, body)
 	if err != nil {
 		return false, err
 	}
@@ -220,7 +235,7 @@ func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
-	body := PostNotifierUnsubscribeJSONRequestBody{
+	body := PostUnsubscribeJSONRequestBody{
 		Data: UnsubscribeData{
 			Api:             dto.Api,
 			Application:     dto.Application,
@@ -238,12 +253,82 @@ func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
 		Time:            time.Now().Format(time.RFC3339),
 		Type:            "com.solace.iot-team.asyncapi.notification.unsubscribe.v1",
 	}
-	result, err := c.Client.PostNotifierUnsubscribeWithResponse(ctx, body)
+	result, err := c.Client.PostUnsubscribeWithResponse(ctx, body)
 	if err != nil {
 		return false, err
 	}
 	if result.StatusCode() >= 300 {
 		return false, errors.New("Posting unsubscribe notification to Endpoint returned HTTP:" + result.Status())
+	}
+	return result.StatusCode() == http.StatusOK, nil
+}
+
+func (c *Access) NotifyFailureMonitor(dto MonitorDataDto) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+	body := PostMonitorFailureJSONRequestBody{
+		Data: MonitorData{
+			Trigger:         dto.Trigger,
+			Success:         dto.Success,
+			Message:         dto.Message,
+			CorrelationId:   dto.CorrelationId,
+			Api:             dto.Api,
+			Application:     dto.Application,
+			Environment:     dto.Environment,
+			Product:         dto.Product,
+			Subscriber:      dto.Subscriber,
+			SubscriberEmail: dto.Subscriberemail,
+			Subscription:    dto.Subscription,
+			Team:            dto.Team,
+		},
+		Datacontenttype: "application/json",
+		Id:              uuid.New().String(),
+		Source:          "axway-solace-agent",
+		Specversion:     "1.0",
+		Time:            time.Now().Format(time.RFC3339),
+		Type:            "com.solace.iot-team.asyncapi.notification.monitor.v1",
+	}
+	result, err := c.Client.PostMonitorFailureWithResponse(ctx, body)
+	if err != nil {
+		return false, err
+	}
+	if result.StatusCode() >= 300 {
+		return false, errors.New("Posting monitor failure notification to Endpoint returned HTTP:" + result.Status())
+	}
+	return result.StatusCode() == http.StatusOK, nil
+}
+
+func (c *Access) NotifySuccessMonitor(dto MonitorDataDto) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+	body := PostMonitorSuccessJSONRequestBody{
+		Data: MonitorData{
+			Trigger:         dto.Trigger,
+			Success:         dto.Success,
+			Message:         dto.Message,
+			CorrelationId:   dto.CorrelationId,
+			Api:             dto.Api,
+			Application:     dto.Application,
+			Environment:     dto.Environment,
+			Product:         dto.Product,
+			Subscriber:      dto.Subscriber,
+			SubscriberEmail: dto.Subscriberemail,
+			Subscription:    dto.Subscription,
+			Team:            dto.Team,
+		},
+		Datacontenttype: "application/json",
+		Id:              uuid.New().String(),
+		Source:          "axway-solace-agent",
+		Specversion:     "1.0",
+		Time:            time.Now().Format(time.RFC3339),
+		Type:            "com.solace.iot-team.asyncapi.notification.monitor.v1",
+	}
+	result, err := c.Client.PostMonitorSuccessWithResponse(ctx, body)
+	if err != nil {
+		return false, err
+	}
+	if result.StatusCode() >= 300 {
+		return false, errors.New("Posting monitor failure notification to Endpoint returned HTTP:" + result.Status())
 	}
 	return result.StatusCode() == http.StatusOK, nil
 }

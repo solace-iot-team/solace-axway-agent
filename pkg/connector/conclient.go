@@ -350,13 +350,14 @@ func (c *Access) GetAppApiNames(orgName string, appName string) (*[]string, erro
 func (c *Access) GetAppApiSpecification(orgName string, appName string, apiName string) (*map[string]interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
-	format := GetAppApiSpecificationParamsFormat("application/json")
+	//todo add format parameter after bugfix of connector-api
+	//format := GetAppApiSpecificationParamsFormat("application/json")
 	params := &GetAppApiSpecificationParams{
-		Format: &format,
+		//Format: &format,
 	}
 	result, err := c.Client.GetAppApiSpecificationWithResponse(ctx, Orgparameter(orgName), AppName(appName), ApiName(apiName), params)
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [GetAppApiSpecification] [GetAppApiSpecificationWithResponse] [orgName:%s] [appName:%s] [apiName:%s] ", orgName, appName, apiName)
+		log.Tracef("[ERROR] [CONCLIENT] [GetAppApiSpecification] [GetAppApiSpecificationWithResponse] [orgName:%s] [appName:%s] [apiName:%s] [%s]", orgName, appName, apiName, err)
 		return nil, err
 	}
 	if result.StatusCode() >= 300 {

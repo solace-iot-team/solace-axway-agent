@@ -294,6 +294,70 @@ func (container *SubscriptionContainer) ProcessSubscription() error {
 
 }
 
+func (container *SubscriptionContainer) NotifySuccess(trigger string, message string, correlationId string) (bool, error) {
+	userEmail, _ := container.GetSubscriberEmailAddress()
+	username, _ := container.GetSubscriberUserName()
+
+	dto := notification.MonitorDataDto{
+		Api:             container.GetRevisionName(),
+		Team:            container.Sub.GetOwningTeamId(),
+		Product:         container.GetRevisionName(),
+		Application:     container.Sub.GetID(),
+		Environment:     container.GetEnvironmentName(),
+		Subscription:    container.Sub.GetName(),
+		Subscriber:      username,
+		Subscriberemail: userEmail,
+		Trigger:         notification.MonitorDataTrigger(trigger),
+		Success:         true,
+		Message:         &message,
+		CorrelationId:   "undefined",
+	}
+
+	okNotification, err := notification.GetNotifierClient().NotifySuccessMonitor(dto)
+	if err != nil {
+		log.Errorf("[ERROR] [MIDDLEWARE] [NotifySuccess]  [Notification failed] [%s]", err)
+		return false, err
+	} else {
+		if !okNotification {
+			log.Error("[ERROR] [MIDDLEWARE] [NotifySuccess] [Notification was not sent successfully]")
+		}
+		return false, nil
+	}
+	return true, nil
+}
+
+func (container *SubscriptionContainer) NotifyFailure(trigger string, message string, correlationId string) (bool, error) {
+	userEmail, _ := container.GetSubscriberEmailAddress()
+	username, _ := container.GetSubscriberUserName()
+
+	dto := notification.MonitorDataDto{
+		Api:             container.GetRevisionName(),
+		Team:            container.Sub.GetOwningTeamId(),
+		Product:         container.GetRevisionName(),
+		Application:     container.Sub.GetID(),
+		Environment:     container.GetEnvironmentName(),
+		Subscription:    container.Sub.GetName(),
+		Subscriber:      username,
+		Subscriberemail: userEmail,
+		Trigger:         notification.MonitorDataTrigger(trigger),
+		Success:         false,
+		CorrelationId:   "undefined",
+		Message:         &message,
+	}
+
+	okNotification, err := notification.GetNotifierClient().NotifyFailureMonitor(dto)
+	if err != nil {
+		log.Errorf("[ERROR] [MIDDLEWARE] [NotifyFailure]  [Notification failed] [%s]", err)
+		return false, err
+	} else {
+		if !okNotification {
+			log.Error("[ERROR] [MIDDLEWARE] [NotifyFailure] [Notification was not sent successfully]")
+		}
+		return false, nil
+	}
+	return true, nil
+}
+
 // GetDummySuccessOrFault -for development only
 func (container *SubscriptionContainer) GetDummySuccessOrFault(success bool) (bool, error) {
 	return success, nil

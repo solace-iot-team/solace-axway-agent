@@ -15,6 +15,23 @@ import (
 	"strings"
 )
 
+// Defines values for MonitorDataTrigger.
+const (
+	MonitorDataTriggerSubscribe MonitorDataTrigger = "subscribe"
+
+	MonitorDataTriggerUnsubscribe MonitorDataTrigger = "unsubscribe"
+)
+
+// Defines values for MonitoringEventDatacontenttype.
+const (
+	MonitoringEventDatacontenttypeApplicationjson MonitoringEventDatacontenttype = "application/json"
+)
+
+// Defines values for MonitoringEventType.
+const (
+	MonitoringEventTypeComSolaceIotTeamAsyncapiNotificationMonitorV1 MonitoringEventType = "com.solace.iot-team.asyncapi.notification.monitor.v1"
+)
+
 // Defines values for NotificationSubscribeEventDatacontenttype.
 const (
 	NotificationSubscribeEventDatacontenttypeApplicationjson NotificationSubscribeEventDatacontenttype = "application/json"
@@ -39,6 +56,42 @@ const (
 type HealthEvent struct {
 	Echo string `json:"echo"`
 }
+
+// MonitorData defines model for MonitorData.
+type MonitorData struct {
+	Api             string             `json:"api"`
+	Application     string             `json:"application"`
+	CorrelationId   string             `json:"correlationId"`
+	Environment     string             `json:"environment"`
+	Message         *string            `json:"message,omitempty"`
+	Product         string             `json:"product"`
+	Subscriber      string             `json:"subscriber"`
+	SubscriberEmail string             `json:"subscriberEmail"`
+	Subscription    string             `json:"subscription"`
+	Success         bool               `json:"success"`
+	Team            string             `json:"team"`
+	Trigger         MonitorDataTrigger `json:"trigger"`
+}
+
+// MonitorDataTrigger defines model for MonitorData.Trigger.
+type MonitorDataTrigger string
+
+// MonitoringEvent defines model for MonitoringEvent.
+type MonitoringEvent struct {
+	Data            MonitorData                    `json:"data"`
+	Datacontenttype MonitoringEventDatacontenttype `json:"datacontenttype"`
+	Id              string                         `json:"id"`
+	Source          string                         `json:"source"`
+	Specversion     string                         `json:"specversion"`
+	Time            string                         `json:"time"`
+	Type            MonitoringEventType            `json:"type"`
+}
+
+// MonitoringEventDatacontenttype defines model for MonitoringEvent.Datacontenttype.
+type MonitoringEventDatacontenttype string
+
+// MonitoringEventType defines model for MonitoringEvent.Type.
+type MonitoringEventType string
 
 // NotificationSubscribeEvent defines model for NotificationSubscribeEvent.
 type NotificationSubscribeEvent struct {
@@ -100,23 +153,35 @@ type UnsubscribeData struct {
 	Team            string `json:"team"`
 }
 
-// PostNotifierHealthJSONBody defines parameters for PostNotifierHealth.
-type PostNotifierHealthJSONBody HealthEvent
+// PostHealthJSONBody defines parameters for PostHealth.
+type PostHealthJSONBody HealthEvent
 
-// PostNotifierSubscribeJSONBody defines parameters for PostNotifierSubscribe.
-type PostNotifierSubscribeJSONBody NotificationSubscribeEvent
+// PostMonitorFailureJSONBody defines parameters for PostMonitorFailure.
+type PostMonitorFailureJSONBody MonitoringEvent
 
-// PostNotifierUnsubscribeJSONBody defines parameters for PostNotifierUnsubscribe.
-type PostNotifierUnsubscribeJSONBody NotificationUnsubscribeEvent
+// PostMonitorSuccessJSONBody defines parameters for PostMonitorSuccess.
+type PostMonitorSuccessJSONBody MonitoringEvent
 
-// PostNotifierHealthJSONRequestBody defines body for PostNotifierHealth for application/json ContentType.
-type PostNotifierHealthJSONRequestBody PostNotifierHealthJSONBody
+// PostSubscribeJSONBody defines parameters for PostSubscribe.
+type PostSubscribeJSONBody NotificationSubscribeEvent
 
-// PostNotifierSubscribeJSONRequestBody defines body for PostNotifierSubscribe for application/json ContentType.
-type PostNotifierSubscribeJSONRequestBody PostNotifierSubscribeJSONBody
+// PostUnsubscribeJSONBody defines parameters for PostUnsubscribe.
+type PostUnsubscribeJSONBody NotificationUnsubscribeEvent
 
-// PostNotifierUnsubscribeJSONRequestBody defines body for PostNotifierUnsubscribe for application/json ContentType.
-type PostNotifierUnsubscribeJSONRequestBody PostNotifierUnsubscribeJSONBody
+// PostHealthJSONRequestBody defines body for PostHealth for application/json ContentType.
+type PostHealthJSONRequestBody PostHealthJSONBody
+
+// PostMonitorFailureJSONRequestBody defines body for PostMonitorFailure for application/json ContentType.
+type PostMonitorFailureJSONRequestBody PostMonitorFailureJSONBody
+
+// PostMonitorSuccessJSONRequestBody defines body for PostMonitorSuccess for application/json ContentType.
+type PostMonitorSuccessJSONRequestBody PostMonitorSuccessJSONBody
+
+// PostSubscribeJSONRequestBody defines body for PostSubscribe for application/json ContentType.
+type PostSubscribeJSONRequestBody PostSubscribeJSONBody
+
+// PostUnsubscribeJSONRequestBody defines body for PostUnsubscribe for application/json ContentType.
+type PostUnsubscribeJSONRequestBody PostUnsubscribeJSONBody
 
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -191,24 +256,34 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// PostNotifierHealth request with any body
-	PostNotifierHealthWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostHealth request with any body
+	PostHealthWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostNotifierHealth(ctx context.Context, body PostNotifierHealthJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostHealth(ctx context.Context, body PostHealthJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostNotifierSubscribe request with any body
-	PostNotifierSubscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostMonitorFailure request with any body
+	PostMonitorFailureWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostNotifierSubscribe(ctx context.Context, body PostNotifierSubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostMonitorFailure(ctx context.Context, body PostMonitorFailureJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostNotifierUnsubscribe request with any body
-	PostNotifierUnsubscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostMonitorSuccess request with any body
+	PostMonitorSuccessWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostNotifierUnsubscribe(ctx context.Context, body PostNotifierUnsubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostMonitorSuccess(ctx context.Context, body PostMonitorSuccessJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostSubscribe request with any body
+	PostSubscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostSubscribe(ctx context.Context, body PostSubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostUnsubscribe request with any body
+	PostUnsubscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostUnsubscribe(ctx context.Context, body PostUnsubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-func (c *Client) PostNotifierHealthWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostNotifierHealthRequestWithBody(c.Server, contentType, body)
+func (c *Client) PostHealthWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostHealthRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -219,8 +294,8 @@ func (c *Client) PostNotifierHealthWithBody(ctx context.Context, contentType str
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostNotifierHealth(ctx context.Context, body PostNotifierHealthJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostNotifierHealthRequest(c.Server, body)
+func (c *Client) PostHealth(ctx context.Context, body PostHealthJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostHealthRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -231,8 +306,8 @@ func (c *Client) PostNotifierHealth(ctx context.Context, body PostNotifierHealth
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostNotifierSubscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostNotifierSubscribeRequestWithBody(c.Server, contentType, body)
+func (c *Client) PostMonitorFailureWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostMonitorFailureRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -243,8 +318,8 @@ func (c *Client) PostNotifierSubscribeWithBody(ctx context.Context, contentType 
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostNotifierSubscribe(ctx context.Context, body PostNotifierSubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostNotifierSubscribeRequest(c.Server, body)
+func (c *Client) PostMonitorFailure(ctx context.Context, body PostMonitorFailureJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostMonitorFailureRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -255,8 +330,8 @@ func (c *Client) PostNotifierSubscribe(ctx context.Context, body PostNotifierSub
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostNotifierUnsubscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostNotifierUnsubscribeRequestWithBody(c.Server, contentType, body)
+func (c *Client) PostMonitorSuccessWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostMonitorSuccessRequestWithBody(c.Server, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -267,8 +342,8 @@ func (c *Client) PostNotifierUnsubscribeWithBody(ctx context.Context, contentTyp
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostNotifierUnsubscribe(ctx context.Context, body PostNotifierUnsubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostNotifierUnsubscribeRequest(c.Server, body)
+func (c *Client) PostMonitorSuccess(ctx context.Context, body PostMonitorSuccessJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostMonitorSuccessRequest(c.Server, body)
 	if err != nil {
 		return nil, err
 	}
@@ -279,19 +354,67 @@ func (c *Client) PostNotifierUnsubscribe(ctx context.Context, body PostNotifierU
 	return c.Client.Do(req)
 }
 
-// NewPostNotifierHealthRequest calls the generic PostNotifierHealth builder with application/json body
-func NewPostNotifierHealthRequest(server string, body PostNotifierHealthJSONRequestBody) (*http.Request, error) {
+func (c *Client) PostSubscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostSubscribeRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostSubscribe(ctx context.Context, body PostSubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostSubscribeRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostUnsubscribeWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostUnsubscribeRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostUnsubscribe(ctx context.Context, body PostUnsubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostUnsubscribeRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewPostHealthRequest calls the generic PostHealth builder with application/json body
+func NewPostHealthRequest(server string, body PostHealthJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPostNotifierHealthRequestWithBody(server, "application/json", bodyReader)
+	return NewPostHealthRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewPostNotifierHealthRequestWithBody generates requests for PostNotifierHealth with any type of body
-func NewPostNotifierHealthRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewPostHealthRequestWithBody generates requests for PostHealth with any type of body
+func NewPostHealthRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -299,7 +422,7 @@ func NewPostNotifierHealthRequestWithBody(server string, contentType string, bod
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/notifier/health")
+	operationPath := fmt.Sprintf("/health")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -319,19 +442,19 @@ func NewPostNotifierHealthRequestWithBody(server string, contentType string, bod
 	return req, nil
 }
 
-// NewPostNotifierSubscribeRequest calls the generic PostNotifierSubscribe builder with application/json body
-func NewPostNotifierSubscribeRequest(server string, body PostNotifierSubscribeJSONRequestBody) (*http.Request, error) {
+// NewPostMonitorFailureRequest calls the generic PostMonitorFailure builder with application/json body
+func NewPostMonitorFailureRequest(server string, body PostMonitorFailureJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPostNotifierSubscribeRequestWithBody(server, "application/json", bodyReader)
+	return NewPostMonitorFailureRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewPostNotifierSubscribeRequestWithBody generates requests for PostNotifierSubscribe with any type of body
-func NewPostNotifierSubscribeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewPostMonitorFailureRequestWithBody generates requests for PostMonitorFailure with any type of body
+func NewPostMonitorFailureRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -339,7 +462,7 @@ func NewPostNotifierSubscribeRequestWithBody(server string, contentType string, 
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/notifier/subscribe")
+	operationPath := fmt.Sprintf("/monitor/failure")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -359,19 +482,19 @@ func NewPostNotifierSubscribeRequestWithBody(server string, contentType string, 
 	return req, nil
 }
 
-// NewPostNotifierUnsubscribeRequest calls the generic PostNotifierUnsubscribe builder with application/json body
-func NewPostNotifierUnsubscribeRequest(server string, body PostNotifierUnsubscribeJSONRequestBody) (*http.Request, error) {
+// NewPostMonitorSuccessRequest calls the generic PostMonitorSuccess builder with application/json body
+func NewPostMonitorSuccessRequest(server string, body PostMonitorSuccessJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPostNotifierUnsubscribeRequestWithBody(server, "application/json", bodyReader)
+	return NewPostMonitorSuccessRequestWithBody(server, "application/json", bodyReader)
 }
 
-// NewPostNotifierUnsubscribeRequestWithBody generates requests for PostNotifierUnsubscribe with any type of body
-func NewPostNotifierUnsubscribeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+// NewPostMonitorSuccessRequestWithBody generates requests for PostMonitorSuccess with any type of body
+func NewPostMonitorSuccessRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	serverURL, err := url.Parse(server)
@@ -379,7 +502,87 @@ func NewPostNotifierUnsubscribeRequestWithBody(server string, contentType string
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/notifier/unsubscribe")
+	operationPath := fmt.Sprintf("/monitor/success")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostSubscribeRequest calls the generic PostSubscribe builder with application/json body
+func NewPostSubscribeRequest(server string, body PostSubscribeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostSubscribeRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostSubscribeRequestWithBody generates requests for PostSubscribe with any type of body
+func NewPostSubscribeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/subscribe")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostUnsubscribeRequest calls the generic PostUnsubscribe builder with application/json body
+func NewPostUnsubscribeRequest(server string, body PostUnsubscribeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostUnsubscribeRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostUnsubscribeRequestWithBody generates requests for PostUnsubscribe with any type of body
+func NewPostUnsubscribeRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/unsubscribe")
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -442,29 +645,39 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// PostNotifierHealth request with any body
-	PostNotifierHealthWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNotifierHealthResponse, error)
+	// PostHealth request with any body
+	PostHealthWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostHealthResponse, error)
 
-	PostNotifierHealthWithResponse(ctx context.Context, body PostNotifierHealthJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNotifierHealthResponse, error)
+	PostHealthWithResponse(ctx context.Context, body PostHealthJSONRequestBody, reqEditors ...RequestEditorFn) (*PostHealthResponse, error)
 
-	// PostNotifierSubscribe request with any body
-	PostNotifierSubscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNotifierSubscribeResponse, error)
+	// PostMonitorFailure request with any body
+	PostMonitorFailureWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostMonitorFailureResponse, error)
 
-	PostNotifierSubscribeWithResponse(ctx context.Context, body PostNotifierSubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNotifierSubscribeResponse, error)
+	PostMonitorFailureWithResponse(ctx context.Context, body PostMonitorFailureJSONRequestBody, reqEditors ...RequestEditorFn) (*PostMonitorFailureResponse, error)
 
-	// PostNotifierUnsubscribe request with any body
-	PostNotifierUnsubscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNotifierUnsubscribeResponse, error)
+	// PostMonitorSuccess request with any body
+	PostMonitorSuccessWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostMonitorSuccessResponse, error)
 
-	PostNotifierUnsubscribeWithResponse(ctx context.Context, body PostNotifierUnsubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNotifierUnsubscribeResponse, error)
+	PostMonitorSuccessWithResponse(ctx context.Context, body PostMonitorSuccessJSONRequestBody, reqEditors ...RequestEditorFn) (*PostMonitorSuccessResponse, error)
+
+	// PostSubscribe request with any body
+	PostSubscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostSubscribeResponse, error)
+
+	PostSubscribeWithResponse(ctx context.Context, body PostSubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostSubscribeResponse, error)
+
+	// PostUnsubscribe request with any body
+	PostUnsubscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostUnsubscribeResponse, error)
+
+	PostUnsubscribeWithResponse(ctx context.Context, body PostUnsubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostUnsubscribeResponse, error)
 }
 
-type PostNotifierHealthResponse struct {
+type PostHealthResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r PostNotifierHealthResponse) Status() string {
+func (r PostHealthResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -472,20 +685,20 @@ func (r PostNotifierHealthResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostNotifierHealthResponse) StatusCode() int {
+func (r PostHealthResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PostNotifierSubscribeResponse struct {
+type PostMonitorFailureResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r PostNotifierSubscribeResponse) Status() string {
+func (r PostMonitorFailureResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -493,20 +706,20 @@ func (r PostNotifierSubscribeResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostNotifierSubscribeResponse) StatusCode() int {
+func (r PostMonitorFailureResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-type PostNotifierUnsubscribeResponse struct {
+type PostMonitorSuccessResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 }
 
 // Status returns HTTPResponse.Status
-func (r PostNotifierUnsubscribeResponse) Status() string {
+func (r PostMonitorSuccessResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -514,73 +727,149 @@ func (r PostNotifierUnsubscribeResponse) Status() string {
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostNotifierUnsubscribeResponse) StatusCode() int {
+func (r PostMonitorSuccessResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-// PostNotifierHealthWithBodyWithResponse request with arbitrary body returning *PostNotifierHealthResponse
-func (c *ClientWithResponses) PostNotifierHealthWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNotifierHealthResponse, error) {
-	rsp, err := c.PostNotifierHealthWithBody(ctx, contentType, body, reqEditors...)
+type PostSubscribeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostSubscribeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostSubscribeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostUnsubscribeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostUnsubscribeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostUnsubscribeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// PostHealthWithBodyWithResponse request with arbitrary body returning *PostHealthResponse
+func (c *ClientWithResponses) PostHealthWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostHealthResponse, error) {
+	rsp, err := c.PostHealthWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostNotifierHealthResponse(rsp)
+	return ParsePostHealthResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostNotifierHealthWithResponse(ctx context.Context, body PostNotifierHealthJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNotifierHealthResponse, error) {
-	rsp, err := c.PostNotifierHealth(ctx, body, reqEditors...)
+func (c *ClientWithResponses) PostHealthWithResponse(ctx context.Context, body PostHealthJSONRequestBody, reqEditors ...RequestEditorFn) (*PostHealthResponse, error) {
+	rsp, err := c.PostHealth(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostNotifierHealthResponse(rsp)
+	return ParsePostHealthResponse(rsp)
 }
 
-// PostNotifierSubscribeWithBodyWithResponse request with arbitrary body returning *PostNotifierSubscribeResponse
-func (c *ClientWithResponses) PostNotifierSubscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNotifierSubscribeResponse, error) {
-	rsp, err := c.PostNotifierSubscribeWithBody(ctx, contentType, body, reqEditors...)
+// PostMonitorFailureWithBodyWithResponse request with arbitrary body returning *PostMonitorFailureResponse
+func (c *ClientWithResponses) PostMonitorFailureWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostMonitorFailureResponse, error) {
+	rsp, err := c.PostMonitorFailureWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostNotifierSubscribeResponse(rsp)
+	return ParsePostMonitorFailureResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostNotifierSubscribeWithResponse(ctx context.Context, body PostNotifierSubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNotifierSubscribeResponse, error) {
-	rsp, err := c.PostNotifierSubscribe(ctx, body, reqEditors...)
+func (c *ClientWithResponses) PostMonitorFailureWithResponse(ctx context.Context, body PostMonitorFailureJSONRequestBody, reqEditors ...RequestEditorFn) (*PostMonitorFailureResponse, error) {
+	rsp, err := c.PostMonitorFailure(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostNotifierSubscribeResponse(rsp)
+	return ParsePostMonitorFailureResponse(rsp)
 }
 
-// PostNotifierUnsubscribeWithBodyWithResponse request with arbitrary body returning *PostNotifierUnsubscribeResponse
-func (c *ClientWithResponses) PostNotifierUnsubscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNotifierUnsubscribeResponse, error) {
-	rsp, err := c.PostNotifierUnsubscribeWithBody(ctx, contentType, body, reqEditors...)
+// PostMonitorSuccessWithBodyWithResponse request with arbitrary body returning *PostMonitorSuccessResponse
+func (c *ClientWithResponses) PostMonitorSuccessWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostMonitorSuccessResponse, error) {
+	rsp, err := c.PostMonitorSuccessWithBody(ctx, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostNotifierUnsubscribeResponse(rsp)
+	return ParsePostMonitorSuccessResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostNotifierUnsubscribeWithResponse(ctx context.Context, body PostNotifierUnsubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNotifierUnsubscribeResponse, error) {
-	rsp, err := c.PostNotifierUnsubscribe(ctx, body, reqEditors...)
+func (c *ClientWithResponses) PostMonitorSuccessWithResponse(ctx context.Context, body PostMonitorSuccessJSONRequestBody, reqEditors ...RequestEditorFn) (*PostMonitorSuccessResponse, error) {
+	rsp, err := c.PostMonitorSuccess(ctx, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostNotifierUnsubscribeResponse(rsp)
+	return ParsePostMonitorSuccessResponse(rsp)
 }
 
-// ParsePostNotifierHealthResponse parses an HTTP response from a PostNotifierHealthWithResponse call
-func ParsePostNotifierHealthResponse(rsp *http.Response) (*PostNotifierHealthResponse, error) {
+// PostSubscribeWithBodyWithResponse request with arbitrary body returning *PostSubscribeResponse
+func (c *ClientWithResponses) PostSubscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostSubscribeResponse, error) {
+	rsp, err := c.PostSubscribeWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostSubscribeResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostSubscribeWithResponse(ctx context.Context, body PostSubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostSubscribeResponse, error) {
+	rsp, err := c.PostSubscribe(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostSubscribeResponse(rsp)
+}
+
+// PostUnsubscribeWithBodyWithResponse request with arbitrary body returning *PostUnsubscribeResponse
+func (c *ClientWithResponses) PostUnsubscribeWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostUnsubscribeResponse, error) {
+	rsp, err := c.PostUnsubscribeWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostUnsubscribeResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostUnsubscribeWithResponse(ctx context.Context, body PostUnsubscribeJSONRequestBody, reqEditors ...RequestEditorFn) (*PostUnsubscribeResponse, error) {
+	rsp, err := c.PostUnsubscribe(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostUnsubscribeResponse(rsp)
+}
+
+// ParsePostHealthResponse parses an HTTP response from a PostHealthWithResponse call
+func ParsePostHealthResponse(rsp *http.Response) (*PostHealthResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostNotifierHealthResponse{
+	response := &PostHealthResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -588,15 +877,15 @@ func ParsePostNotifierHealthResponse(rsp *http.Response) (*PostNotifierHealthRes
 	return response, nil
 }
 
-// ParsePostNotifierSubscribeResponse parses an HTTP response from a PostNotifierSubscribeWithResponse call
-func ParsePostNotifierSubscribeResponse(rsp *http.Response) (*PostNotifierSubscribeResponse, error) {
+// ParsePostMonitorFailureResponse parses an HTTP response from a PostMonitorFailureWithResponse call
+func ParsePostMonitorFailureResponse(rsp *http.Response) (*PostMonitorFailureResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostNotifierSubscribeResponse{
+	response := &PostMonitorFailureResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}
@@ -604,15 +893,47 @@ func ParsePostNotifierSubscribeResponse(rsp *http.Response) (*PostNotifierSubscr
 	return response, nil
 }
 
-// ParsePostNotifierUnsubscribeResponse parses an HTTP response from a PostNotifierUnsubscribeWithResponse call
-func ParsePostNotifierUnsubscribeResponse(rsp *http.Response) (*PostNotifierUnsubscribeResponse, error) {
+// ParsePostMonitorSuccessResponse parses an HTTP response from a PostMonitorSuccessWithResponse call
+func ParsePostMonitorSuccessResponse(rsp *http.Response) (*PostMonitorSuccessResponse, error) {
 	bodyBytes, err := ioutil.ReadAll(rsp.Body)
 	defer rsp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostNotifierUnsubscribeResponse{
+	response := &PostMonitorSuccessResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePostSubscribeResponse parses an HTTP response from a PostSubscribeWithResponse call
+func ParsePostSubscribeResponse(rsp *http.Response) (*PostSubscribeResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostSubscribeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePostUnsubscribeResponse parses an HTTP response from a PostUnsubscribeWithResponse call
+func ParsePostUnsubscribeResponse(rsp *http.Response) (*PostUnsubscribeResponse, error) {
+	bodyBytes, err := ioutil.ReadAll(rsp.Body)
+	defer rsp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostUnsubscribeResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

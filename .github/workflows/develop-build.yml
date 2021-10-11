@@ -16,12 +16,10 @@ jobs:
           go version
           go get -u golang.org/x/lint/golint
 
-      # just so check if a Make based build is successful
-      # in step deploy it will get build again
-      #- name: build it
-      #  run: |
-      #    make dep
-      #    make build
+      - name: build it
+        run: |
+          make dep
+          make build
 
   deploy:
     runs-on: ubuntu-latest

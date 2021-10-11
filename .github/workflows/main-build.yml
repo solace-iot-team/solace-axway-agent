@@ -16,10 +16,6 @@ jobs:
           go version
           go get -u golang.org/x/lint/golint
 
-      - name: build it
-        run: |
-          make dep
-          make build
 
   deploy:
     runs-on: ubuntu-latest

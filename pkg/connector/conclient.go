@@ -40,6 +40,13 @@ type SolaceEnvironment struct {
 	ProtocolVersion map[string]string
 }
 
+type SolaceCredentialsDto struct {
+	ConsumerKey    string
+	ConsumerSecret *string
+	IssuedAt       *float32
+	ExpiresAt      *float32
+}
+
 type connectorClients struct {
 	AdminConnector *Access
 	OrgConnector   *Access
@@ -298,14 +305,14 @@ func deriveHostFromProtocols(env EnvironmentListItem) (string, error) {
 }
 
 // GetTeamApp - retrieves App as generic JSON
-func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (map[string]interface{}, error) {
+func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*SolaceCredentialsDto, map[string]interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	params := GetTeamAppParams{}
 	result, err := c.Client.GetTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), AppName(appName), &params)
 	if err != nil {
 		log.Tracef("[ERROR] [CONCLIENT] [GetTeamApp] [GetTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] ", orgName, teamName, appName)
-		return nil, err
+		return nil, nil, err
 	}
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
@@ -314,14 +321,21 @@ func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (ma
 			Response:       "n/a",
 		}
 		log.Tracef("[FAULT] [CONCLIENT] [GetTeamApp] [GetTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [%s]", orgName, teamName, appName, returnError.Error())
-		return nil, returnError
+		return nil, nil, returnError
 	}
+
 	jsonMap := make(map[string]interface{})
 	errMarshalling := json.Unmarshal(result.Body, &jsonMap)
 	if errMarshalling != nil {
-		return nil, errMarshalling
+		return nil, nil, errMarshalling
 	}
-	return jsonMap, nil
+	credentialsDto := SolaceCredentialsDto{
+		ConsumerKey:    result.JSON200.Credentials.Secret.ConsumerKey,
+		ConsumerSecret: result.JSON200.Credentials.Secret.ConsumerSecret,
+		IssuedAt:       result.JSON200.Credentials.IssuedAt,
+		ExpiresAt:      &result.JSON200.Credentials.ExpiresAt,
+	}
+	return &credentialsDto, jsonMap, nil
 }
 
 // GetAppApiNames - retrieves AsyncAPI Names of app

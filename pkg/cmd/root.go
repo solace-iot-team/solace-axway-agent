@@ -6,6 +6,7 @@ import (
 	"github.com/solace-iot-team/agent-sdk/pkg/apic"
 	corecmd "github.com/solace-iot-team/agent-sdk/pkg/cmd"
 	corecfg "github.com/solace-iot-team/agent-sdk/pkg/config"
+	"github.com/solace-iot-team/agent-sdk/pkg/notify"
 	"github.com/solace-iot-team/agent-sdk/pkg/util/log"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
@@ -34,10 +35,12 @@ func init() {
 // Callback that agent will call to process the execution
 func run() error {
 	//nothing to do
+
 	return nil
 }
 
 func listenToSubscriptions() error {
+
 	err := connector.Initialize(connectorConfig)
 	if err != nil {
 		panic(err)
@@ -86,8 +89,11 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 		log.Errorf("Handling subscribe for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return
 	}
+
 	if subscription.GetRemoteAPIID() == "" && container.Valid {
 		//log.Info(" DUMP: ",container.Debug())
+		apicid := subscription.GetApicID()
+		log.Infof("APIC-ID: %s", apicid)
 		err := container.ProcessSubscription()
 		if err != nil {
 			log.Error(err)
@@ -96,14 +102,61 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 			subscription.UpdateState(apic.SubscriptionFailedToSubscribe, "Failed to provision AsyncAPI")
 		} else {
 			container.NotifySuccess("subscribe", "provisioned api", "undefined")
+			sendEmail(container)
 			subscription.UpdateState(apic.SubscriptionActive, "AsyncAPI provisioned to PubSub+ Broker")
 		}
 	}
 }
 
+func sendEmail(container *gateway.SubscriptionContainer) error {
+	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.Sub.GetCatalogItemID()
+	message := notify.NewSubscriptionNotification(container.SubscriberEmailAddress, "message ignored ", apic.SubscriptionActive)
+	message.SetCatalogItemInfo(container.Sub.GetCatalogItemID(), container.CatalogItemName, url)
+	message.SetOauthInfo(container.SubscriptionCredentials.ConsumerKey, DerefString(container.SubscriptionCredentials.ConsumerSecret))
+	message.SetAuthorizationTemplate("oauth")
+	err := message.NotifySubscriber(container.SubscriberEmailAddress)
+	if err != nil {
+		log.Errorf("Notification by Email failed", err)
+		return err
+	} else {
+		log.Infof("Informed %s by Email to %s about subscription", container.SubscriberUserName, container.SubscriberEmailAddress)
+		return nil
+	}
+
+}
+
+// todo: refactor and move to some util package
+func DerefString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
+func createSubscriptionSchema() error {
+	log.Infof("TOKEN: %s", agent.GetCentralClient().DumpToken())
+	return apic.NewSubscriptionSchemaBuilder(agent.GetCentralClient()).
+		SetName("sol-schema-develop-2").
+		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
+			SetName("Callback").
+			IsString().
+			SetEnumValues([]string{"http://mycallback.com", "http://anothercallback.com", "http://someothecallback.com"}).
+			AddEnumValue("Pick a callback").
+			SetSortEnumValues().
+			SetDescription("Callback of this AsyncAPI v1").
+			SetRequired()).
+		Update(true).
+		AddUniqueKey("8a2d851a7aa166a7017aae28d0af4538").
+		Register()
+
+}
+
 // Callback that agent will call to initialize the config. CentralConfig is parsed by Agent SDK
 // and passed to the callback allowing the agent code to access the central config
 func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
+	//configure SMTP notifications
+	notify.SetSubscriptionConfig(centralConfig.GetSubscriptionConfig())
+
 	rootProps := RootCmd.GetProperties()
 	// Parse the config from bound properties and setup gateway config
 	connectorConfig = &config.ConnectorConfig{

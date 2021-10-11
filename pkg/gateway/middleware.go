@@ -21,11 +21,15 @@ type SubscriptionContainer struct {
 	// ServiceRevision.Name - APIProduct (Name)
 	// Subscription.Id - Application (Name)
 	// ServiceRevision.Name - API (Name)
-	Valid           bool
-	Sub             apic.Subscription
-	Service         *v1alpha1.APIService
-	ServiceInstance *v1alpha1.APIServiceInstance
-	ServiceRevision *v1alpha1.APIServiceRevision
+	Valid                   bool
+	Sub                     apic.Subscription
+	Service                 *v1alpha1.APIService
+	ServiceInstance         *v1alpha1.APIServiceInstance
+	ServiceRevision         *v1alpha1.APIServiceRevision
+	CatalogItemName         string
+	SubscriberEmailAddress  string
+	SubscriberUserName      string
+	SubscriptionCredentials *connector.SolaceCredentialsDto
 }
 
 // NewSubscriptionContainer - creates new SubscriptionContainer
@@ -42,12 +46,24 @@ func NewSubscriptionContainer(subscription apic.Subscription) (*SubscriptionCont
 	if err != nil {
 		return nil, err
 	}
+	catalogItemName, err := agent.GetCentralClient().GetCatalogItemName(subscription.GetCatalogItemID())
+	if err != nil {
+		return nil, err
+	}
+	emailAddress, err := agent.GetCentralClient().GetUserEmailAddress(subscription.GetCreatedUserID())
+	if err != nil {
+		return nil, err
+	}
+	userName, err := agent.GetCentralClient().GetUserName(subscription.GetCreatedUserID())
 
 	container := SubscriptionContainer{
-		Sub:             subscription,
-		Service:         service,
-		ServiceInstance: serviceinstance,
-		ServiceRevision: servicerevision,
+		Sub:                    subscription,
+		Service:                service,
+		ServiceInstance:        serviceinstance,
+		ServiceRevision:        servicerevision,
+		CatalogItemName:        catalogItemName,
+		SubscriberEmailAddress: emailAddress,
+		SubscriberUserName:     userName,
 	}
 	if service.Metadata.ID == "" || serviceinstance.Metadata.ID == "" || servicerevision.Metadata.ID == "" {
 		container.Valid = false
@@ -257,11 +273,14 @@ func (container *SubscriptionContainer) ProcessSubscription() error {
 	if errUsername != nil {
 		username = "undefined_username"
 	}
-	applicationData, errAppData := container.GetTeamApp()
+	subscriptionCredentials, applicationData, errAppData := container.GetTeamApp()
+
 	if errAppData != nil {
 		log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [GetTeamApp] [TeamApp Details could not get retrieved]", err)
 		return errAppData
 	}
+
+	container.SubscriptionCredentials = subscriptionCredentials
 
 	apiSpecs, errApiSpecs := container.GetAppApis()
 	if errApiSpecs != nil {
@@ -363,14 +382,16 @@ func (container *SubscriptionContainer) GetDummySuccessOrFault(success bool) (bo
 	return success, nil
 }
 
+//todo refactor and remove error return type
+// GetSubscriberEmailAddress - Returns Email
 func (container *SubscriptionContainer) GetSubscriberEmailAddress() (string, error) {
-	userId := container.Sub.GetCreatedUserID()
-	return agent.GetCentralClient().GetUserEmailAddress(userId)
+	return container.SubscriberEmailAddress, nil
 }
 
+//todo refactor and remove error return type
+// GetSubscriberUserName - Returns Username
 func (container *SubscriptionContainer) GetSubscriberUserName() (string, error) {
-	userId := container.Sub.GetCreatedUserID()
-	return agent.GetCentralClient().GetUserName(userId)
+	return container.SubscriberUserName, nil
 }
 
 // GetRevisionName - Facade to retrieve RevisionName
@@ -488,7 +509,7 @@ func (container *SubscriptionContainer) RemoveAPIProduct(ignoreConflict bool) er
 }
 
 //GetTeamApp - Facade to retrieve App as generic JSON
-func (container *SubscriptionContainer) GetTeamApp() (map[string]interface{}, error) {
+func (container *SubscriptionContainer) GetTeamApp() (*connector.SolaceCredentialsDto, map[string]interface{}, error) {
 	return connector.GetOrgConnector().GetTeamApp(container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.Sub.GetID())
 }
 

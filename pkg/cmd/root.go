@@ -1,13 +1,13 @@
 package cmd
 
 import (
+	"github.com/Axway/agent-sdk/pkg/agent"
+	"github.com/Axway/agent-sdk/pkg/apic"
+	corecmd "github.com/Axway/agent-sdk/pkg/cmd"
+	corecfg "github.com/Axway/agent-sdk/pkg/config"
+	"github.com/Axway/agent-sdk/pkg/notify"
+	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/sirupsen/logrus"
-	"github.com/solace-iot-team/agent-sdk/pkg/agent"
-	"github.com/solace-iot-team/agent-sdk/pkg/apic"
-	corecmd "github.com/solace-iot-team/agent-sdk/pkg/cmd"
-	corecfg "github.com/solace-iot-team/agent-sdk/pkg/config"
-	"github.com/solace-iot-team/agent-sdk/pkg/notify"
-	"github.com/solace-iot-team/agent-sdk/pkg/util/log"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/gateway"
@@ -76,6 +76,7 @@ func handleUnsubscribeSubscription(subscription apic.Subscription) {
 
 		} else {
 			container.NotifySuccess("unsubscribe", "de-provisioned api", "undefined")
+			sendEmailUnsubscribe(container)
 			subscription.UpdateState(apic.SubscriptionUnsubscribed, "AsyncAPI de-provisioned at PubSub+ Broker")
 		}
 	}
@@ -102,13 +103,13 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 			subscription.UpdateState(apic.SubscriptionFailedToSubscribe, "Failed to provision AsyncAPI")
 		} else {
 			container.NotifySuccess("subscribe", "provisioned api", "undefined")
-			sendEmail(container)
+			sendEmailSubscribe(container)
 			subscription.UpdateState(apic.SubscriptionActive, "AsyncAPI provisioned to PubSub+ Broker")
 		}
 	}
 }
 
-func sendEmail(container *gateway.SubscriptionContainer) error {
+func sendEmailSubscribe(container *gateway.SubscriptionContainer) error {
 	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.Sub.GetCatalogItemID()
 	message := notify.NewSubscriptionNotification(container.SubscriberEmailAddress, "message ignored ", apic.SubscriptionActive)
 	message.SetCatalogItemInfo(container.Sub.GetCatalogItemID(), container.CatalogItemName, url)
@@ -116,13 +117,26 @@ func sendEmail(container *gateway.SubscriptionContainer) error {
 	message.SetAuthorizationTemplate("oauth")
 	err := message.NotifySubscriber(container.SubscriberEmailAddress)
 	if err != nil {
-		log.Errorf("Notification by Email failed", err)
+		log.Errorf("Notification of SUBSCRIBE event by Email failed", err)
 		return err
 	} else {
 		log.Infof("Informed %s by Email to %s about subscription", container.SubscriberUserName, container.SubscriberEmailAddress)
 		return nil
 	}
+}
 
+func sendEmailUnsubscribe(container *gateway.SubscriptionContainer) error {
+	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.Sub.GetCatalogItemID()
+	message := notify.NewSubscriptionNotification(container.SubscriberEmailAddress, "message ignored ", apic.SubscriptionUnsubscribed)
+	message.SetCatalogItemInfo(container.Sub.GetCatalogItemID(), container.CatalogItemName, url)
+	err := message.NotifySubscriber(container.SubscriberEmailAddress)
+	if err != nil {
+		log.Errorf("Notification of UNSUBSCRIBE event by Email failed", err)
+		return err
+	} else {
+		log.Infof("Informed %s by Email to %s about unsubscribe", container.SubscriberUserName, container.SubscriberEmailAddress)
+		return nil
+	}
 }
 
 // todo: refactor and move to some util package
@@ -134,7 +148,7 @@ func DerefString(s *string) string {
 }
 
 func createSubscriptionSchema() error {
-	log.Infof("TOKEN: %s", agent.GetCentralClient().DumpToken())
+	//log.Infof("TOKEN: %s", agent.GetCentralClient().DumpToken())
 	return apic.NewSubscriptionSchemaBuilder(agent.GetCentralClient()).
 		SetName("sol-schema-develop-2").
 		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().

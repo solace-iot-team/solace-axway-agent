@@ -2,8 +2,8 @@ package config
 
 import (
 	"errors"
-	v1 "github.com/solace-iot-team/agent-sdk/pkg/apic/apiserver/models/api/v1"
-	corecfg "github.com/solace-iot-team/agent-sdk/pkg/config"
+	v1 "github.com/Axway/agent-sdk/pkg/apic/apiserver/models/api/v1"
+	corecfg "github.com/Axway/agent-sdk/pkg/config"
 )
 
 // AgentConfig - represents the config for agent

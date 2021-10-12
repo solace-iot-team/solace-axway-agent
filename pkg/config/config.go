@@ -29,6 +29,7 @@ type ConnectorConfig struct {
 type NotifierConfig struct {
 	corecfg.IConfigValidator
 	corecfg.IResourceConfigCallback
+	NotifierEnabled            bool   `config:"enabled"`
 	NotifierHealthMessage      string `config:"healthmessage"`
 	NotifierURL                string `config:"url"`
 	NotifierApiConsumerKey     string `config:"apiConsumerKey"`

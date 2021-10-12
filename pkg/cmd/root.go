@@ -19,6 +19,9 @@ var RootCmd corecmd.AgentRootCmd
 var connectorConfig *config.ConnectorConfig
 var notifierConfig *config.NotifierConfig
 
+var sendEmail bool = false
+var sendNotification bool = false
+
 func init() {
 	log.SetLevel(logrus.TraceLevel)
 	// Create new root command with callbacks to initialize the agent config and command execution.
@@ -41,15 +44,6 @@ func run() error {
 
 func listenToSubscriptions() error {
 
-	err := connector.Initialize(connectorConfig)
-	if err != nil {
-		panic(err)
-	}
-	errNotification := notification.Initialize(notifierConfig)
-	if errNotification != nil {
-		panic(errNotification)
-	}
-
 	//log.Info(agent.GetCentralClient().DumpToken())
 	subMan := agent.GetCentralClient().GetSubscriptionManager()
 
@@ -60,7 +54,7 @@ func listenToSubscriptions() error {
 }
 
 func handleUnsubscribeSubscription(subscription apic.Subscription) {
-	log.Debugf(" Handling unsubscribe for [Subscription:%s] ", subscription.GetName())
+	log.Tracef(" Handling unsubscribe for [Subscription:%s] ", subscription.GetName())
 	container, err := gateway.NewSubscriptionContainer(subscription)
 	if err != nil {
 		log.Errorf("Handling Unsubscribe for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
@@ -71,12 +65,20 @@ func handleUnsubscribeSubscription(subscription apic.Subscription) {
 		if err != nil {
 			log.Error(err)
 			//TODO add some debug context-id to find log message
-			container.NotifyFailure("unsubscribe", "Failed to de-provision api", "undefined")
+			if sendNotification {
+				log.Tracef("publishing unsubscribe failed notification")
+				container.NotifyFailure("unsubscribe", "Failed to de-provision api", "undefined")
+			}
 			subscription.UpdateState(apic.SubscriptionFailedToUnsubscribe, "Failed to de-provision AsyncAPI")
 
 		} else {
-			container.NotifySuccess("unsubscribe", "de-provisioned api", "undefined")
-			sendEmailUnsubscribe(container)
+			if sendNotification {
+				log.Tracef("publishing unsubscribe success notification")
+				container.NotifySuccess("unsubscribe", "de-provisioned api", "undefined")
+			}
+			if sendEmail {
+				sendEmailUnsubscribe(container)
+			}
 			subscription.UpdateState(apic.SubscriptionUnsubscribed, "AsyncAPI de-provisioned at PubSub+ Broker")
 		}
 	}
@@ -84,7 +86,7 @@ func handleUnsubscribeSubscription(subscription apic.Subscription) {
 }
 
 func handleApprovedSubscription(subscription apic.Subscription) {
-	log.Debugf(" Handling subscribe for [Subscription:%s] ", subscription.GetName())
+	log.Tracef(" Handling subscribe for [Subscription:%s] ", subscription.GetName())
 	container, err := gateway.NewSubscriptionContainer(subscription)
 	if err != nil {
 		log.Errorf("Handling subscribe for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
@@ -99,11 +101,19 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 		if err != nil {
 			log.Error(err)
 			//TODO add some debug context-id to find log message
-			container.NotifyFailure("subscribe", "Failed to provision api", "undefined")
+			if sendNotification {
+				log.Tracef("publishing subscribe failed notification")
+				container.NotifyFailure("subscribe", "Failed to provision api", "undefined")
+			}
 			subscription.UpdateState(apic.SubscriptionFailedToSubscribe, "Failed to provision AsyncAPI")
 		} else {
-			container.NotifySuccess("subscribe", "provisioned api", "undefined")
-			sendEmailSubscribe(container)
+			if sendNotification {
+				log.Tracef("publishing subscribe success notification")
+				container.NotifySuccess("subscribe", "provisioned api", "undefined")
+			}
+			if sendEmail {
+				sendEmailSubscribe(container)
+			}
 			subscription.UpdateState(apic.SubscriptionActive, "AsyncAPI provisioned to PubSub+ Broker")
 		}
 	}
@@ -120,7 +130,7 @@ func sendEmailSubscribe(container *gateway.SubscriptionContainer) error {
 		log.Errorf("Notification of SUBSCRIBE event by Email failed", err)
 		return err
 	} else {
-		log.Infof("Informed %s by Email to %s about subscription", container.SubscriberUserName, container.SubscriberEmailAddress)
+		log.Tracef("Informed %s by Email to %s about subscription", container.SubscriberUserName, container.SubscriberEmailAddress)
 		return nil
 	}
 }
@@ -134,7 +144,7 @@ func sendEmailUnsubscribe(container *gateway.SubscriptionContainer) error {
 		log.Errorf("Notification of UNSUBSCRIBE event by Email failed", err)
 		return err
 	} else {
-		log.Infof("Informed %s by Email to %s about unsubscribe", container.SubscriberUserName, container.SubscriberEmailAddress)
+		log.Tracef("Informed %s by Email to %s about unsubscribe", container.SubscriberUserName, container.SubscriberEmailAddress)
 		return nil
 	}
 }
@@ -168,8 +178,18 @@ func createSubscriptionSchema() error {
 // Callback that agent will call to initialize the config. CentralConfig is parsed by Agent SDK
 // and passed to the callback allowing the agent code to access the central config
 func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
-	//configure SMTP notifications
-	notify.SetSubscriptionConfig(centralConfig.GetSubscriptionConfig())
+	//configure SMTP notifications central.subscriptions.notifications.type must be set to smtp
+	if len(centralConfig.GetSubscriptionConfig().GetNotificationTypes()) == 1 {
+		if centralConfig.GetSubscriptionConfig().GetNotificationTypes()[0] == "SMTP" {
+			notify.SetSubscriptionConfig(centralConfig.GetSubscriptionConfig())
+			sendEmail = true
+			log.Infof("SMTP Notification enabled")
+		} else {
+			log.Infof("SMTP Notification not enabled - ignoring %s", centralConfig.GetSubscriptionConfig().GetNotificationTypes()[0])
+		}
+	} else {
+		log.Infof("SMTP Notification not configured.")
+	}
 
 	rootProps := RootCmd.GetProperties()
 	// Parse the config from bound properties and setup gateway config
@@ -183,6 +203,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	}
 
 	notifierConfig = &config.NotifierConfig{
+		NotifierEnabled:            rootProps.BoolPropertyValue("notifier.enabled"),
 		NotifierHealthMessage:      rootProps.StringPropertyValue("notifier.healthmessage"),
 		NotifierURL:                rootProps.StringPropertyValue("notifier.url"),
 		NotifierApiConsumerKey:     rootProps.StringPropertyValue("notifier.apiConsumerKey"),
@@ -196,10 +217,30 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		GatewayCfg:  connectorConfig,
 		NotifierCfg: notifierConfig,
 	}
+
+	// initialize solace-connector
+	err := connector.Initialize(connectorConfig)
+	if err != nil {
+		log.Errorf("Could not initialize Solace Connector")
+		panic(err)
+	}
+
+	// initialize solace notifier
+	if notifierConfig.NotifierEnabled {
+		//Initializse also registers itself with HealthChecker
+		errNotification := notification.Initialize(notifierConfig)
+		if errNotification != nil {
+			log.Errorf("Could not initialize Solace Notifier")
+			panic(errNotification)
+		}
+		log.Infof("Solace Notifier enabled")
+	} else {
+		log.Info("Solace Notifier disabled")
+	}
 	return agentConfig, nil
 }
 
-// GetAgentConfig - Returns the agent config
 func GetAgentConfig() *config.ConnectorConfig {
+	// GetAgentConfig - Returns the agent config
 	return connectorConfig
 }

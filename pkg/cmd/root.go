@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/Axway/agent-sdk/pkg/agent"
 	"github.com/Axway/agent-sdk/pkg/apic"
 	corecmd "github.com/Axway/agent-sdk/pkg/cmd"
@@ -42,8 +43,40 @@ func run() error {
 	return nil
 }
 
-func listenToSubscriptions() error {
+func debug() {
+	createSubscriptionSchema()
+	resultlist, err := agent.GetCentralClient().GetApiServicesByQuery("attributes.solace-webhook-enabled==true")
+	if err != nil {
+		log.Errorf("Did not work out", err)
+	} else {
+		log.Infof("Got at least a result %d", len(resultlist))
+		for _, service := range resultlist {
+			cq := fmt.Sprintf("metadata.references.kind==APIService and metadata.references.name==%s", service.Name)
+			consumerInstances, errCi := agent.GetCentralClient().GetConsumerInstancesByQuery(cq)
+			if errCi != nil {
+				log.Errorf("  Could not query ConsumerInstance", errCi)
+			} else {
+				log.Infof("   Found some consumerInstances: %d", len(consumerInstances))
+				for _, ci := range consumerInstances {
+					if ci.Spec.Subscription.SubscriptionDefinition == "sol-schema-webhook-1" {
+						//nothing to do
+						log.Debugf("ConumerInstance already got sol-schema-webhook-1 schema assigned: %s", ci.Name)
+					} else {
+						errAttachSchema := agent.GetCentralClient().UpdateConsumerInstanceSubscriptionDefinitionByConsumerInstanceId(ci.Metadata.ID, "sol-schema-webhook-1")
+						if errAttachSchema != nil {
+							log.Errorf("Could not attach Subscription Schema to ConsumerInstance:%s", ci.Name, errAttachSchema)
+						} else {
+							log.Infof("Attached SubscriptionSchema: %s to ConsumerInstance: %s", "sol-schema-webhook-1", ci.Name)
+						}
+					}
+				}
+			}
+		}
+	}
+}
 
+func listenToSubscriptions() error {
+	debug()
 	//log.Info(agent.GetCentralClient().DumpToken())
 	subMan := agent.GetCentralClient().GetSubscriptionManager()
 
@@ -160,19 +193,40 @@ func DerefString(s *string) string {
 func createSubscriptionSchema() error {
 	//log.Infof("TOKEN: %s", agent.GetCentralClient().DumpToken())
 	return apic.NewSubscriptionSchemaBuilder(agent.GetCentralClient()).
-		SetName("sol-schema-develop-2").
+		SetName("sol-schema-webhook-1").
 		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
 			SetName("Callback").
 			IsString().
-			SetEnumValues([]string{"http://mycallback.com", "http://anothercallback.com", "http://someothecallback.com"}).
-			AddEnumValue("Pick a callback").
-			SetSortEnumValues().
-			SetDescription("Callback of this AsyncAPI v1").
+			SetDescription("Callback URL of this AsyncAPI").
 			SetRequired()).
+		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
+			SetName("Method").
+			IsString().
+			SetEnumValues([]string{"POST", "PUT"}).
+			SetDescription("HTTP-Method / Verb").
+			SetRequired()).
+		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
+			SetName("Invocation Order").
+			IsString().
+			SetEnumValues([]string{"parallel", "serial"}).
+			SetDescription("Parallel or serial invocation of callback url").
+			SetRequired()).
+		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
+			SetName("Authentication").
+			IsString().
+			SetEnumValues([]string{"No Authentication", "Basic Authentication", "HTTP-Header"}).
+			SetDescription("Authentication method").
+			SetRequired()).
+		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
+			SetName("AuthenticationIdentifier").
+			IsString().
+			SetDescription("Authentication Username or Headername")).
+		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
+			SetName("AuthenticationSecret").
+			IsString().
+			SetDescription("Authentication Password or Headervalue")).
 		Update(true).
-		AddUniqueKey("8a2d851a7aa166a7017aae28d0af4538").
 		Register()
-
 }
 
 // Callback that agent will call to initialize the config. CentralConfig is parsed by Agent SDK

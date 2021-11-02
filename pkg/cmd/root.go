@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"github.com/Axway/agent-sdk/pkg/agent"
 	"github.com/Axway/agent-sdk/pkg/apic"
 	corecmd "github.com/Axway/agent-sdk/pkg/cmd"
 	corecfg "github.com/Axway/agent-sdk/pkg/config"
+	"github.com/Axway/agent-sdk/pkg/jobs"
 	"github.com/Axway/agent-sdk/pkg/notify"
 	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/sirupsen/logrus"
@@ -13,6 +13,7 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/gateway"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
+	"time"
 )
 
 // RootCmd - Agent root command
@@ -43,40 +44,27 @@ func run() error {
 	return nil
 }
 
-func debug() {
-	createSubscriptionSchema()
-	resultlist, err := agent.GetCentralClient().GetApiServicesByQuery("attributes.solace-webhook-enabled==true")
+func debugJob() {
+	theJob := SubscriptionSchemaPublisherJob{}
+	jobId, err := jobs.RegisterRetryJob(&theJob, 3)
 	if err != nil {
-		log.Errorf("Did not work out", err)
+		log.Errorf("Could not register job", err)
 	} else {
-		log.Infof("Got at least a result %d", len(resultlist))
-		for _, service := range resultlist {
-			cq := fmt.Sprintf("metadata.references.kind==APIService and metadata.references.name==%s", service.Name)
-			consumerInstances, errCi := agent.GetCentralClient().GetConsumerInstancesByQuery(cq)
-			if errCi != nil {
-				log.Errorf("  Could not query ConsumerInstance", errCi)
-			} else {
-				log.Infof("   Found some consumerInstances: %d", len(consumerInstances))
-				for _, ci := range consumerInstances {
-					if ci.Spec.Subscription.SubscriptionDefinition == "sol-schema-webhook-1" {
-						//nothing to do
-						log.Debugf("ConumerInstance already got sol-schema-webhook-1 schema assigned: %s", ci.Name)
-					} else {
-						errAttachSchema := agent.GetCentralClient().UpdateConsumerInstanceSubscriptionDefinitionByConsumerInstanceId(ci.Metadata.ID, "sol-schema-webhook-1")
-						if errAttachSchema != nil {
-							log.Errorf("Could not attach Subscription Schema to ConsumerInstance:%s", ci.Name, errAttachSchema)
-						} else {
-							log.Infof("Attached SubscriptionSchema: %s to ConsumerInstance: %s", "sol-schema-webhook-1", ci.Name)
-						}
-					}
-				}
-			}
-		}
+		log.Infof("JobId: %s", jobId)
 	}
+
+	theJob2 := SubscriptionSchemaProcessorJob{}
+	jobId2, err := jobs.RegisterIntervalJob(&theJob2, 10*time.Second)
+	if err != nil {
+		log.Errorf("Could not register job", err)
+	} else {
+		log.Infof("JobId: %s", jobId2)
+	}
+
 }
 
 func listenToSubscriptions() error {
-	debug()
+	debugJob()
 	//log.Info(agent.GetCentralClient().DumpToken())
 	subMan := agent.GetCentralClient().GetSubscriptionManager()
 
@@ -188,45 +176,6 @@ func DerefString(s *string) string {
 		return *s
 	}
 	return ""
-}
-
-func createSubscriptionSchema() error {
-	//log.Infof("TOKEN: %s", agent.GetCentralClient().DumpToken())
-	return apic.NewSubscriptionSchemaBuilder(agent.GetCentralClient()).
-		SetName("sol-schema-webhook-1").
-		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
-			SetName("Callback").
-			IsString().
-			SetDescription("Callback URL of this AsyncAPI").
-			SetRequired()).
-		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
-			SetName("Method").
-			IsString().
-			SetEnumValues([]string{"POST", "PUT"}).
-			SetDescription("HTTP-Method / Verb").
-			SetRequired()).
-		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
-			SetName("Invocation Order").
-			IsString().
-			SetEnumValues([]string{"parallel", "serial"}).
-			SetDescription("Parallel or serial invocation of callback url").
-			SetRequired()).
-		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
-			SetName("Authentication").
-			IsString().
-			SetEnumValues([]string{"No Authentication", "Basic Authentication", "HTTP-Header"}).
-			SetDescription("Authentication method").
-			SetRequired()).
-		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
-			SetName("AuthenticationIdentifier").
-			IsString().
-			SetDescription("Authentication Username or Headername")).
-		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
-			SetName("AuthenticationSecret").
-			IsString().
-			SetDescription("Authentication Password or Headervalue")).
-		Update(true).
-		Register()
 }
 
 // Callback that agent will call to initialize the config. CentralConfig is parsed by Agent SDK

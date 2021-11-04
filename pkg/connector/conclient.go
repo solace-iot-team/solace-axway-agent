@@ -11,6 +11,7 @@ import (
 	"github.com/deepmap/oapi-codegen/pkg/securityprovider"
 	"github.com/pkg/errors"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
+	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
 	"net"
 	"net/http"
 	url2 "net/url"
@@ -61,6 +62,60 @@ type Access struct {
 type Attribute struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
+}
+
+type SolaceWebhook struct {
+	HttpMethod               string
+	CallbackUrl              string
+	AuthenticationMethod     string
+	AuthenticationIdentifier string
+	AuthenticationSecret     string
+	InvocationOrder          string
+}
+
+func (s *SolaceWebhook) GetWebHookAuth() *WebHookAuth {
+	var result WebHookAuth = nil
+	switch s.AuthenticationMethod {
+	case solace.SolaceAuthenticationMethodNoAuthentication:
+		return nil
+	case solace.SolaceAuthenticationMethodBasicAuthentication:
+		var method WebHookBasicAuthAuthMethod = WebHookBasicAuthAuthMethodBasic
+		result = WebHookBasicAuth{
+			AuthMethod: &method,
+			Username:   s.AuthenticationIdentifier,
+			Password:   s.AuthenticationSecret,
+		}
+	case solace.SolaceAuthenticationMethodHttpHeaderAuthentication:
+		var method WebHookHeaderAuthAuthMethod = WebHookHeaderAuthAuthMethodHeader
+		result = WebHookHeaderAuth{
+			AuthMethod:  &method,
+			HeaderName:  s.AuthenticationIdentifier,
+			HeaderValue: s.AuthenticationSecret,
+		}
+	default:
+		log.Warn("Unsupported Solace Callback Authentication Method: %s", s.AuthenticationMethod)
+		return nil
+	}
+
+	return &result
+}
+
+func (s *SolaceWebhook) GetWebHookMethod() WebHookMethod {
+	if s.HttpMethod == solace.SolaceHttpMethodPut {
+		return WebHookMethodPUT
+	} else {
+		return WebHookMethodPOST
+	}
+}
+
+func (s *SolaceWebhook) GetMode() *WebHookMode {
+	if s.InvocationOrder == solace.SolaceInvocationOrderParallel {
+		result := WebHookModeParallel
+		return &result
+	} else {
+		result := WebHookModeSerial
+		return &result
+	}
 }
 
 var connectors = connectorClients{}
@@ -409,7 +464,7 @@ func (c *Access) RemoveTeamApp(orgName string, teamName string, appName string) 
 }
 
 // PublishTeamApp - publishes TeamApp
-func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string) (*Credentials, error) {
+func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string, solaceWebhook *SolaceWebhook) (*Credentials, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	credentials := Credentials{
@@ -417,11 +472,26 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 		IssuedAt:  nil,
 		Secret:    nil,
 	}
+	var webhooks []WebHook = nil
+
+	if solaceWebhook != nil {
+		webhoock := WebHook{
+			Authentication: solaceWebhook.GetWebHookAuth(),
+			//all environments
+			Method: solaceWebhook.GetWebHookMethod(),
+			Mode:   solaceWebhook.GetMode(),
+			Uri:    solaceWebhook.CallbackUrl,
+		}
+		webhooks = make([]WebHook, 1)
+		webhooks[0] = webhoock
+	}
+
 	payload := CreateTeamAppJSONRequestBody{
 		Name:        appName,
 		DisplayName: &displayName,
 		ApiProducts: apiProducts,
 		Credentials: credentials,
+		WebHooks:    &webhooks,
 	}
 	result, err := c.Client.CreateTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), payload)
 	if err != nil {

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/Axway/agent-sdk/pkg/agent"
 	"github.com/Axway/agent-sdk/pkg/apic"
 	corecmd "github.com/Axway/agent-sdk/pkg/cmd"
@@ -115,9 +116,12 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 	}
 
 	if subscription.GetRemoteAPIID() == "" && container.Valid {
-		//log.Info(" DUMP: ",container.Debug())
-		apicid := subscription.GetApicID()
-		log.Infof("APIC-ID: %s", apicid)
+		validSubscription, feedback := validateSolaceCallbackSubscription(subscription)
+		if !validSubscription {
+			log.Infof("Rejected subscription (%s) and set to FAILED STATE. Validation of Solace Callback failed: %s", subscription.GetName(), feedback)
+			subscription.UpdateState(apic.SubscriptionFailedToSubscribe, fmt.Sprintf("Could not process subscription: %s", feedback))
+			return
+		}
 		err := container.ProcessSubscription()
 		if err != nil {
 			log.Error(err)
@@ -146,6 +150,7 @@ func sendEmailSubscribe(container *gateway.SubscriptionContainer) error {
 	message.SetCatalogItemInfo(container.Sub.GetCatalogItemID(), container.CatalogItemName, url)
 	message.SetOauthInfo(container.SubscriptionCredentials.ConsumerKey, DerefString(container.SubscriptionCredentials.ConsumerSecret))
 	message.SetAuthorizationTemplate("oauth")
+	message.ApiManagerId = container.SolaceAsyncApiAppInternalId
 	err := message.NotifySubscriber(container.SubscriberEmailAddress)
 	if err != nil {
 		log.Errorf("Notification of SUBSCRIBE event by Email failed", err)

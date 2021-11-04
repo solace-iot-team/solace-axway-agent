@@ -200,6 +200,10 @@ func (c *Access) IsHealthCheck() (bool, error) {
 }
 
 func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
+	//if there is no client, it is disabled
+	if c == nil {
+		return true, nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	body := PostSubscribeJSONRequestBody{
@@ -233,6 +237,10 @@ func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 }
 
 func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
+	//if there is no client, it is disabled
+	if c == nil {
+		return true, nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	body := PostUnsubscribeJSONRequestBody{
@@ -264,6 +272,10 @@ func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
 }
 
 func (c *Access) NotifyFailureMonitor(dto MonitorDataDto) (bool, error) {
+	//if there is no client, it is disabled
+	if c == nil {
+		return true, nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	body := PostMonitorFailureJSONRequestBody{
@@ -299,6 +311,10 @@ func (c *Access) NotifyFailureMonitor(dto MonitorDataDto) (bool, error) {
 }
 
 func (c *Access) NotifySuccessMonitor(dto MonitorDataDto) (bool, error) {
+	//if there is no client, it is disabled
+	if c == nil {
+		return true, nil
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	body := PostMonitorSuccessJSONRequestBody{

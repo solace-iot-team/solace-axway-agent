@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
+	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
 	"sort"
 )
 
@@ -21,15 +22,18 @@ type SubscriptionContainer struct {
 	// ServiceRevision.Name - APIProduct (Name)
 	// Subscription.Id - Application (Name)
 	// ServiceRevision.Name - API (Name)
-	Valid                   bool
-	Sub                     apic.Subscription
-	Service                 *v1alpha1.APIService
-	ServiceInstance         *v1alpha1.APIServiceInstance
-	ServiceRevision         *v1alpha1.APIServiceRevision
-	CatalogItemName         string
-	SubscriberEmailAddress  string
-	SubscriberUserName      string
-	SubscriptionCredentials *connector.SolaceCredentialsDto
+	Valid                       bool
+	Sub                         apic.Subscription
+	Service                     *v1alpha1.APIService
+	ServiceInstance             *v1alpha1.APIServiceInstance
+	ServiceRevision             *v1alpha1.APIServiceRevision
+	ConsumerInstance            *v1alpha1.ConsumerInstance
+	CatalogItemName             string
+	SubscriberEmailAddress      string
+	SubscriberUserName          string
+	SubscriptionCredentials     *connector.SolaceCredentialsDto
+	SolaceCallbackApi           bool
+	SolaceAsyncApiAppInternalId string
 }
 
 // NewSubscriptionContainer - creates new SubscriptionContainer
@@ -281,6 +285,12 @@ func (container *SubscriptionContainer) ProcessSubscription() error {
 	}
 
 	container.SubscriptionCredentials = subscriptionCredentials
+	//extranct internalId from Solace Connector App
+	if v, ok := applicationData["internalName"]; ok {
+		container.SolaceAsyncApiAppInternalId = fmt.Sprintf("%v", v)
+	} else {
+		container.SolaceAsyncApiAppInternalId = "unknown internal id"
+	}
 
 	apiSpecs, errApiSpecs := container.GetAppApis()
 	if errApiSpecs != nil {
@@ -543,7 +553,18 @@ func (container *SubscriptionContainer) RemoveTeamApp() error {
 func (container *SubscriptionContainer) PublishTeamApp() (*connector.Credentials, error) {
 	apiProducts := make([]string, 0)
 	apiProducts = append(apiProducts, container.GetRevisionName())
-	return connector.GetOrgConnector().PublishTeamApp(container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.Sub.GetID(), "Created by Axway-Agent", apiProducts)
+	var webHooks *connector.SolaceWebhook = nil
+	if len(container.Sub.GetPropertyValue(solace.SolaceHttpMethod)) > 0 {
+		webHooks = &connector.SolaceWebhook{
+			HttpMethod:               container.Sub.GetPropertyValue(solace.SolaceHttpMethod),
+			CallbackUrl:              container.Sub.GetPropertyValue(solace.SolaceCallback),
+			AuthenticationMethod:     container.Sub.GetPropertyValue(solace.SolaceAuthenticationMethod),
+			AuthenticationIdentifier: container.Sub.GetPropertyValue(solace.SolaceAuthenticationIdentifier),
+			AuthenticationSecret:     container.Sub.GetPropertyValue(solace.SolaceAuthenticationSecret),
+			InvocationOrder:          container.Sub.GetPropertyValue(solace.SolaceInvocationOrder),
+		}
+	}
+	return connector.GetOrgConnector().PublishTeamApp(container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.Sub.GetID(), "Created by Axway-Agent", apiProducts, webHooks)
 }
 
 //PublishAPI - Facade to publish via Connector an API

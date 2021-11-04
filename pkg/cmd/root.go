@@ -45,19 +45,21 @@ func run() error {
 	return nil
 }
 
-func debugJob() {
+func registerSchemaProcessors() {
+	//todo add configuration option to enable/disable
 	theJob := SubscriptionSchemaPublisherJob{}
 	jobId, err := jobs.RegisterRetryJob(&theJob, 3)
 	if err != nil {
-		log.Errorf("Could not register job", err)
+		log.Errorf("Could not register Schema Publisher job", err)
 	} else {
 		log.Infof("JobId: %s", jobId)
 	}
 
 	theJob2 := SubscriptionSchemaProcessorJob{}
-	jobId2, err := jobs.RegisterIntervalJob(&theJob2, 10*time.Second)
+	//TODO add configuration option
+	jobId2, err := jobs.RegisterIntervalJob(&theJob2, 60*time.Second)
 	if err != nil {
-		log.Errorf("Could not register job", err)
+		log.Errorf("Could not register Schme Processor job", err)
 	} else {
 		log.Infof("JobId: %s", jobId2)
 	}
@@ -65,7 +67,7 @@ func debugJob() {
 }
 
 func listenToSubscriptions() error {
-	debugJob()
+	registerSchemaProcessors()
 	//log.Info(agent.GetCentralClient().DumpToken())
 	subMan := agent.GetCentralClient().GetSubscriptionManager()
 

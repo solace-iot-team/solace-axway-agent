@@ -21,9 +21,13 @@ jobs:
           secrets: |
             secret/data/sol/async/agent/ci CENTRAL_ENVIRONMENT | CENTRAL_ENVIRONMENT ;
             secret/data/sol/async/agent/ci CENTRAL_ORGANIZATIONID | CENTRAL_ORGANIZATIONID
+            secret/data/sol/async/agent/ci INVALID | INVALID
 
-      - name: Print vault data
+      - name: Print vault data CENTRAL_ENVIRONMENT
         run: echo ${{env.CENTRAL_ENVIRONMENT}} | sed 's/./& /g'
+
+      - name: Print vault data INVALID
+        run: echo ${{env.INVALID}} | sed 's/./& /g'
 
       - uses: actions/checkout@v2
 

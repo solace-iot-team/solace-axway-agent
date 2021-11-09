@@ -19,7 +19,7 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLEID }}
           secretId: ${{ secrets.VAULT_SECRETID }}
           secrets: |
-            secret/sol/async/agent/ci CENTRAL_ENVIRONMENT | CENTRAL_ENVIRONMENT ;
+            secret/data/sol/async/agent/ci CENTRAL_ENVIRONMENT | CENTRAL_ENVIRONMENT ;
             secret/data/sol/async/agent/ci CENTRAL_ORGANIZATIONID | CENTRAL_ORGANIZATIONID
 
       - uses: actions/checkout@v2

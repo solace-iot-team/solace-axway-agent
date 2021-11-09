@@ -21,7 +21,9 @@ jobs:
           secrets: |
             secret/data/sol/async/agent/ci CENTRAL_ENVIRONMENT | CENTRAL_ENVIRONMENT ;
             secret/data/sol/async/agent/ci CENTRAL_ORGANIZATIONID | CENTRAL_ORGANIZATIONID
-      - run: echo "Crosscheck vault CENTRAL_ENVIRONMENT ${{CENTRAL_ENVIRONMENT}}"
+
+      - name: Print vault data
+        run: echo "Crosscheck vault CENTRAL_ENVIRONMENT ${{env.CENTRAL_ENVIRONMENT}}"
 
       - uses: actions/checkout@v2
 

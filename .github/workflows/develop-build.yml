@@ -10,9 +10,9 @@ jobs:
       - name: Import Secrets
         uses: hashicorp/vault-action@2.3.1
         with:
-          url: {{secrets:VAULT_URL}}
+          url: ${{secrets:VAULT_URL}}
           method: approle
-          namespace: {{secrets:VAULT_NAMESPACE}}
+          namespace: ${{secrets:VAULT_NAMESPACE}}
           roleId: ${{secrets:VAULT_ROLEID}}
           secretId: ${{secrets:VAULT_SECRETID}}
           secrets: |

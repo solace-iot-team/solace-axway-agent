@@ -1,5 +1,8 @@
 name: main-build-workflow
 on:
+  # for testing
+  workflow_dispatch:
+
   push:
     branches:
       - develop

@@ -25,6 +25,7 @@ var notifierConfig *config.NotifierConfig
 var sendEmail bool = false
 var sendNotification bool = false
 
+//called once by go convention
 func init() {
 	log.SetLevel(logrus.TraceLevel)
 	// Create new root command with callbacks to initialize the agent config and command execution.

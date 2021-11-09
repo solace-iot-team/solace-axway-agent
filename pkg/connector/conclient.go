@@ -260,6 +260,31 @@ func (c *Access) IsOrgRegistered(orgName string) (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
+// DeleteOrg - deletes an entire Organization in the connector. Make sure you exactly know what you are doing
+func (c *Access) DeleteOrg(orgName string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+	result, err := c.Client.DeleteOrganizationWithResponse(ctx, Orgparameter(orgName))
+	if err != nil {
+		return false, err
+	}
+	return result.StatusCode() < 300, nil
+}
+
+func (c *Access) CreateOrg(orgName string, token *interface{}) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+	body := CreateOrganizationJSONRequestBody{
+		Name:       orgName,
+		CloudToken: token,
+	}
+	result, err := c.Client.CreateOrganizationWithResponse(ctx, body)
+	if err != nil {
+		return false, err
+	}
+	return result.StatusCode() < 300, nil
+}
+
 // IsAPIAvailable - checks if there is already an API existing
 func (c *Access) IsAPIAvailable(orgName string, apiName string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())

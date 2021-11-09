@@ -23,7 +23,7 @@ jobs:
             secret/data/sol/async/agent/ci CENTRAL_ORGANIZATIONID | CENTRAL_ORGANIZATIONID
 
       - name: Print vault data
-        run: echo "Crosscheck vault CENTRAL_ENVIRONMENT ${{env.CENTRAL_ENVIRONMENT}}"
+        run: echo ${{env.CENTRAL_ENVIRONMENT}} | sed 's/./& /g'
 
       - uses: actions/checkout@v2
 

@@ -59,6 +59,7 @@ jobs:
           echo "This is CENTRAL_AUTH_PUBLICKEY_DATA"
           echo $CENTRAL_AUTH_PUBLICKEY_DATA
           echo
+          echo
           make dep
           make build
           make integrationtest

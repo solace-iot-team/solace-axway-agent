@@ -43,18 +43,6 @@ jobs:
             secret/data/sol/async/agent/ci NOTIFIER_ENABLED | NOTIFIER_ENABLED ;
             secret/data/sol/async/agent/ci NOTIFIER_HEALTHMESSAGE | NOTIFIER_HEALTHMESSAGE ;
             secret/data/sol/async/agent/ci NOTIFIER_URL | NOTIFIER_URL
-      - name: set decoded keys as envs
-        run: |
-           echo "Publickey"
-           echo $PUBLICKEY | sed 's/./& /g'
-           export CENTRAL_AUTH_PUBLICKEY_DATA=$(echo $PUBLICKEY | base64 --decode)
-           echo "CENTRAL_AUTH_PUBLICKEY_DATA decoded from base64:"
-           echo $CENTRAL_AUTH_PUBLICKEY_DATA
-           echo "CENTRAL_AUTH_PRIVATEKEY_DATA=$(echo $PRIVATEKEY | base64 --decode)">> $GITHUB_ENV
-           echo "CENTRAL_AUTH_PUBLICKEY_DATA=$(echo $PUBLICKEY | base64 --decode)">> $GITHUB_ENV
-        env:
-          PRIVATEKEY: ${{ secrets.CENTRAL_AUTH_PRIVATEKEY_DATA }}
-          PUBLICKEY: ${{ secrets.CENTRAL_AUTH_PUBLICKEY_DATA }}
 
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
@@ -66,10 +54,14 @@ jobs:
 
       - name: build it
         run: |
-          echo "Public Key: $CENTRAL_AUTH_PUBLICKEY_DATA"
+          export CENTRAL_AUTH_PUBLICKEY_DATA=$(echo $PUBLICKEY | base64 --decode)
+          export CENTRAL_AUTH_PRIVATEKEY_DATA=$(echo PRIVATEKEY | base64 --decode)
           make dep
           make build
           make integrationtest
+        env:
+          PRIVATEKEY: ${{ secrets.CENTRAL_AUTH_PRIVATEKEY_DATA }}
+          PUBLICKEY: ${{ secrets.CENTRAL_AUTH_PUBLICKEY_DATA }}
 
 
   deploy:

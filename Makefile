@@ -7,6 +7,10 @@ GO_PKG_LIST := $(shell go list ./... | grep -v /vendor/)
 lint:
 	@golint -set_exit_status ${GO_PKG_LIST}
 
+integrationtest:
+	@echo "Starting integration tests"
+	@go test
+
 dep:
 	@echo "Resolving go package dependencies"
 	@go mod tidy

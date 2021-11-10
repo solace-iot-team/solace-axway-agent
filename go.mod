@@ -22,6 +22,7 @@ replace (
 	//change this line accordingly
 	// go mod tidy (will do the magic)
 
+
 	github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211110111421-65398fe69f4b
 
 	github.com/Shopify/sarama => github.com/elastic/sarama v0.0.0-20191122160421-355d120d0970

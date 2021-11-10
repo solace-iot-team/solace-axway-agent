@@ -45,6 +45,7 @@ jobs:
             secret/data/sol/async/agent/ci NOTIFIER_HEALTHMESSAGE | NOTIFIER_HEALTHMESSAGE ;
             secret/data/sol/async/agent/ci NOTIFIER_URL | NOTIFIER_URL
 
+
       - uses: actions/checkout@v2
 
       - uses: actions/setup-go@v2

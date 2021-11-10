@@ -57,6 +57,9 @@ jobs:
           make dep
           make build
           make integrationtest
+        env:
+          CENTRAL_AUTH_PRIVATEKEY_DATA: ${{ secrets.CENTRAL_AUTH_PRIVATEKEY_DATA }}
+          CENTRAL_AUTH_PUBLICKEY_DATA: ${{ secrets.CENTRAL_AUTH_PUBLICKEY_DATA }}
 
   deploy:
     runs-on: ubuntu-latest

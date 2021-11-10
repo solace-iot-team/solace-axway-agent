@@ -61,7 +61,6 @@ jobs:
           make build
           make integrationtest
 
-
   deploy:
     runs-on: ubuntu-latest
     needs: [build]

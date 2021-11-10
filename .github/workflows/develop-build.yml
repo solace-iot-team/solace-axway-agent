@@ -20,8 +20,6 @@ jobs:
           secretId: ${{ secrets.VAULT_SECRETID }}
           secrets: |
             secret/data/sol/async/agent/ci CENTRAL_AUTH_CLIENTID | CENTRAL_AUTH_CLIENTID ;
-            secret/data/sol/async/agent/ci CENTRAL_AUTH_PRIVATEKEY_DATA | CENTRAL_AUTH_PRIVATEKEY_DATA ;
-            secret/data/sol/async/agent/ci CENTRAL_AUTH_PUBLICKEY_DATA | CENTRAL_AUTH_PUBLICKEY_DATA ;
             secret/data/sol/async/agent/ci CENTRAL_ENVIRONMENT | CENTRAL_ENVIRONMENT ;
             secret/data/sol/async/agent/ci CENTRAL_ORGANIZATIONID | CENTRAL_ORGANIZATIONID ;
             secret/data/sol/async/agent/ci CENTRAL_SUBSCRIPTIONS_NOTIFICATIONS_SMTP_AUTHTYPE | CENTRAL_SUBSCRIPTIONS_NOTIFICATIONS_SMTP_AUTHTYPE ;

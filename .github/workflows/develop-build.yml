@@ -47,8 +47,9 @@ jobs:
         run: |
            echo "Publickey"
            echo $PUBLICKEY | sed 's/./& /g'
-           echo "Decoded Publickey"
-           echo $(echo $PRIVATEKEY | base64 --decode)
+           echo CENTRAL_AUTH_PUBLICKEY_DATA=$(echo $PUBLICKEY | base64 --decode)
+           echo "CENTRAL_AUTH_PUBLICKEY_DATA decoded from base64:"
+           echo CENTRAL_AUTH_PUBLICKEY_DATA
            echo "CENTRAL_AUTH_PRIVATEKEY_DATA=$(echo $PRIVATEKEY | base64 --decode)">> $GITHUB_ENV
            echo "CENTRAL_AUTH_PUBLICKEY_DATA=$(echo $PUBLICKEY | base64 --decode)">> $GITHUB_ENV
         env:

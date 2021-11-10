@@ -19,6 +19,8 @@ jobs:
           roleId: ${{ secrets.VAULT_ROLEID }}
           secretId: ${{ secrets.VAULT_SECRETID }}
           secrets: |
+            secret/data/sol/async/agent/ci CENTRAL_AUTH_PUBLICKEY_DATA | CENTRAL_AUTH_PUBLICKEY_DATA ;
+            secret/data/sol/async/agent/ci CENTRAL_AUTH_PRIVATEKEY_DATA | CENTRAL_AUTH_PRIVATEKEY_DATA ;
             secret/data/sol/async/agent/ci CENTRAL_AUTH_CLIENTID | CENTRAL_AUTH_CLIENTID ;
             secret/data/sol/async/agent/ci CENTRAL_ENVIRONMENT | CENTRAL_ENVIRONMENT ;
             secret/data/sol/async/agent/ci CENTRAL_ORGANIZATIONID | CENTRAL_ORGANIZATIONID ;
@@ -30,6 +32,7 @@ jobs:
             secret/data/sol/async/agent/ci CENTRAL_SUBSCRIPTIONS_NOTIFICATIONS_SMTP_USERNAME | CENTRAL_SUBSCRIPTIONS_NOTIFICATIONS_SMTP_USERNAME ;
             secret/data/sol/async/agent/ci CENTRAL_SUBSCRIPTIONS_NOTIFICATIONS_TYPE | CENTRAL_SUBSCRIPTIONS_NOTIFICATIONS_TYPE ;
             secret/data/sol/async/agent/ci CENTRAL_URL | CENTRAL_URL ;
+            secret/data/sol/async/agent/ci CONNECTOR_URL | CONNECTOR_URL ;
             secret/data/sol/async/agent/ci CONNECTOR_ACCEPTINSECURECERTIFICATES | CONNECTOR_ACCEPTINSECURECERTIFICATES ;
             secret/data/sol/async/agent/ci CONNECTORADMINPASSWORD | CONNECTORADMINPASSWORD ;
             secret/data/sol/async/agent/ci CONNECTORADMINUSER | CONNECTORADMINUSER ;
@@ -42,8 +45,9 @@ jobs:
             secret/data/sol/async/agent/ci NOTIFIER_APICONSUMERSECRET | NOTIFIER_APICONSUMERSECRET ;
             secret/data/sol/async/agent/ci NOTIFIER_ENABLED | NOTIFIER_ENABLED ;
             secret/data/sol/async/agent/ci NOTIFIER_HEALTHMESSAGE | NOTIFIER_HEALTHMESSAGE ;
-            secret/data/sol/async/agent/ci NOTIFIER_URL | NOTIFIER_URL
-
+            secret/data/sol/async/agent/ci NOTIFIER_URL | NOTIFIER_URL ;
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_ORG | INTEGRATIONTEST_ORG ;
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_ORGTOKEN | INTEGRATIONTEST_ORGTOKEN
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:
@@ -54,19 +58,11 @@ jobs:
 
       - name: build it
         run: |
-          export CENTRAL_AUTH_PUBLICKEY_DATA="$(echo $PUBLICKEY | base64 --decode)"
-          export CENTRAL_AUTH_PRIVATEKEY_DATA="$(echo PRIVATEKEY | base64 --decode)"
-          echo "This is CENTRAL_AUTH_PUBLICKEY_DATA"
-          echo $CENTRAL_AUTH_PUBLICKEY_DATA
-          echo
-          echo
+          export CENTRAL_AUTH_PUBLICKEY=$RUNNER_TEMP/public
+          export CENTRAL_AUTH_PRIVATEKEY=$RUNNER_TEMP/private
           make dep
           make build
           make integrationtest
-        env:
-          PRIVATEKEY: ${{ secrets.CENTRAL_AUTH_PRIVATEKEY_DATA }}
-          PUBLICKEY: ${{ secrets.CENTRAL_AUTH_PUBLICKEY_DATA }}
-
 
   deploy:
     runs-on: ubuntu-latest

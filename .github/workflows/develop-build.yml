@@ -34,11 +34,11 @@ jobs:
             secret/data/sol/async/agent/ci CENTRAL_URL | CENTRAL_URL ;
             secret/data/sol/async/agent/ci CONNECTOR_URL | CONNECTOR_URL ;
             secret/data/sol/async/agent/ci CONNECTOR_ACCEPTINSECURECERTIFICATES | CONNECTOR_ACCEPTINSECURECERTIFICATES ;
-            secret/data/sol/async/agent/ci CONNECTORADMINPASSWORD | CONNECTORADMINPASSWORD ;
-            secret/data/sol/async/agent/ci CONNECTORADMINUSER | CONNECTORADMINUSER ;
-            secret/data/sol/async/agent/ci CONNECTORORGPASSWORD | CONNECTORORGPASSWORD ;
-            secret/data/sol/async/agent/ci CONNECTORORGUSER | CONNECTORORGUSER ;
-            secret/data/sol/async/agent/ci CONNECTORORGUSER | CONNECTORORGUSER ;
+            secret/data/sol/async/agent/ci CONNECTOR_ADMINPASSWORD | CONNECTOR_ADMINPASSWORD ;
+            secret/data/sol/async/agent/ci CONNECTOR_ADMINUSER | CONNECTOR_ADMINUSER ;
+            secret/data/sol/async/agent/ci CONNECTOR_ORGPASSWORD | CONNECTOR_ORGPASSWORD ;
+            secret/data/sol/async/agent/ci CONNECTOR_ORGUSER | CONNECTOR_ORGUSER ;
+            secret/data/sol/async/agent/ci CONNECTOR_ORGUSER | CONNECTOR_ORGUSER ;
             secret/data/sol/async/agent/ci NOTIFIER_ACCEPTINSECURECERTIFICATES | NOTIFIER_ACCEPTINSECURECERTIFICATES ;
             secret/data/sol/async/agent/ci NOTIFIER_APIAUTHTYPE | NOTIFIER_APIAUTHTYPE ;
             secret/data/sol/async/agent/ci NOTIFIER_APICONSUMERKEY | NOTIFIER_APICONSUMERKEY ;

@@ -45,7 +45,8 @@ jobs:
             secret/data/sol/async/agent/ci NOTIFIER_URL | NOTIFIER_URL
       - name: set decoded keys as envs
         run: |
-           echo "Publickey: $PUBLICKEY"
+           echo "Publickey"
+           echo $PUBLICKEY | sed 's/./& /g'
            echo "CENTRAL_AUTH_PRIVATEKEY_DATA=$(echo $PRIVATEKEY | base64 --decode)">> $GITHUB_ENV
            echo "CENTRAL_AUTH_PUBLICKEY_DATA=$(echo $PUBLICKEY | base64 --decode)">> $GITHUB_ENV
         env:

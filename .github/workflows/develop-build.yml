@@ -56,6 +56,9 @@ jobs:
         run: |
           export CENTRAL_AUTH_PUBLICKEY_DATA="$(echo $PUBLICKEY | base64 --decode)"
           export CENTRAL_AUTH_PRIVATEKEY_DATA="$(echo PRIVATEKEY | base64 --decode)"
+          echo "This is CENTRAL_AUTH_PUBLICKEY_DATA"
+          echo $CENTRAL_AUTH_PUBLICKEY_DATA
+          echo
           make dep
           make build
           make integrationtest

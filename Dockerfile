@@ -22,11 +22,19 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /opt
+RUN mkdir /opt/agent
+
+RUN addgroup -S agent && adduser -S agent -G agent
+
+WORKDIR /opt/agent
 
 COPY --from=build /build/solace-axway-agent solace-axway-agent
 COPY sample/agent-config.yml solace_axway_agent.yml
 
+RUN chown -R agent /opt/agent
+
+user agent
+
 # Command to run the executable
-CMD ["sh", "-c", "/opt/solace-axway-agent"]
+CMD ["sh", "-c", "/opt/agent/solace-axway-agent"]
 

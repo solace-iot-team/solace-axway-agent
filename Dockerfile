@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine3.12 AS build
+FROM golang:1.16.10-alpine3.14 AS build
 
 ENV GO111MODULE=on \
     CGO_ENABLED=0 \
@@ -22,11 +22,11 @@ FROM alpine:latest
 
 RUN apk --no-cache add ca-certificates
 
-WORKDIR /root
+WORKDIR /opt
 
 COPY --from=build /build/solace-axway-agent solace-axway-agent
 COPY sample/agent-config.yml solace_axway_agent.yml
 
 # Command to run the executable
-CMD ["sh", "-c", "/root/solace-axway-agent"]
+CMD ["sh", "-c", "/opt/solace-axway-agent"]
 

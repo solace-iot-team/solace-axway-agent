@@ -12,14 +12,19 @@ import (
 	"github.com/pkg/errors"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
+	"io"
 	"net"
 	"net/http"
 	url2 "net/url"
-	"strings"
 	"time"
 )
 
 const connectorName = "Solace Connector"
+
+type ConClientResponse interface {
+	Body() []byte
+	HTTPResponse() *http.Response
+}
 
 // ConclientHTTPError - Detailed HTTP-Error
 type ConclientHTTPError struct {
@@ -44,8 +49,8 @@ type SolaceEnvironment struct {
 type SolaceCredentialsDto struct {
 	ConsumerKey    string
 	ConsumerSecret *string
-	IssuedAt       *float32
-	ExpiresAt      *float32
+	IssuedAt       *int64
+	ExpiresAt      *int64
 }
 
 type connectorClients struct {
@@ -55,7 +60,9 @@ type connectorClients struct {
 
 //Access Holds refernce to HTTP-Client to Solace Connector
 type Access struct {
-	Client *ClientWithResponses
+	Client    *ClientWithResponses
+	LogBody   bool
+	LogHeader bool
 }
 
 //Attribute Solace Connector Attribute
@@ -82,7 +89,7 @@ func (s *SolaceWebhook) GetWebHookAuth() *WebHookAuth {
 		var method WebHookBasicAuthAuthMethod = WebHookBasicAuthAuthMethodBasic
 		result = WebHookBasicAuth{
 			AuthMethod: &method,
-			Username:   s.AuthenticationIdentifier,
+			Username:   CommonUserName(s.AuthenticationIdentifier),
 			Password:   s.AuthenticationSecret,
 		}
 	case solace.SolaceAuthenticationMethodHttpHeaderAuthentication:
@@ -132,10 +139,14 @@ func Initialize(gatewayCfg *config.ConnectorConfig) error {
 	}
 
 	connectors.OrgConnector = &Access{
-		Client: orgClient,
+		Client:    orgClient,
+		LogBody:   gatewayCfg.ConnectorLogBody,
+		LogHeader: gatewayCfg.ConnectorLogHeader,
 	}
 	connectors.AdminConnector = &Access{
-		Client: adminClient,
+		Client:    adminClient,
+		LogBody:   gatewayCfg.ConnectorLogBody,
+		LogHeader: gatewayCfg.ConnectorLogHeader,
 	}
 
 	//register HealthChecker
@@ -241,8 +252,10 @@ func (c *Access) IsHealthCheck() (bool, error) {
 	result, err := c.Client.HealthcheckWithResponse(
 		ctx)
 	if err != nil {
+		log.Tracef("[CONCLIENT] [IsHealthCheck] [err:%s]", err)
 		return false, err
 	}
+	log.Tracef("[CONCLIENT] [IsHealthCheck]  %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() != http.StatusOK {
 		return false, fmt.Errorf("Solace-Connector is accessible but returned HTTP-Status-Code: %v", result.StatusCode())
 	}
@@ -255,8 +268,10 @@ func (c *Access) IsOrgRegistered(orgName string) (bool, error) {
 	defer cancel()
 	result, err := c.Client.GetOrganizationWithResponse(ctx, Orgparameter(orgName))
 	if err != nil {
+		log.Tracef("[CONCLIENT] [IsOrgRegistered] [err:%s]", err)
 		return false, err
 	}
+	log.Tracef("[CONCLIENT] [IsOrgRegistered]  %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	return result.StatusCode() == http.StatusOK, nil
 }
 
@@ -268,6 +283,7 @@ func (c *Access) DeleteOrg(orgName string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	log.Tracef("[CONCLIENT] [DeleteOrg] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	return result.StatusCode() < 300, nil
 }
 
@@ -275,13 +291,15 @@ func (c *Access) CreateOrg(orgName string, token *interface{}) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	body := CreateOrganizationJSONRequestBody{
-		Name:       orgName,
+		Name:       CommonName(orgName),
 		CloudToken: token,
 	}
 	result, err := c.Client.CreateOrganizationWithResponse(ctx, body)
 	if err != nil {
+		log.Tracef("[CONCLIENT] [CreateOrg] [err:%s]", err)
 		return false, err
 	}
+	log.Tracef("[CONCLIENT] [CreateOrg] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	return result.StatusCode() < 300, nil
 }
 
@@ -292,8 +310,10 @@ func (c *Access) IsAPIAvailable(orgName string, apiName string) (bool, error) {
 	params := GetApiParams{}
 	result, err := c.Client.GetApiWithResponse(ctx, Orgparameter(orgName), ApiName(apiName), &params)
 	if err != nil {
+		log.Tracef("[CONCLIENT] [IsAPIAvailable] [err:%s]", err)
 		return false, err
 	}
+	log.Tracef("[CONCLIENT] [IsAPIAvailable] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	return result.StatusCode() == http.StatusOK, nil
 }
 
@@ -303,8 +323,10 @@ func (c *Access) IsAPIProductAvailable(orgName string, productName string) (bool
 	defer cancel()
 	result, err := c.Client.GetApiProductWithResponse(ctx, Orgparameter(orgName), ApiProductName(productName))
 	if err != nil {
+		log.Tracef("[CONCLIENT] [IsAPIProductAvailable] [err:%s]", err)
 		return false, err
 	}
+	log.Tracef("[CONCLIENT] [IsAPIProductAvailable] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	return result.StatusCode() == http.StatusOK, nil
 }
 
@@ -314,8 +336,10 @@ func (c *Access) IsTeamAvailable(orgName string, teamName string) (bool, error) 
 	defer cancel()
 	result, err := c.Client.GetTeamWithResponse(ctx, Orgparameter(orgName), TeamName(teamName))
 	if err != nil {
+		log.Tracef("[CONCLIENT] [IsTeamAvailable] [err:%s]", err)
 		return false, err
 	}
+	log.Tracef("[CONCLIENT] [IsTeamAvailable] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	return result.StatusCode() == http.StatusOK, nil
 }
 
@@ -330,9 +354,62 @@ func (c *Access) IsTeamAppAvailable(orgName string, teamName string, appName str
 	}
 	result, err := c.Client.GetTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), AppName(appName), &topicSyntax)
 	if err != nil {
+		log.Tracef("[CONCLIENT] [IsTeamAppAvailable] [err:%s]", err)
 		return false, err
 	}
+	log.Tracef("[CONCLIENT] [IsTeamAppAvailable] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	return result.StatusCode() == http.StatusOK, nil
+}
+
+// CreateEnvironment - creates new Environment
+func (c *Access) CreateEnvironment(orgName string, envName string, description string, serviceId string, protocolVersions []map[string]string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+	props := make(map[string]interface{}, 0)
+	displayName := CommonDisplayName(envName)
+	protocols := make([]Protocol, 0)
+	for _, pv := range protocolVersions {
+		version := CommonVersion(pv["version"])
+		p := Protocol{
+			Name:    ProtocolName(pv["name"]),
+			Version: &version,
+		}
+		protocols = append(append(protocols, p))
+	}
+	environment := Environment{
+		Name:                 CommonName(envName),
+		Description:          CommonDescription("Environment for Integration Tests - will get removed"),
+		DisplayName:          &displayName,
+		ExposedProtocols:     protocols,
+		ServiceId:            serviceId,
+		AdditionalProperties: props,
+	}
+
+	result, err := c.Client.CreateEnvironmentWithResponse(ctx, Orgparameter(orgName), CreateEnvironmentJSONRequestBody(environment))
+	if err != nil {
+		log.Tracef("[CONCLIENT] [CreateEnvironment] [err:%s]", err)
+		return err
+	}
+	log.Tracef("[CONCLIENT] [CreateEnvironment] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
+	if result.StatusCode() < 300 {
+		return nil
+	} else {
+		return errors.New("CreateEnvironment was not successful")
+	}
+}
+
+// DeleteEnvironment - Deletes Environment
+func (c *Access) DeleteEnvironment(orgName string, envName string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+	result, err := c.Client.DeleteEnvironment(ctx, Orgparameter(orgName), EnvName(envName))
+	if err != nil {
+		log.Tracef("[CONCLIENT] [DeleteEnvironment] [err:%s]", err)
+		return false, err
+	}
+	log.Tracef("[CONCLIENT] [DeleteEnvironment] %s", c.logTextHttpResponse([]byte("NO BODY"), result))
+	return result.StatusCode < 300, nil
+
 }
 
 // GetListEnvironments - provides all environments
@@ -345,19 +422,21 @@ func (c *Access) GetListEnvironments(orgName string) ([]SolaceEnvironment, error
 	}
 	listEnvironments, err := c.Client.ListEnvironmentsWithResponse(ctx, Orgparameter(orgName), &params)
 	if err != nil {
+		log.Tracef("[CONCLIENT] [GetListEnvironments] [err:%s]", err)
 		return nil, err
 	}
 	if listEnvironments.StatusCode() != http.StatusOK {
-		return nil, errors.New("Solace-Connector did not HTTP-200 for listEnvironments")
+		return nil, errors.New("Solace-Connector did not return HTTP-200 for listEnvironments")
 	}
+	log.Tracef("[CONCLIENT] [GetListEnvironments] %s", c.logTextHttpResponse(listEnvironments.Body, listEnvironments.HTTPResponse))
 	solaceEnvs := make([]SolaceEnvironment, 0)
 	for _, env := range *listEnvironments.JSON200 {
 		host, _ := deriveHostFromProtocols(env)
 		//todo log error for debugging / follow up in logs
 
 		solaceEnvs = append(solaceEnvs, SolaceEnvironment{
-			Name:            env.Name,
-			ServiceID:       env.ServiceId,
+			Name:            DerefString((*string)(env.Name)),
+			ServiceID:       DerefString(env.ServiceId),
 			Host:            host,
 			ProtocolVersion: extractProtocolVersionMap(env)})
 	}
@@ -366,8 +445,8 @@ func (c *Access) GetListEnvironments(orgName string) ([]SolaceEnvironment, error
 
 func extractProtocolVersionMap(env EnvironmentListItem) map[string]string {
 	protocolVersionMap := make(map[string]string)
-	for _, endpoint := range env.ExposedProtocols {
-		protocolVersionMap[string(endpoint.Name)] = *endpoint.Version
+	for _, endpoint := range *env.ExposedProtocols {
+		protocolVersionMap[string(endpoint.Name)] = string(*endpoint.Version)
 	}
 	return protocolVersionMap
 }
@@ -391,9 +470,10 @@ func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*S
 	params := GetTeamAppParams{}
 	result, err := c.Client.GetTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), AppName(appName), &params)
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [GetTeamApp] [GetTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] ", orgName, teamName, appName)
+		log.Tracef("[CONCLIENT] [GetTeamApp] [err:%s]", err)
 		return nil, nil, err
 	}
+	log.Tracef("[CONCLIENT] [GetTeamApp] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
 			ClientFunction: "GetTeamAppWithResponse",
@@ -412,7 +492,7 @@ func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*S
 	credentialsDto := SolaceCredentialsDto{
 		ConsumerKey:    result.JSON200.Credentials.Secret.ConsumerKey,
 		ConsumerSecret: result.JSON200.Credentials.Secret.ConsumerSecret,
-		IssuedAt:       result.JSON200.Credentials.IssuedAt,
+		IssuedAt:       (*int64)(result.JSON200.Credentials.IssuedAt),
 		ExpiresAt:      &result.JSON200.Credentials.ExpiresAt,
 	}
 	return &credentialsDto, jsonMap, nil
@@ -425,17 +505,16 @@ func (c *Access) GetAppApiNames(orgName string, appName string) (*[]string, erro
 	params := ListAppApiSpecificationsParams{}
 	result, err := c.Client.ListAppApiSpecificationsWithResponse(ctx, Orgparameter(orgName), AppName(appName), &params)
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [GetAppApiNames] [ListAppApiSpecificationsWithResponse] [orgName:%s] [appName:%s] ", orgName, appName)
+		log.Tracef("[CONCLIENT] [GetAppApiNames] [err:%s]", err)
 		return nil, err
 	}
+	log.Tracef("[CONCLIENT] [GetAppApiNames] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
 			ClientFunction: "ListAppApiSpecificationsWithResponse",
 			HTTPStatusCode: int(result.StatusCode()),
 			Response:       "n/a",
 		}
-		log.Debugf("[FAULT] [CONCLIENT] [GetAppApiNames] [ListAppApiSpecificationsWithResponse] [orgName:%s] [appName:%s] [HTTP-CODE:%s] [Request:%s] [%s]", orgName, appName, result.StatusCode(), result.HTTPResponse.Request.URL, string(result.Body[:]))
-
 		return nil, returnError
 	}
 	return result.JSON200, nil
@@ -451,20 +530,19 @@ func (c *Access) GetAppApiSpecification(orgName string, appName string, apiName 
 	}
 	result, err := c.Client.GetAppApiSpecificationWithResponse(ctx, Orgparameter(orgName), AppName(appName), ApiName(apiName), params)
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [GetAppApiSpecification] [GetAppApiSpecificationWithResponse] [orgName:%s] [appName:%s] [apiName:%s] [%s]", orgName, appName, apiName, err)
+		log.Tracef("[CONCLIENT] [GetAppApiSpecification] [err:%s]", err)
 		return nil, err
 	}
+	log.Tracef("[CONCLIENT] [GetAppApiSpecification] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
 			ClientFunction: "GetAppApiSpecificationWithResponse",
 			HTTPStatusCode: int(result.StatusCode()),
 			Response:       "n/a",
 		}
-		log.Tracef("[FAULT] [CONCLIENT] [GetAppApiSpecification] [GetAppApiSpecificationWithResponse] [orgName:%s] [appName:%s] [apiName:%s] [HTTP-CODE:%s] [Request:%s] [%s]", orgName, appName, apiName, result.StatusCode(), result.HTTPResponse.Request.URL, string(result.Body[:]))
 		return nil, returnError
-
 	}
-	return result.JSON200, nil
+	return &result.JSON200.AdditionalProperties, nil
 }
 
 // RemoveTeamApp - removes the Team-Application
@@ -473,16 +551,16 @@ func (c *Access) RemoveTeamApp(orgName string, teamName string, appName string) 
 	defer cancel()
 	result, err := c.Client.DeleteTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), AppName(appName))
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [RemoveTeamApp] [DeleteTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] ", orgName, teamName, appName)
+		log.Tracef("[CONCLIENT] [RemoveTeamApp] [err:%s]", err)
 		return err
 	}
+	log.Tracef("[CONCLIENT] [RemoveTeamApp] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
 			ClientFunction: "DeleteTeamAppWithResponse",
 			HTTPStatusCode: int(result.StatusCode()),
 			Response:       string(result.Body[:]),
 		}
-		log.Tracef("[FAULT] [CONCLIENT] [RemoveTeamApp] [DeleteTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [HTTP-CODE:%d] [Request:%s] [Response:%s]", orgName, teamName, appName, result.StatusCode(), result.HTTPResponse.Request.URL, string(result.Body[:]))
 		return returnError
 	}
 	return nil
@@ -497,8 +575,13 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 		IssuedAt:  nil,
 		Secret:    nil,
 	}
-	var webhooks []WebHook = nil
 
+	commonNames := make([]CommonName, len(apiProducts))
+	for i := range apiProducts {
+		commonNames[i] = CommonName(apiProducts[i])
+	}
+	var webhooks []WebHook = nil
+	var payload CreateTeamAppJSONRequestBody
 	if solaceWebhook != nil {
 		webhoock := WebHook{
 			Authentication: solaceWebhook.GetWebHookAuth(),
@@ -507,22 +590,29 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 			Mode:   solaceWebhook.GetMode(),
 			Uri:    solaceWebhook.CallbackUrl,
 		}
-		webhooks = make([]WebHook, 1)
-		webhooks[0] = webhoock
+		webhooks = append(webhooks, webhoock)
+		payload = CreateTeamAppJSONRequestBody{
+			Name:        CommonName(appName),
+			DisplayName: (*CommonDisplayName)(&displayName),
+			ApiProducts: commonNames,
+			Credentials: credentials,
+			WebHooks:    &webhooks,
+		}
+	} else {
+		payload = CreateTeamAppJSONRequestBody{
+			Name:        CommonName(appName),
+			DisplayName: (*CommonDisplayName)(&displayName),
+			ApiProducts: commonNames,
+			Credentials: credentials,
+		}
 	}
 
-	payload := CreateTeamAppJSONRequestBody{
-		Name:        appName,
-		DisplayName: &displayName,
-		ApiProducts: apiProducts,
-		Credentials: credentials,
-		WebHooks:    &webhooks,
-	}
 	result, err := c.Client.CreateTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), payload)
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [PublishTeamApp] [CreateTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [displayName:%s] [apiProducts:%s]", orgName, teamName, appName, displayName, strings.Join(apiProducts, ","))
+		log.Tracef("[CONCLIENT] [PublishTeamApp] [err:%s]", err)
 		return nil, err
 	}
+	log.Tracef("[CONCLIENT] [CreateTeamAppWithResponse] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
 			ClientFunction: "CreateTeamAppWithResponse",
@@ -530,12 +620,33 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 			Response:       string(result.Body[:]),
 		}
 
-		log.Tracef("[FAULT] [CONCLIENT] [PublishTeamApp] [CreateTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [displayName:%s] [apiProducts:%s] [HTTP-CODE:%s] [Request:%s] [%s]", orgName, teamName, appName, displayName, strings.Join(apiProducts, ","), result.StatusCode(), result.HTTPResponse.Request.URL, string(result.Body[:]))
 		return nil, returnError
 	}
-	log.Tracef("[OK] [CONCLIENT] [PublishTeamApp] [CreateTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [displayName:%s] [apiProducts:%s]", orgName, teamName, appName, displayName, strings.Join(apiProducts, ","))
-
 	return &result.JSON201.Credentials, nil
+}
+
+// DeleteTeam - deletes a team
+func (c *Access) DeleteTeam(orgName string, teamName string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+
+	result, err := c.Client.DeleteTeamWithResponse(ctx, Orgparameter(orgName), TeamName(teamName))
+	if err != nil {
+		log.Tracef("[CONCLIENT] [DeleteTeam] [err:%s]", err)
+		return err
+	}
+	log.Tracef("[CONCLIENT] [DeleteTeam] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
+	if result.StatusCode() >= 300 {
+		returnError := &ConclientHTTPError{
+			ClientFunction: "DeleteTeam",
+			HTTPStatusCode: int(result.StatusCode()),
+			Response:       string(result.Body[:]),
+		}
+
+		return returnError
+	} else {
+		return nil
+	}
 }
 
 // PublishTeam - publishes / creates a team
@@ -544,24 +655,23 @@ func (c *Access) PublishTeam(orgName string, teamName string) error {
 	defer cancel()
 
 	payload := CreateTeamJSONBody{
-		Name:        teamName,
-		DisplayName: teamName,
+		Name:        CommonName(teamName),
+		DisplayName: CommonDisplayName(teamName),
 	}
 	result, err := c.Client.CreateTeamWithResponse(ctx, Orgparameter(orgName), CreateTeamJSONRequestBody(payload))
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [PublishTeam] [CreateTeamWithResponse] [orgName:%s] [teamName:%s]", orgName, teamName)
+		log.Tracef("[CONCLIENT] [PublishTeam] [err:%s]", err)
 		return err
 	}
+	log.Tracef("[CONCLIENT] [PublishTeam] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
 			ClientFunction: "CreateTeamWithResponse",
 			HTTPStatusCode: int(result.StatusCode()),
 			Response:       string(result.Body[:]),
 		}
-		log.Tracef("[FAULT] [CONCLIENT] [PublishTeam] [CreateTeamWithResponse][orgName:%s] [teamName:%s] [HTTP-CODE:%s] [Request:%s] [%s]", orgName, teamName, result.StatusCode(), result.HTTPResponse.Request.RequestURI, returnError.Error())
 		return returnError
 	}
-	log.Tracef("[OK] [CONCLIENT] [PublishTeam] [CreateTeamWithResponse][orgName:%s] [teamName:%s][%s]", orgName, teamName)
 	return nil
 }
 
@@ -572,12 +682,12 @@ func (c *Access) RemoveAPIProduct(orgName string, productName string, ignoreConf
 
 	result, err := c.Client.DeleteApiProductWithResponse(ctx, Orgparameter(orgName), ApiProductName(productName))
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [RemoveAPIProduct] [DeleteApiProductWithResponse] [orgName:%s] [productName:%s] ", orgName, productName, err.Error())
+		log.Tracef("[CONCLIENT] [RemoveAPIProduct] [err:%s]", err)
 		return err
 	}
+	log.Tracef("[CONCLIENT] [RemoveAPIProduct] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if ignoreConflictResponse {
 		if result.StatusCode() == http.StatusConflict {
-			log.Tracef("[INFO] [CONCLIENT] [RemoveAPIProduct] [DeleteApiProductWithResponse] [orgName:%s] [apiName:%s] [Tried to delete API-Product but still referenced] [HTTP-Status:%d] [Request:%s]", orgName, productName, result.StatusCode(), result.HTTPResponse.Request.RequestURI, result.StatusCode())
 			return nil
 		}
 	}
@@ -587,10 +697,8 @@ func (c *Access) RemoveAPIProduct(orgName string, productName string, ignoreConf
 			HTTPStatusCode: int(result.StatusCode()),
 			Response:       string(result.Body[:]),
 		}
-		log.Tracef("[FAULT] [CONCLIENT] [RemoveAPIProduct] [DeleteApiProductWithResponse] [orgName:%s]  [productName:%s] [HTTP-CODE:%s] [Request:%s] [%s]", orgName, productName, result.StatusCode(), result.HTTPResponse.Request.URL, string(result.Body[:]))
 		return returnError
 	}
-	log.Tracef("[OK] [CONCLIENT] [RemoveAPIProduct] [orgName:%s]  [productName:%s]  [%s]", orgName, productName)
 	return nil
 }
 
@@ -607,33 +715,41 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 	for k, v := range permissions {
 		attributes = append(attributes, Attribute{Name: k, Value: v})
 	}
+	commonNames := make([]CommonName, len(apiNames))
+	for i := range apiNames {
+		commonNames[i] = CommonName(apiNames[i])
+	}
+	commonNamesEnvironments := make([]CommonName, len(apiNames))
+	for i := range environments {
+		commonNamesEnvironments[i] = CommonName(environments[i])
+	}
+	desc := CommonDescription(d)
 	payload := CreateApiProductJSONRequestBody{
-		Name:         productName,
-		Apis:         apiNames,
+		Name:         CommonName(productName),
+		Apis:         commonNames,
 		ApprovalType: &a,
-		Description:  &d,
-		DisplayName:  productName,
-		Environments: &environments,
+		Description:  &desc,
+		DisplayName:  CommonDisplayName(productName),
+		Environments: &commonNamesEnvironments,
 		Protocols:    &protocols,
-		PubResources: make([]string, 0),
-		SubResources: make([]string, 0),
+		PubResources: make([]CommonTopic, 0),
+		SubResources: make([]CommonTopic, 0),
 		Attributes:   attributes,
 	}
 	result, err := c.Client.CreateApiProductWithResponse(ctx, Orgparameter(orgName), CreateApiProductJSONRequestBody(payload))
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [PublishAPIProduct] [CreateApiProductWithResponse] [orgName:%s] [productName:%s] [apiNames:%s] [environments:%s] [protocols:%s]", orgName, productName, strings.Join(apiNames, ","), strings.Join(environments, ","), strings.Join(protocolsToString(protocols), ","))
+		log.Tracef("[CONCLIENT] [PublishAPIProduct] [err:%s]", err)
 		return err
 	}
+	log.Tracef("[CONCLIENT] [PublishAPIProduct] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
 			ClientFunction: "CreateApiProductWithResponse",
 			HTTPStatusCode: int(result.StatusCode()),
 			Response:       string(result.Body[:]),
 		}
-		log.Tracef("[FAULT] [CONCLIENT] [PublishAPIProduct] [CreateApiProductWithResponse] [orgName:%s] [productName:%s] [apiNames:%s] [environments:%s] [protocols:%s] [HTTP-Status:%d] [Request:%s] [%s]", orgName, productName, strings.Join(apiNames, ","), strings.Join(environments, ","), strings.Join(protocolsToString(protocols), ","), result.StatusCode(), result.HTTPResponse.Request.URL, string(result.Body[:]))
 		return returnError
 	}
-	log.Tracef("[OK] [CONCLIENT] [PublishAPIProduct] [CreateApiProductWithResponse]  [Http-Status:%d] [orgName:%s] [productName:%s] [apiNames:%s] [environments:%s] [protocols:%s]", result.StatusCode(), orgName, productName, strings.Join(apiNames, ","), strings.Join(environments, ","), strings.Join(protocolsToString(protocols), ","))
 	return nil
 }
 
@@ -642,7 +758,7 @@ func protocolsToString(protocols []Protocol) []string {
 	for _, item := range protocols {
 		text := string(item.Name)
 		if item.Version != nil {
-			text = text + ":" + *item.Version
+			text = text + ":" + string(*item.Version)
 		}
 		result = append(result, text)
 	}
@@ -656,12 +772,12 @@ func (c *Access) RemoveAPI(orgName string, apiName string, ignoreConflictRespons
 
 	result, err := c.Client.DeleteApiWithResponse(ctx, Orgparameter(orgName), ApiName(apiName))
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [RemoveAPI] [DeleteApiWithResponse] [orgName:%s] [apiName:%s] ", orgName, apiName, err.Error())
+		log.Tracef("[CONCLIENT] [RemoveAPI] [err:%s]", err)
 		return err
 	}
+	log.Tracef("[CONCLIENT] [RemoveAPI] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if ignoreConflictResponse {
 		if result.StatusCode() == http.StatusConflict {
-			log.Tracef("[INFO] [CONCLIENT] [RemoveAPI] [DeleteApiWithResponse] [orgName:%s] [apiName:%s] [Tried to delete API but still referenced] [HTTP-Status:%d] ", orgName, apiName, result.StatusCode())
 			return nil
 		}
 	}
@@ -671,10 +787,8 @@ func (c *Access) RemoveAPI(orgName string, apiName string, ignoreConflictRespons
 			HTTPStatusCode: int(result.StatusCode()),
 			Response:       string(result.Body[:]),
 		}
-		log.Tracef("[FAULT] [CONCLIENT] [RemoveAPI] [DeleteApiWithResponse] [orgName:%s] [apiName:%s]  [HTTP-Status:%d] [Request:%s]  [%s]", orgName, apiName, result.StatusCode(), result.HTTPResponse.Request.URL, string(result.Body[:]))
 		return returnError
 	}
-	log.Tracef("[OK] [CONCLIENT] [RemoveAPI] [DeleteApiWithResponse] [Http-Status:%d] [orgName:%s] [apiName:%s]  ", result.StatusCode(), orgName, apiName)
 	return nil
 }
 
@@ -685,18 +799,76 @@ func (c *Access) PublishAPI(orgName string, apiName string, apiSpec []byte) erro
 
 	result, err := c.Client.CreateApiWithBodyWithResponse(ctx, Orgparameter(orgName), ApiName(apiName), "text/plain", bytes.NewReader(apiSpec))
 	if err != nil {
-		log.Tracef("[ERROR] [CONCLIENT] [PublishAPI] [CreateApiWithBodyWithResponse] [orgName:%s] [apiName:%s] [apiSpec-length:%d] [%s]", orgName, apiName, len(apiSpec), err.Error())
+		log.Tracef("[CONCLIENT] [PublishAPI] [err:%s]", err)
 		return err
 	}
+	log.Tracef("[CONCLIENT] [PublishAPI] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
 		returnError := &ConclientHTTPError{
 			ClientFunction: "CreateApiWithBodyWithResponse",
 			HTTPStatusCode: int(result.StatusCode()),
 			Response:       string(result.Body[:]),
 		}
-		log.Tracef("[FAULT] [CONCLIENT] [PublishAPI] [CreateApiWithBodyWithResponse]  [orgName:%s] [apiName:%s] [apiSpec-length:%d] [HTTP-Status:%d] [Request:%s] [%s]", orgName, apiName, len(apiSpec), result.StatusCode(), result.HTTPResponse.Request.URL, string(result.Body[:]))
 		return returnError
 	}
-	log.Tracef("[OK] [CONCLIENT] [PublishAPI] [CreateApiWithBodyWithResponse]  [Http-Status:%d] [orgName:%s] [apiName:%s] [apiSpec-length:%d] ", result.StatusCode(), orgName, apiName, len(apiSpec))
 	return nil
+}
+
+// todo: refactor and move to some util package
+func DerefString(s *string) string {
+	if s != nil {
+		return *s
+	}
+	return ""
+}
+
+func (c *Access) logTextHttpResponse(body []byte, response *http.Response) string {
+	requestUrl := "NIL"
+	requestBody := "NIL"
+	responseBody := "NIL"
+	requestVerb := "NIL"
+	requestHeader := "NIL"
+	if response.Request != nil {
+		if response.Request.URL != nil {
+			requestUrl = response.Request.URL.String()
+			requestVerb = response.Request.Method
+			if c.LogHeader {
+				requestHeader = mapToString(response.Request.Header)
+			} else {
+				requestHeader = "***"
+			}
+		}
+
+		if c.LogBody {
+			requestBody = readToString(response.Request.Body)
+			if body != nil {
+				responseBody = string(body)
+			}
+		} else {
+			requestBody = "***"
+			responseBody = "***"
+		}
+	}
+	return fmt.Sprintf("[HTTP-Code:%d] [Request-URL:%s] [Request-Verb:%s] [Request-Header:%s] [Request-Body:%s] [Response-Body:%s]", response.StatusCode, requestUrl, requestVerb, requestHeader, requestBody, responseBody)
+}
+
+func mapToString(m map[string][]string) string {
+	b := new(bytes.Buffer)
+	for key, value := range m {
+		headerValue := new(bytes.Buffer)
+		for _, headerValueItem := range value {
+			fmt.Fprintf(headerValue, "%s ", headerValueItem)
+		}
+		fmt.Fprintf(b, "%s=\"%s\"", key, headerValue.String())
+	}
+	return b.String()
+}
+
+func readToString(reader io.ReadCloser) string {
+	if reader == nil {
+		return "NIL"
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(reader)
+	return buf.String()
 }

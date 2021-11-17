@@ -23,6 +23,8 @@ type ConnectorConfig struct {
 	ConnectorOrgUser            string `config:"orgUser"`
 	ConnectorOrgPassword        string `config:"orgPassword"`
 	ConnectorInsecureSkipVerify bool   `config:"acceptInsecureCertificates"`
+	ConnectorLogBody            bool   `config:"logBody"`
+	ConnectorLogHeader          bool   `config:"logHeader"`
 }
 
 // ConnectorConfig - represents the config for gateway

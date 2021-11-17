@@ -495,7 +495,10 @@ func (container *SubscriptionContainer) PublishAPIProduct() error {
 			envNames = append(envNames, connectorEnvs[idx].Name)
 			protocolVersion, found := connectorEnvs[idx].ProtocolVersion[endpoint.Protocol]
 			if found {
-				protocols = append(protocols, connector.Protocol{Name: connector.ProtocolName(endpoint.Protocol), Version: &protocolVersion})
+				ver := connector.CommonVersion(protocolVersion)
+				protocols = append(protocols, connector.Protocol{
+					Name:    connector.ProtocolName(endpoint.Protocol),
+					Version: &ver})
 			} else {
 				//todo detailed error message
 				return errors.New("Protocol/Version not in Environment")

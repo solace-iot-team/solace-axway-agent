@@ -1,30 +1,32 @@
 package integrationtest
 
 import (
+	"encoding/base64"
 	"errors"
+	"github.com/Axway/agent-sdk/pkg/cmd"
+	corecmd "github.com/Axway/agent-sdk/pkg/cmd"
 	corecfg "github.com/Axway/agent-sdk/pkg/config"
 	"github.com/Axway/agent-sdk/pkg/notify"
 	"github.com/Axway/agent-sdk/pkg/util/log"
-	"github.com/sirupsen/logrus"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 )
 
 // RootCmd - Agent root command
-var RootCmd ConnectorIntegrationTestCmd
+var RootCmd cmd.AgentRootCmd
 var connectorConfig *config.ConnectorConfig
-var integrationtestConfig *IntegrationtestConfig
+var iCfg *IntegrationtestConfig
 var notifierConfig *config.NotifierConfig
 
 var sendEmail bool = false
 var sendNotification bool = false
 
 func init() {
-	log.SetLevel(logrus.TraceLevel)
+	//log.SetLevel(logrus.TraceLevel)
 	// Create new root command with callbacks to initialize the agent config and command execution.
 	// The first parameter identifies the name of the yaml file that agent will look for to load the config
-	RootCmd = NewRootCmd(
+	RootCmd = corecmd.NewRootCmd(
 		"solace_axway_agent_test", // Name of the yaml file
 		"Solace Axway Agent",      // Agent description
 		initConfig,                // Callback for initializing the agent config
@@ -41,6 +43,327 @@ func run() error {
 }
 
 func executeIntegrationTests() error {
+	log.Infof("=== Starting Integration Tests against Connector Server:%s with Org:%s", connectorConfig.ConnectorURL, iCfg.Org)
+	err := executeTestHealthCheck()
+	if err != nil {
+		return err
+	}
+
+	err = executeTestCRUDOrganization()
+	if err != nil {
+		return err
+	}
+
+	err = executeTestCRUDEnvironment()
+	if err != nil {
+		return err
+	}
+	err = executeTestCRUDEnvironment()
+	if err != nil {
+		return err
+	}
+
+	err = executeTestCRUDAPI()
+	if err != nil {
+		return err
+	}
+	err = executeTestCRUDAPI()
+	if err != nil {
+		return err
+	}
+
+	err = executeTestCRUDApiProduct()
+	if err != nil {
+		return err
+	}
+	err = executeTestCRUDApiProduct()
+	if err != nil {
+		return err
+	}
+
+	err = executeTestCRUDTeam()
+	if err != nil {
+		return err
+	}
+	err = executeTestCRUDTeam()
+	if err != nil {
+		return err
+	}
+
+	err = executeTestCRUDTeamApp(false)
+	if err != nil {
+		return err
+	}
+	err = executeTestCRUDTeamApp(true)
+	if err != nil {
+		return err
+	}
+
+	if iCfg.Cleanup {
+		//cleanup
+		err = executeDeleteOrganization()
+		if err != nil {
+			return err
+		}
+		log.Infof("Removed organization:%s from Connector", iCfg.Org)
+	}
+	log.Infof("=== DONE Integration Tests against Connector Server:%s with Org:%s", connectorConfig.ConnectorURL, iCfg.Org)
+	return nil
+
+}
+
+func executeTestCRUDTeamApp(addWebhook bool) error {
+	log.Tracef("connector.GetOrgConnector().IsTeamAppAvailable")
+	found, err := connector.GetOrgConnector().IsTeamAppAvailable(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName)
+	if err != nil {
+		log.Tracef("IsTeamAppAvailable faulted")
+		return err
+	}
+	if found {
+		log.Tracef("TeamApp found")
+		log.Tracef("connector.GetOrgConnector().RemoveTeamApp")
+		err := connector.GetOrgConnector().RemoveTeamApp(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName)
+		if err != nil {
+			log.Tracef("RemoveTeamApp faulted")
+			return err
+		}
+		log.Tracef("TeamApp deleted")
+	}
+
+	listProducts := make([]string, 0)
+	listProducts = append(listProducts, iCfg.ApiProductName)
+	var webHooks *connector.SolaceWebhook = nil
+	if addWebhook {
+		webHooks = &connector.SolaceWebhook{
+			HttpMethod:               "post",
+			CallbackUrl:              "http://does.not.work",
+			AuthenticationMethod:     "header",
+			AuthenticationSecret:     "secret",
+			AuthenticationIdentifier: "identifier",
+			InvocationOrder:          "parallel",
+		}
+	}
+	credentials, err := connector.GetOrgConnector().PublishTeamApp(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName, iCfg.TeamAppName, listProducts, webHooks)
+	if credentials == nil {
+		log.Tracef("Credentials as result are missing")
+		return errors.New("Credentials as result are missing")
+	}
+	if credentials.Secret == nil {
+		log.Tracef("Credentials.Secret as result are missing")
+		return errors.New("Credentials.Secret as result are missing")
+	}
+	return nil
+}
+
+func executeTestCRUDTeam() error {
+	log.Tracef("connector.GetOrgConnector().IsTeamAvailable")
+	found, err := connector.GetOrgConnector().IsTeamAvailable(iCfg.Org, iCfg.TeamName)
+	if err != nil {
+		log.Tracef("IsTeamAvailable faulted")
+		return err
+	}
+	if found {
+		log.Tracef("Team found")
+		log.Tracef("connector.GetOrgConnector().DeleteTeam")
+		err := connector.GetOrgConnector().DeleteTeam(iCfg.Org, iCfg.TeamName)
+		if err != nil {
+			log.Tracef("DeleteTeam faulted")
+			return err
+		}
+		log.Tracef("Team deleted")
+	}
+
+	log.Tracef("connector.GetOrgConnector().PublishTeam")
+	err = connector.GetOrgConnector().PublishTeam(iCfg.Org, iCfg.TeamName)
+	if err != nil {
+		log.Tracef("Publish Team faulted")
+		return err
+	}
+	log.Tracef("Created Team")
+
+	return nil
+
+}
+
+func executeTestCRUDEnvironment() error {
+	log.Tracef("connector.GetOrgConnector().GetListEnvironments /%s", iCfg.Org)
+	listEnvs, err := connector.GetOrgConnector().GetListEnvironments(iCfg.Org)
+	if err != nil {
+		log.Tracef("GetListEnvironments faulted")
+		return err
+	}
+	foundEnv := false
+	for _, env := range listEnvs {
+		if env.Name == iCfg.ServiceId {
+			foundEnv = true
+		}
+	}
+	if foundEnv {
+		log.Tracef("connector.GetOrgConnector().DeleteEnvironment /%/%", iCfg.Org, iCfg.ServiceId)
+		success, err := connector.GetOrgConnector().DeleteEnvironment(iCfg.Org, iCfg.ServiceId)
+		if err != nil {
+			log.Tracef("DeleteEnvironments faulted")
+			return err
+		}
+		if !success {
+			log.Tracef("DeleteEnvironment was not HTTP-Code < 300")
+			return errors.New("DeleteEnvironment was not HTTP < 300")
+		}
+		log.Trace("Deleted Environment: %s", iCfg.ServiceId)
+	}
+	protocolVersions := make([]map[string]string, 0)
+	protocolVersion := map[string]string{
+		"name":    "mqtt",
+		"version": "3.1.1",
+	}
+	protocolVersions = append(protocolVersions, protocolVersion)
+	log.Tracef("connector.GetOrgConnector().CreateEnvironment /%/%", iCfg.Org, iCfg.ServiceId)
+	err = connector.GetOrgConnector().CreateEnvironment(iCfg.Org, iCfg.ServiceId, "Integration Test Environment", iCfg.ServiceId, protocolVersions)
+	if err != nil {
+		log.Tracef("Could not create Environment")
+		return err
+	}
+	log.Tracef("Environment created")
+	return nil
+}
+
+func executeTestCRUDApiProduct() error {
+	log.Tracef("connector.GetOrgConnector().IsAPIProductAvailable /%s/%s", iCfg.Org, iCfg.ApiProductName)
+	found, err := connector.GetOrgConnector().IsAPIProductAvailable(iCfg.Org, iCfg.ApiProductName)
+	if err != nil {
+		log.Tracef("IsAPIProductAvailable faulted")
+		return err
+	}
+	if found {
+		log.Tracef("Found ApiProduct: %s", iCfg.ApiProductName)
+		log.Tracef("connector.GetOrgConnector().RemoveAPIProduct /%s/%s", iCfg.Org, iCfg.ApiProductName)
+		err := connector.GetOrgConnector().RemoveAPIProduct(iCfg.Org, iCfg.ApiProductName, false)
+		if err != nil {
+			log.Tracef("Could not delete ApiProduct")
+			return err
+		}
+		log.Tracef("ApiProduct: %S deleted", iCfg.ApiName)
+	}
+
+	permissions := map[string]string{
+		"abc": "efg",
+	}
+	envNames := make([]string, 0)
+	apiNames := make([]string, 0)
+	protocols := make([]connector.Protocol, 0)
+
+	envNames = append(envNames, iCfg.ServiceId)
+	apiNames = append(apiNames, iCfg.ApiName)
+	version := connector.CommonVersion("3.1.1")
+	protocols = append(protocols, connector.Protocol{
+		Name:    "mqtt",
+		Version: &version,
+	})
+	log.Tracef("connector.GetOrgConnector().PublishAPIProduct /%s/%s", iCfg.Org, iCfg.ApiProductName)
+	err = connector.GetOrgConnector().PublishAPIProduct(iCfg.Org, iCfg.ApiProductName, apiNames, envNames, protocols, permissions)
+	if err != nil {
+		log.Tracef("Could not create APIProduct")
+		return err
+	}
+	log.Tracef("Created APIProduct")
+	return nil
+}
+
+func executeTestCRUDAPI() error {
+	log.Tracef("connector.GetOrgConnector().IsAPIAvailable /%s/%s", iCfg.Org, iCfg.ApiName)
+	found, err := connector.GetOrgConnector().IsAPIAvailable(iCfg.Org, iCfg.ApiName)
+	if err != nil {
+		log.Tracef("IsAPIAvailable faulted")
+		return err
+	}
+	if found {
+		log.Tracef("Found API: %s", iCfg.ApiName)
+		log.Tracef("connector.GetOrgConnector().RemoveAPI /%s/%s", iCfg.Org, iCfg.ApiName)
+		err := connector.GetOrgConnector().RemoveAPI(iCfg.Org, iCfg.ApiName, false)
+		if err != nil {
+			log.Tracef("Could not delete API")
+			return err
+		}
+		log.Tracef("API: %S deleted", iCfg.ApiName)
+	}
+	apiSpec, errDecode := base64.StdEncoding.DecodeString(iCfg.ApiSpec)
+	if errDecode != nil {
+		log.Tracef("Could not base64 decode ApiSpec")
+		return errDecode
+	}
+	log.Tracef("connector.GetOrgConnector().PublishAPI /%s/%s", iCfg.Org, iCfg.ApiName)
+	err = connector.GetOrgConnector().PublishAPI(iCfg.Org, iCfg.ApiName, apiSpec)
+	if err != nil {
+		log.Tracef("Could not publish Api %s", iCfg.ApiName)
+		return err
+	}
+	log.Tracef("API: %s published", iCfg.ApiName)
+	return nil
+}
+
+func executeDeleteOrganization() error {
+	found, err := connector.GetOrgConnector().IsOrgRegistered(iCfg.Org)
+	if err != nil {
+		log.Tracef("IsOrgRegistered faulted")
+		return err
+	}
+	if found {
+		log.Tracef("Found Org:%s and try to delete it", iCfg.Org)
+		ok, err := connector.GetOrgConnector().DeleteOrg(iCfg.Org)
+		if err != nil {
+			log.Tracef("Deleting Org throws Error")
+			return err
+		}
+		if !ok {
+			log.Tracef("Could not delete Org")
+			return errors.New("Could not create Org")
+		}
+		log.Tracef("Org %s deleted", iCfg.Org)
+	} else {
+		log.Infof("Could not find org:%s", iCfg.Org)
+		return errors.New("Coult not find Organziation")
+	}
+	return nil
+}
+
+func executeTestCRUDOrganization() error {
+	found, err := connector.GetOrgConnector().IsOrgRegistered(iCfg.Org)
+	if err != nil {
+		log.Tracef("IsOrgRegistered faulted")
+		return err
+	}
+	if found {
+		log.Tracef("Found Org:%s and try to delete it", iCfg.Org)
+		ok, err := connector.GetOrgConnector().DeleteOrg(iCfg.Org)
+		if err != nil {
+			log.Tracef("Deleting Org throws Error")
+			return err
+		}
+		if !ok {
+			log.Tracef("Could not delete Org")
+			return errors.New("Could not create Org")
+		}
+		log.Tracef("Org %s deleted", iCfg.Org)
+	} else {
+		log.Infof("Could not find org:%s", iCfg.Org)
+	}
+	orgToken := iCfg.OrgToken
+	test := make([]interface{}, 1)
+	test[0] = orgToken
+	ok, err := connector.GetOrgConnector().CreateOrg(iCfg.Org, &test[0])
+	if err != nil {
+		log.Tracef("Creating Org throws Error")
+		return err
+	}
+	if !ok {
+		log.Tracef("Could not create Org")
+		return errors.New("Could not create Org")
+	}
+	log.Tracef("Org %s created", iCfg.Org)
+	return nil
+}
+
+func executeTestHealthCheck() error {
 	healthCheck, err := connector.GetOrgConnector().IsHealthCheck()
 	if err != nil {
 		log.Tracef("Health Check of Connector throws Error")
@@ -50,40 +373,6 @@ func executeIntegrationTests() error {
 		return errors.New("Health Check of Connector was not successfull")
 	}
 	log.Infof("Health Check of Connector was successfull")
-
-	found, err := connector.GetOrgConnector().IsOrgRegistered(integrationtestConfig.Org)
-	if err != nil {
-		log.Tracef("IsOrgRegistered faulted")
-		return err
-	}
-	if found {
-		log.Tracef("Found Org:%s and try to delete it", integrationtestConfig.Org)
-		ok, err := connector.GetOrgConnector().DeleteOrg(integrationtestConfig.Org)
-		if err != nil {
-			log.Tracef("Deleting Org throws Error")
-			return err
-		}
-		if !ok {
-			log.Tracef("Could not delete Org")
-			return errors.New("Could not create Org")
-		}
-		log.Tracef("Org %s deleted", integrationtestConfig.Org)
-	} else {
-		log.Infof("Could not find org:%s", integrationtestConfig.Org)
-	}
-	orgToken := integrationtestConfig.OrgToken
-	test := make([]interface{}, 1)
-	test[0] = orgToken
-	ok, err := connector.GetOrgConnector().CreateOrg(integrationtestConfig.Org, &test[0])
-	if err != nil {
-		log.Tracef("Creating Org throws Error")
-		return err
-	}
-	if !ok {
-		log.Tracef("Could not create Org")
-		return errors.New("Could not create Org")
-	}
-	log.Tracef("Org %s created", integrationtestConfig.Org)
 	return nil
 }
 
@@ -120,6 +409,8 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		ConnectorOrgUser:            rootProps.StringPropertyValue("connector.orgUser"),
 		ConnectorOrgPassword:        rootProps.StringPropertyValue("connector.orgPassword"),
 		ConnectorInsecureSkipVerify: rootProps.BoolPropertyValue("connector.acceptInsecureCertificates"),
+		ConnectorLogBody:            rootProps.BoolPropertyValue("connector.logBody"),
+		ConnectorLogHeader:          rootProps.BoolPropertyValue("connector.logHeader"),
 	}
 
 	notifierConfig = &config.NotifierConfig{
@@ -138,9 +429,16 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		NotifierCfg: notifierConfig,
 	}
 
-	integrationtestConfig = &IntegrationtestConfig{
-		Org:      rootProps.StringPropertyValue("integrationtest.org"),
-		OrgToken: rootProps.StringPropertyValue("integrationtest.orgToken"),
+	iCfg = &IntegrationtestConfig{
+		Org:            rootProps.StringPropertyValue("integrationtest.org"),
+		OrgToken:       rootProps.StringPropertyValue("integrationtest.orgToken"),
+		ServiceId:      rootProps.StringPropertyValue("integrationtest.serviceId"),
+		TeamName:       rootProps.StringPropertyValue("integrationtest.teamName"),
+		ApiName:        rootProps.StringPropertyValue("integrationtest.apiName"),
+		ApiSpec:        rootProps.StringPropertyValue("integrationtest.apiSpec"),
+		ApiProductName: rootProps.StringPropertyValue("integrationtest.apiProductName"),
+		TeamAppName:    rootProps.StringPropertyValue("integrationtest.teamAppName"),
+		Cleanup:        rootProps.BoolPropertyValue("integrationtest.cleanup"),
 	}
 
 	// initialize solace-connector

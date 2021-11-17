@@ -211,6 +211,8 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		ConnectorOrgUser:            rootProps.StringPropertyValue("connector.orgUser"),
 		ConnectorOrgPassword:        rootProps.StringPropertyValue("connector.orgPassword"),
 		ConnectorInsecureSkipVerify: rootProps.BoolPropertyValue("connector.acceptInsecureCertificates"),
+		ConnectorLogBody:            rootProps.BoolPropertyValue("connector.logBody"),
+		ConnectorLogHeader:          rootProps.BoolPropertyValue("connector.logHeader"),
 	}
 
 	notifierConfig = &config.NotifierConfig{

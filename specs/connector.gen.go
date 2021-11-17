@@ -6837,7 +6837,7 @@ type HealthcheckResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *struct {
-		Status *string `json:"status,omitempty"`
+		Status *N200Status `json:"status,omitempty"`
 	}
 	JSON400 *ErrorResponse
 	JSON401 *ErrorResponse
@@ -9356,7 +9356,7 @@ func ParseHealthcheckResponse(rsp *http.Response) (*HealthcheckResponse, error) 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
 		var dest struct {
-			Status *string `json:"status,omitempty"`
+			Status *N200Status `json:"status,omitempty"`
 		}
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err

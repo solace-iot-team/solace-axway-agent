@@ -13,6 +13,15 @@ type AgentConfig struct {
 	NotifierCfg *NotifierConfig       `config:"notifier"`
 }
 
+// BootstrappingConfig - represents the config for bootstrapping
+type BootstrappingConfig struct {
+	corecfg.IConfigValidator
+	corecfg.IResourceConfigCallback
+	PublishSubscriptionSchema         bool `config:"publishSubscriptionSchema"`
+	ProcessSubscriptionSchema         bool `config:"processSubscriptionSchema"`
+	ProcessSubscriptionSchemaInterval int  `config:"processSubscriptionSchemaInterval"`
+}
+
 // ConnectorConfig - represents the config for gateway
 type ConnectorConfig struct {
 	corecfg.IConfigValidator

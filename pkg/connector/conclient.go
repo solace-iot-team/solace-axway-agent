@@ -78,6 +78,7 @@ type SolaceWebhook struct {
 	AuthenticationIdentifier string
 	AuthenticationSecret     string
 	InvocationOrder          string
+	TrusedCNs                []string
 }
 
 func (s *SolaceWebhook) GetWebHookAuth() *WebHookAuth {
@@ -582,13 +583,20 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 	}
 	var webhooks []WebHook = nil
 	var payload CreateTeamAppJSONRequestBody
+	var tlsOptions *WebHookTLSOptions = nil
 	if solaceWebhook != nil {
+		if len(solaceWebhook.TrusedCNs) > 0 {
+			tlsOptions = &WebHookTLSOptions{
+				TlsTrustedCommonNames: &solaceWebhook.TrusedCNs,
+			}
+		}
 		webhoock := WebHook{
 			Authentication: solaceWebhook.GetWebHookAuth(),
 			//all environments
-			Method: solaceWebhook.GetWebHookMethod(),
-			Mode:   solaceWebhook.GetMode(),
-			Uri:    solaceWebhook.CallbackUrl,
+			Method:     solaceWebhook.GetWebHookMethod(),
+			Mode:       solaceWebhook.GetMode(),
+			Uri:        solaceWebhook.CallbackUrl,
+			TlsOptions: tlsOptions,
 		}
 		webhooks = append(webhooks, webhoock)
 		payload = CreateTeamAppJSONRequestBody{

@@ -12,6 +12,7 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
 	"sort"
+	"strings"
 )
 
 // SubscriptionContainer - holds additional information for a subscription
@@ -556,8 +557,13 @@ func (container *SubscriptionContainer) RemoveTeamApp() error {
 func (container *SubscriptionContainer) PublishTeamApp() (*connector.Credentials, error) {
 	apiProducts := make([]string, 0)
 	apiProducts = append(apiProducts, container.GetRevisionName())
+	trustedCNSList := make([]string, 0)
 	var webHooks *connector.SolaceWebhook = nil
 	if len(container.Sub.GetPropertyValue(solace.SolaceHttpMethod)) > 0 {
+		trustedCNS := strings.TrimSpace(container.Sub.GetPropertyValue(solace.SolaceCallbackTrustedCNS))
+		if len(trustedCNS) > 0 {
+			trustedCNSList = strings.Split(trustedCNS, ",")
+		}
 		webHooks = &connector.SolaceWebhook{
 			HttpMethod:               container.Sub.GetPropertyValue(solace.SolaceHttpMethod),
 			CallbackUrl:              container.Sub.GetPropertyValue(solace.SolaceCallback),
@@ -565,6 +571,7 @@ func (container *SubscriptionContainer) PublishTeamApp() (*connector.Credentials
 			AuthenticationIdentifier: container.Sub.GetPropertyValue(solace.SolaceAuthenticationIdentifier),
 			AuthenticationSecret:     container.Sub.GetPropertyValue(solace.SolaceAuthenticationSecret),
 			InvocationOrder:          container.Sub.GetPropertyValue(solace.SolaceInvocationOrder),
+			TrusedCNs:                trustedCNSList,
 		}
 	}
 	return connector.GetOrgConnector().PublishTeamApp(container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.Sub.GetID(), "Created by Axway-Agent", apiProducts, webHooks)

@@ -11,10 +11,12 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
+	"strings"
 )
 
 // RootCmd - Agent root command
 var RootCmd cmd.AgentRootCmd
+var bootstrappingConifg *config.BootstrappingConfig
 var connectorConfig *config.ConnectorConfig
 var iCfg *IntegrationtestConfig
 var notifierConfig *config.NotifierConfig
@@ -90,11 +92,15 @@ func executeIntegrationTests() error {
 		return err
 	}
 
-	err = executeTestCRUDTeamApp(false)
+	err = executeTestCRUDTeamApp(false, false)
 	if err != nil {
 		return err
 	}
-	err = executeTestCRUDTeamApp(true)
+	err = executeTestCRUDTeamApp(true, false)
+	if err != nil {
+		return err
+	}
+	err = executeTestCRUDTeamApp(true, true)
 	if err != nil {
 		return err
 	}
@@ -112,7 +118,7 @@ func executeIntegrationTests() error {
 
 }
 
-func executeTestCRUDTeamApp(addWebhook bool) error {
+func executeTestCRUDTeamApp(addWebhook bool, addTrustedCNs bool) error {
 	log.Tracef("connector.GetOrgConnector().IsTeamAppAvailable")
 	found, err := connector.GetOrgConnector().IsTeamAppAvailable(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName)
 	if err != nil {
@@ -134,13 +140,27 @@ func executeTestCRUDTeamApp(addWebhook bool) error {
 	listProducts = append(listProducts, iCfg.ApiProductName)
 	var webHooks *connector.SolaceWebhook = nil
 	if addWebhook {
-		webHooks = &connector.SolaceWebhook{
-			HttpMethod:               "post",
-			CallbackUrl:              "http://does.not.work",
-			AuthenticationMethod:     "header",
-			AuthenticationSecret:     "secret",
-			AuthenticationIdentifier: "identifier",
-			InvocationOrder:          "parallel",
+		if addTrustedCNs {
+			listCNs := strings.Split("*.solace.com,my.company.org", ",")
+			webHooks = &connector.SolaceWebhook{
+				HttpMethod:               "post",
+				CallbackUrl:              "http://does.not.work",
+				AuthenticationMethod:     "header",
+				AuthenticationSecret:     "secret",
+				AuthenticationIdentifier: "identifier",
+				InvocationOrder:          "parallel",
+				TrusedCNs:                listCNs,
+			}
+		} else {
+			webHooks = &connector.SolaceWebhook{
+				HttpMethod:               "post",
+				CallbackUrl:              "http://does.not.work",
+				AuthenticationMethod:     "header",
+				AuthenticationSecret:     "secret",
+				AuthenticationIdentifier: "identifier",
+				InvocationOrder:          "parallel",
+				TrusedCNs:                make([]string, 0),
+			}
 		}
 	}
 	credentials, err := connector.GetOrgConnector().PublishTeamApp(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName, iCfg.TeamAppName, listProducts, webHooks)
@@ -401,6 +421,14 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	}
 
 	rootProps := RootCmd.GetProperties()
+
+	// BootstrappingConfig - represents the config for bootstrapping
+	bootstrappingConifg = &config.BootstrappingConfig{
+		PublishSubscriptionSchema:         rootProps.BoolPropertyValue("bootstrapping.publishSubscriptionSchema"),
+		ProcessSubscriptionSchema:         rootProps.BoolPropertyValue("bootstrapping.processSubscriptionSchema"),
+		ProcessSubscriptionSchemaInterval: rootProps.IntPropertyValue("bootstrapping.processSubscriptionSchemaInterval"),
+	}
+
 	// Parse the config from bound properties and setup gateway config
 	connectorConfig = &config.ConnectorConfig{
 		ConnectorURL:                rootProps.StringPropertyValue("connector.url"),

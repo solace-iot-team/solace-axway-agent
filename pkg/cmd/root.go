@@ -19,6 +19,7 @@ import (
 
 // RootCmd - Agent root command
 var RootCmd corecmd.AgentRootCmd
+var bootstrappingConifg *config.BootstrappingConfig
 var connectorConfig *config.ConnectorConfig
 var notifierConfig *config.NotifierConfig
 
@@ -47,22 +48,24 @@ func run() error {
 }
 
 func registerSchemaProcessors() {
-	//todo add configuration option to enable/disable
-	theJob := SubscriptionSchemaPublisherJob{}
-	jobId, err := jobs.RegisterRetryJob(&theJob, 3)
-	if err != nil {
-		log.Errorf("Could not register Schema Publisher job", err)
-	} else {
-		log.Infof("JobId: %s", jobId)
+	if bootstrappingConifg.PublishSubscriptionSchema {
+		theJob := SubscriptionSchemaPublisherJob{}
+		_, err := jobs.RegisterRetryJob(&theJob, 3)
+		if err != nil {
+			log.Errorf("Could not register Schema Publisher job", err)
+		} else {
+			log.Infof("Registered Subscription Schema Publisher")
+		}
 	}
 
-	theJob2 := SubscriptionSchemaProcessorJob{}
-	//TODO add configuration option
-	jobId2, err := jobs.RegisterIntervalJob(&theJob2, 60*time.Second)
-	if err != nil {
-		log.Errorf("Could not register Schme Processor job", err)
-	} else {
-		log.Infof("JobId: %s", jobId2)
+	if bootstrappingConifg.ProcessSubscriptionSchema {
+		theJob2 := SubscriptionSchemaProcessorJob{}
+		_, err := jobs.RegisterIntervalJob(&theJob2, 60*time.Second)
+		if err != nil {
+			log.Errorf("Could not register Subscription Schema Processor job", err)
+		} else {
+			log.Infof("Registered Subscription Schema Processor")
+		}
 	}
 
 }
@@ -203,6 +206,14 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	}
 
 	rootProps := RootCmd.GetProperties()
+
+	// BootstrappingConfig - represents the config for bootstrapping
+	bootstrappingConifg = &config.BootstrappingConfig{
+		PublishSubscriptionSchema:         rootProps.BoolPropertyValue("bootstrapping.publishSubscriptionSchema"),
+		ProcessSubscriptionSchema:         rootProps.BoolPropertyValue("bootstrapping.processSubscriptionSchema"),
+		ProcessSubscriptionSchemaInterval: rootProps.IntPropertyValue("bootstrapping.processSubscriptionSchemaInterval"),
+	}
+
 	// Parse the config from bound properties and setup gateway config
 	connectorConfig = &config.ConnectorConfig{
 		ConnectorURL:                rootProps.StringPropertyValue("connector.url"),

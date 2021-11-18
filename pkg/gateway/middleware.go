@@ -15,6 +15,41 @@ import (
 	"strings"
 )
 
+type AxwaySubscription interface {
+	IsValid() bool
+	LogText(c *SubscriptionContainer) string
+	GetServiceAttributes() map[string]string
+	GetSolaceAsyncApiAppInternalId() string
+	GetCatalogItemName() string
+	SetSolaceAsyncApiAppInternalId(id string)
+	SetSubscriptionCredentials(credentials *connector.SolaceCredentialsDto)
+	GetSubscriptionCredentials() *connector.SolaceCredentialsDto
+	GetSubscriberEmailAddress()
+	GetSubscriberUserName() string
+	GetRevisionName() string
+	IsEnvironmentDefined() bool
+	GetEnvironmentName() string
+	IsExternalAPIIDDefined() bool
+	IsExternalAPINameDefined() bool
+	GetExternalAPIID() string
+	GetExternalAPIName() string
+	GetAPISpec() string
+	GetSubscriptionName() string
+	GetSubscriptionAPIServiceName() string
+	GetSubscriptionId() string
+	GetSubscriptionOwningTeamId() string
+	GetSubscriptionCatalogItemId() string
+	GetSubscriptionPropertyValue(key string) string
+	GetServiceInstanceMetadataScopeName() string
+	GetServiceInstanceSpecEndpoints() []AxwayEndpoint
+}
+
+type AxwayEndpoint struct {
+	Host     string
+	Port     int32
+	Protocol string
+}
+
 // SubscriptionContainer - holds additional information for a subscription
 type SubscriptionContainer struct {
 	// ConceptMapping
@@ -23,18 +58,22 @@ type SubscriptionContainer struct {
 	// ServiceRevision.Name - APIProduct (Name)
 	// Subscription.Id - Application (Name)
 	// ServiceRevision.Name - API (Name)
-	Valid                       bool
-	Sub                         apic.Subscription
-	Service                     *v1alpha1.APIService
-	ServiceInstance             *v1alpha1.APIServiceInstance
-	ServiceRevision             *v1alpha1.APIServiceRevision
-	ConsumerInstance            *v1alpha1.ConsumerInstance
-	CatalogItemName             string
-	SubscriberEmailAddress      string
-	SubscriberUserName          string
-	SubscriptionCredentials     *connector.SolaceCredentialsDto
-	SolaceCallbackApi           bool
-	SolaceAsyncApiAppInternalId string
+	valid                       bool
+	sub                         apic.Subscription
+	service                     *v1alpha1.APIService
+	serviceInstance             *v1alpha1.APIServiceInstance
+	serviceRevision             *v1alpha1.APIServiceRevision
+	consumerInstance            *v1alpha1.ConsumerInstance
+	catalogItemName             string
+	subscriberEmailAddress      string
+	subscriberUserName          string
+	subscriptionCredentials     *connector.SolaceCredentialsDto
+	solaceCallbackApi           bool
+	solaceAsyncApiAppInternalId string
+}
+
+type SubscriptionMiddleware struct {
+	as AxwaySubscription
 }
 
 // NewSubscriptionContainer - creates new SubscriptionContainer
@@ -62,26 +101,150 @@ func NewSubscriptionContainer(subscription apic.Subscription) (*SubscriptionCont
 	userName, err := agent.GetCentralClient().GetUserName(subscription.GetCreatedUserID())
 
 	container := SubscriptionContainer{
-		Sub:                    subscription,
-		Service:                service,
-		ServiceInstance:        serviceinstance,
-		ServiceRevision:        servicerevision,
-		CatalogItemName:        catalogItemName,
-		SubscriberEmailAddress: emailAddress,
-		SubscriberUserName:     userName,
+		sub:                    subscription,
+		service:                service,
+		serviceInstance:        serviceinstance,
+		serviceRevision:        servicerevision,
+		catalogItemName:        catalogItemName,
+		subscriberEmailAddress: emailAddress,
+		subscriberUserName:     userName,
 	}
 	if service.Metadata.ID == "" || serviceinstance.Metadata.ID == "" || servicerevision.Metadata.ID == "" {
-		container.Valid = false
+		container.valid = false
 	} else {
-		container.Valid = true
+		container.valid = true
 	}
 	return &container, nil
 }
 
+// LogText - Extracts Logging Details
+func LogText(c *SubscriptionContainer) string {
+	return fmt.Sprintf("[Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s]", c.GetEnvironmentName(), c.GetSubscriptionOwningTeamId(), c.GetRevisionName(), c.GetSubscriptionId(), c.GetRevisionName())
+}
+
+func (container *SubscriptionContainer) GetSolaceAsyncApiAppInternalId() string {
+	return container.solaceAsyncApiAppInternalId
+}
+
+func (container *SubscriptionContainer) GetCatalogItemName() string {
+	return container.catalogItemName
+}
+
+func (container *SubscriptionContainer) SetSolaceAsyncApiAppInternalId(id string) {
+	container.solaceAsyncApiAppInternalId = id
+}
+
+func (container *SubscriptionContainer) SetSubscriptionCredentials(credentials *connector.SolaceCredentialsDto) {
+	container.subscriptionCredentials = credentials
+}
+func (container *SubscriptionContainer) GetSubscriptionCredentials() *connector.SolaceCredentialsDto {
+	return container.subscriptionCredentials
+}
+
+// GetSubscriberEmailAddress - Returns Email
+func (container *SubscriptionContainer) GetSubscriberEmailAddress() string {
+	return container.subscriberEmailAddress
+}
+
+//todo refactor and remove error return type
+// GetSubscriberUserName - Returns Username
+func (container *SubscriptionContainer) GetSubscriberUserName() string {
+	return container.subscriberUserName
+}
+
+// GetRevisionName - Facade to retrieve RevisionName
+func (container *SubscriptionContainer) GetRevisionName() string {
+	return container.serviceRevision.GetName()
+}
+
+// IsEnvironmentDefined - Facade to check if environment is set in Service Instance
+func (container *SubscriptionContainer) IsEnvironmentDefined() bool {
+	return container.GetServiceInstanceMetadataScopeName() != ""
+}
+
+// GetEnvironmentName - Facade to get environment name (Service Instance Scope Name)
+func (container *SubscriptionContainer) GetEnvironmentName() string {
+	return container.GetServiceInstanceMetadataScopeName()
+}
+
+// IsExternalAPIIDDefined - Facade to check if External API ID is set
+func (container *SubscriptionContainer) IsExternalAPIIDDefined() bool {
+	return container.GetExternalAPIID() != ""
+}
+
+// IsExternalAPINameDefined - Facade to check if External API Name is set
+func (container *SubscriptionContainer) IsExternalAPINameDefined() bool {
+	return container.GetExternalAPIName() != ""
+}
+
+// GetExternalAPIID - Facade to get External API ID
+func (container *SubscriptionContainer) GetExternalAPIID() string {
+	return container.serviceRevision.GetAttributes()["externalAPIID"]
+}
+
+// GetExternalAPIName - Facade to get External API Name
+func (container *SubscriptionContainer) GetExternalAPIName() string {
+	return container.serviceRevision.GetAttributes()["externalAPIName"]
+}
+
+// GetAPISpec - Facade ti get API Spec (AsyncAPI spec)
+func (container *SubscriptionContainer) GetAPISpec() string {
+	return container.serviceRevision.Spec.Definition.Value
+}
+
+func (c *SubscriptionContainer) IsValid() bool {
+	c.GetSubscriberEmailAddress()
+	return c.valid
+}
+
+func (c *SubscriptionContainer) GetServiceAttributes() map[string]string {
+	return c.service.Attributes
+}
+
+func (c *SubscriptionContainer) GetSubscriptionName() string {
+	return c.sub.GetName()
+}
+
+func (c *SubscriptionContainer) GetSubscriptionAPIServiceName() string {
+	return c.sub.GetAPIServiceName()
+}
+
+func (c *SubscriptionContainer) GetSubscriptionId() string {
+	return c.sub.GetID()
+}
+
+func (c *SubscriptionContainer) GetSubscriptionOwningTeamId() string {
+	return c.sub.GetOwningTeamId()
+}
+
+func (c *SubscriptionContainer) GetSubscriptionCatalogItemId() string {
+	return c.sub.GetCatalogItemID()
+}
+
+func (c *SubscriptionContainer) GetSubscriptionPropertyValue(key string) string {
+	return c.sub.GetPropertyValue(key)
+}
+
+func (c *SubscriptionContainer) GetServiceInstanceMetadataScopeName() string {
+	return c.serviceInstance.Metadata.Scope.Name
+}
+
+func (c *SubscriptionContainer) GetServiceInstanceSpecEndpoints() []AxwayEndpoint {
+	endpoints := make([]AxwayEndpoint, 0)
+	for _, ep := range c.serviceInstance.Spec.Endpoint {
+		endpoints = append(endpoints, AxwayEndpoint{
+			Host:     ep.Host,
+			Port:     ep.Port,
+			Protocol: ep.Protocol,
+		})
+	}
+	return endpoints
+}
+
 // DumpDebug - Dumps debug information
 func (container *SubscriptionContainer) DumpDebug() string {
-	dump := "[ SubscriptionContainer [Subscription:" + container.Sub.GetName() + "]"
-	if !container.Valid {
+	dump := "[ SubscriptionContainer [Subscription:" + container.GetSubscriptionName() + "]"
+	if !container.IsValid() {
 		dump = dump + " [Valid:FALSE] ]"
 		return dump
 	}
@@ -100,7 +263,7 @@ func (container *SubscriptionContainer) DumpDebug() string {
 // Debug - dumps debug information
 func (container *SubscriptionContainer) Debug() string {
 	dump := "[Attributes "
-	service, err := agent.GetCentralClient().GetAPIServiceByName(container.Sub.GetAPIServiceName())
+	service, err := agent.GetCentralClient().GetAPIServiceByName(container.GetSubscriptionAPIServiceName())
 	if err != nil {
 		log.Error("Did not work out", err)
 		return "Error"
@@ -113,8 +276,8 @@ func (container *SubscriptionContainer) Debug() string {
 }
 
 // ProcessUnsubscribeSubscription - Orchestrates entire unsubscription steps
-func (container *SubscriptionContainer) ProcessUnsubscribeSubscription() error {
-	log.Infof("Deprovisioning Subscription triggered [Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s] [", container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.ServiceRevision.GetName(), container.Sub.GetID(), container.ServiceRevision.GetName())
+func ProcessUnsubscribeSubscription(container *SubscriptionContainer) error {
+	log.Infof("Deprovisioning Subscription triggered %s", LogText(container))
 	check, err := container.IsEnvironmentAsOrgAvailable()
 	if err != nil {
 		log.Error("[ERROR] [MIDDLEWARE] [UNSUBSCRIBE] [IsEnvironmentAsOrgAvailable] ", err)
@@ -148,26 +311,20 @@ func (container *SubscriptionContainer) ProcessUnsubscribeSubscription() error {
 	//API can still be referenced by another Product - no check here
 	if checkTeamApp {
 		log.Error("[CHECK FAILED] [MIDDLEWARE] [UNSUBSCRIBE] [CheckTeamApp] [Found Team App in Connector]")
-		log.Errorf("Failed to remove Subscription [Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s] [", container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.ServiceRevision.GetName(), container.Sub.GetID(), container.ServiceRevision.GetName())
+		log.Errorf("Failed to remove Subscription %s", LogText(container))
 		return errors.New("TeamApp still exists in Connector.")
 	} else {
-		log.Tracef("[SUCCESS] [MIDDLEWARE] [UNSUBSCRIBE] [MIDDLEWARE.ProcessUnsubscribeSubscription] [Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s] [", container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.ServiceRevision.GetName(), container.Sub.GetID(), container.ServiceRevision.GetName())
-		log.Infof("Successfully removed Subscription [Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s] [", container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.ServiceRevision.GetName(), container.Sub.GetID(), container.ServiceRevision.GetName())
-		username, errUsername := container.GetSubscriberUserName()
-		if errUsername != nil {
-			username = "undefined_username"
-		}
-		userEmail, errUserEmail := container.GetSubscriberEmailAddress()
-		if errUserEmail != nil {
-			userEmail = "undefined_email"
-		}
+		log.Tracef("[SUCCESS] [MIDDLEWARE] [UNSUBSCRIBE] [MIDDLEWARE.ProcessUnsubscribeSubscription] %s", LogText(container))
+		log.Infof("Successfully removed Subscription %s", LogText(container))
+		username := container.GetSubscriberUserName()
+		userEmail := container.GetSubscriberEmailAddress()
 		dto := notification.UnsubscribeMetaDataDto{
 			Api:             container.GetRevisionName(),
-			Team:            container.Sub.GetOwningTeamId(),
+			Team:            container.GetSubscriptionOwningTeamId(),
 			Product:         container.GetRevisionName(),
-			Application:     container.Sub.GetID(),
+			Application:     container.GetSubscriptionId(),
 			Environment:     container.GetEnvironmentName(),
-			Subscription:    container.Sub.GetName(),
+			Subscription:    container.GetSubscriptionName(),
 			Subscriber:      username,
 			Subscriberemail: userEmail,
 		}
@@ -184,7 +341,7 @@ func (container *SubscriptionContainer) ProcessUnsubscribeSubscription() error {
 }
 
 // ProcessSubscription  - Orchestrates entire subscription steps
-func (container *SubscriptionContainer) ProcessSubscription() error {
+func ProcessSubscription(container *SubscriptionContainer) error {
 	log.Infof("Provisioning Subscription triggered [Environment:%s] [Revision/API:%s][", container.GetEnvironmentName(), container.GetRevisionName())
 	provisionedAPI := false
 	provisionedAPIProduct := false
@@ -226,7 +383,7 @@ func (container *SubscriptionContainer) ProcessSubscription() error {
 	if !check {
 		err := container.PublishAPIProduct()
 		if err != nil {
-			log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [PublishAPIProduct] [API-Product not provisioned]", err)
+			log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [PublishAPIProduct] [API-Product not provisioned] ", err)
 			return err
 		}
 		provisionedAPIProduct = true
@@ -264,20 +421,14 @@ func (container *SubscriptionContainer) ProcessSubscription() error {
 	}
 
 	if provisionedAPI || provisionedAPIProduct || provisionedTeam || provisionedTeamApp {
-		log.Tracef("[SUCCESS] [MIDDLEWARE] [SUBSCRIBE] [MIDDLEWARE.ProcessSubscription] [API-Provisioned:%t] [API-Product-Provisioned:%t] [API-Provisioned:%t] [Team-Provisioned:%t] [Team-App-Provisioned:%t] [Environment:%s] [Revision/API:%s] [Team:%s] [TeamApp:%s]", provisionedAPI, provisionedAPIProduct, provisionedTeam, provisionedTeamApp, container.GetEnvironmentName(), container.GetRevisionName(), container.Sub.GetOwningTeamId(), container.Sub.GetID())
+		log.Tracef("[SUCCESS] [MIDDLEWARE] [SUBSCRIBE] [MIDDLEWARE.ProcessSubscription] [API-Provisioned:%t] [API-Product-Provisioned:%t] [API-Provisioned:%t] [Team-Provisioned:%t] [Team-App-Provisioned:%t] [Environment:%s] [Revision/API:%s] [Team:%s] [TeamApp:%s]", provisionedAPI, provisionedAPIProduct, provisionedTeam, provisionedTeamApp, container.GetEnvironmentName(), container.GetRevisionName(), container.GetSubscriptionOwningTeamId(), container.GetSubscriptionId())
 
 	} else {
-		log.Tracef("[NO CHANGE] [MIDDLEWARE] [SUBSCRIBE] [API, API-Prodcut, Team, Team0-App already existed.] [Environment:%s] [Revision/API:%s] [Team:%s] [Team-App:%s]", container.GetEnvironmentName(), container.GetRevisionName(), container.Sub.GetOwningTeamId(), container.Sub.GetID())
+		log.Tracef("[NO CHANGE] [MIDDLEWARE] [SUBSCRIBE] [API, API-Prodcut, Team, Team0-App already existed.] [Environment:%s] [Revision/API:%s] [Team:%s] [Team-App:%s]", container.GetEnvironmentName(), container.GetRevisionName(), container.GetSubscriptionOwningTeamId(), container.GetSubscriptionId())
 	}
 
-	userEmail, err := container.GetSubscriberEmailAddress()
-	if err != nil {
-		log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [GetSubscriberEmail] [Could not retrieve Emailaddress of subscriber to hand over credentials]", err)
-	}
-	username, errUsername := container.GetSubscriberUserName()
-	if errUsername != nil {
-		username = "undefined_username"
-	}
+	userEmail := container.GetSubscriberEmailAddress()
+	username := container.GetSubscriberUserName()
 	subscriptionCredentials, applicationData, errAppData := container.GetTeamApp()
 
 	if errAppData != nil {
@@ -285,12 +436,12 @@ func (container *SubscriptionContainer) ProcessSubscription() error {
 		return errAppData
 	}
 
-	container.SubscriptionCredentials = subscriptionCredentials
+	container.SetSubscriptionCredentials(subscriptionCredentials)
 	//extranct internalId from Solace Connector App
 	if v, ok := applicationData["internalName"]; ok {
-		container.SolaceAsyncApiAppInternalId = fmt.Sprintf("%v", v)
+		container.SetSolaceAsyncApiAppInternalId(fmt.Sprintf("%v", v))
 	} else {
-		container.SolaceAsyncApiAppInternalId = "unknown internal id"
+		container.SetSolaceAsyncApiAppInternalId("unknown internal id")
 	}
 
 	apiSpecs, errApiSpecs := container.GetAppApis()
@@ -301,11 +452,11 @@ func (container *SubscriptionContainer) ProcessSubscription() error {
 
 	dto := notification.SubscribeMetaDataDto{
 		Api:             container.GetRevisionName(),
-		Team:            container.Sub.GetOwningTeamId(),
+		Team:            container.GetSubscriptionOwningTeamId(),
 		Product:         container.GetRevisionName(),
-		Application:     container.Sub.GetID(),
+		Application:     container.GetSubscriptionId(),
 		Environment:     container.GetEnvironmentName(),
-		Subscription:    container.Sub.GetName(),
+		Subscription:    container.GetSubscriptionName(),
 		Subscriber:      username,
 		Subscriberemail: userEmail,
 		ApplicationData: applicationData,
@@ -325,16 +476,16 @@ func (container *SubscriptionContainer) ProcessSubscription() error {
 }
 
 func (container *SubscriptionContainer) NotifySuccess(trigger string, message string, correlationId string) (bool, error) {
-	userEmail, _ := container.GetSubscriberEmailAddress()
-	username, _ := container.GetSubscriberUserName()
+	userEmail := container.GetSubscriberEmailAddress()
+	username := container.GetSubscriberUserName()
 
 	dto := notification.MonitorDataDto{
 		Api:             container.GetRevisionName(),
-		Team:            container.Sub.GetOwningTeamId(),
+		Team:            container.GetSubscriptionOwningTeamId(),
 		Product:         container.GetRevisionName(),
-		Application:     container.Sub.GetID(),
+		Application:     container.GetSubscriptionId(),
 		Environment:     container.GetEnvironmentName(),
-		Subscription:    container.Sub.GetName(),
+		Subscription:    container.GetSubscriptionName(),
 		Subscriber:      username,
 		Subscriberemail: userEmail,
 		Trigger:         notification.MonitorDataTrigger(trigger),
@@ -357,16 +508,16 @@ func (container *SubscriptionContainer) NotifySuccess(trigger string, message st
 }
 
 func (container *SubscriptionContainer) NotifyFailure(trigger string, message string, correlationId string) (bool, error) {
-	userEmail, _ := container.GetSubscriberEmailAddress()
-	username, _ := container.GetSubscriberUserName()
+	userEmail := container.GetSubscriberEmailAddress()
+	username := container.GetSubscriberUserName()
 
 	dto := notification.MonitorDataDto{
 		Api:             container.GetRevisionName(),
-		Team:            container.Sub.GetOwningTeamId(),
+		Team:            container.GetSubscriptionOwningTeamId(),
 		Product:         container.GetRevisionName(),
-		Application:     container.Sub.GetID(),
+		Application:     container.GetSubscriptionId(),
 		Environment:     container.GetEnvironmentName(),
-		Subscription:    container.Sub.GetName(),
+		Subscription:    container.GetSubscriptionName(),
 		Subscriber:      username,
 		Subscriberemail: userEmail,
 		Trigger:         notification.MonitorDataTrigger(trigger),
@@ -393,58 +544,6 @@ func (container *SubscriptionContainer) GetDummySuccessOrFault(success bool) (bo
 	return success, nil
 }
 
-//todo refactor and remove error return type
-// GetSubscriberEmailAddress - Returns Email
-func (container *SubscriptionContainer) GetSubscriberEmailAddress() (string, error) {
-	return container.SubscriberEmailAddress, nil
-}
-
-//todo refactor and remove error return type
-// GetSubscriberUserName - Returns Username
-func (container *SubscriptionContainer) GetSubscriberUserName() (string, error) {
-	return container.SubscriberUserName, nil
-}
-
-// GetRevisionName - Facade to retrieve RevisionName
-func (container *SubscriptionContainer) GetRevisionName() string {
-	return container.ServiceRevision.GetName()
-}
-
-// IsEnvironmentDefined - Facade to check if environment is set in Service Instance
-func (container *SubscriptionContainer) IsEnvironmentDefined() bool {
-	return container.ServiceInstance.Metadata.Scope.Name != ""
-}
-
-// GetEnvironmentName - Facade to get environment name (Service Instance Scope Name)
-func (container *SubscriptionContainer) GetEnvironmentName() string {
-	return container.ServiceInstance.Metadata.Scope.Name
-}
-
-// IsExternalAPIIDDefined - Facade to check if External API ID is set
-func (container *SubscriptionContainer) IsExternalAPIIDDefined() bool {
-	return container.GetExternalAPIID() != ""
-}
-
-// IsExternalAPINameDefined - Facade to check if External API Name is set
-func (container *SubscriptionContainer) IsExternalAPINameDefined() bool {
-	return container.GetExternalAPIName() != ""
-}
-
-// GetExternalAPIID - Facade to get External API ID
-func (container *SubscriptionContainer) GetExternalAPIID() string {
-	return container.ServiceRevision.GetAttributes()["externalAPIID"]
-}
-
-// GetExternalAPIName - Facade to get External API Name
-func (container *SubscriptionContainer) GetExternalAPIName() string {
-	return container.ServiceRevision.GetAttributes()["externalAPIName"]
-}
-
-// GetAPISpec - Facade ti get API Spec (AsyncAPI spec)
-func (container *SubscriptionContainer) GetAPISpec() string {
-	return container.ServiceRevision.Spec.Definition.Value
-}
-
 //IsEnvironmentAsOrgAvailable - Facade to check in Connector if an organization exists that has the same name as Axway Environment of the subscription
 func (container *SubscriptionContainer) IsEnvironmentAsOrgAvailable() (bool, error) {
 	if container.GetEnvironmentName() == "" {
@@ -466,12 +565,12 @@ func (container *SubscriptionContainer) IsAPIProductAvailable() (bool, error) {
 
 //IsConnectorTeamAvailable - Facade to check via Connector if Team exists
 func (container *SubscriptionContainer) IsConnectorTeamAvailable() (bool, error) {
-	return connector.GetOrgConnector().IsTeamAvailable(container.GetEnvironmentName(), container.Sub.GetOwningTeamId())
+	return connector.GetOrgConnector().IsTeamAvailable(container.GetEnvironmentName(), container.GetSubscriptionOwningTeamId())
 }
 
 //IsTeamAppAvailable - Facade to check via Connector if Team Application exists
 func (container *SubscriptionContainer) IsTeamAppAvailable() (bool, error) {
-	return connector.GetOrgConnector().IsTeamAppAvailable(container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.Sub.GetID())
+	return connector.GetOrgConnector().IsTeamAppAvailable(container.GetEnvironmentName(), container.GetSubscriptionOwningTeamId(), container.GetSubscriptionId())
 }
 
 //PublishAPIProduct - Facade to publish via Connector an API Product (idempotent)
@@ -486,8 +585,8 @@ func (container *SubscriptionContainer) PublishAPIProduct() error {
 	}
 	envNames := make([]string, 0)
 	protocols := make([]connector.Protocol, 0)
-	permissions := container.Service.GetAttributes()
-	for _, endpoint := range container.ServiceInstance.Spec.Endpoint {
+	permissions := container.GetServiceAttributes()
+	for _, endpoint := range container.GetServiceInstanceSpecEndpoints() {
 
 		idx := sort.Search(len(connectorEnvs), func(i int) bool {
 			return endpoint.Host == connectorEnvs[i].Host
@@ -501,8 +600,7 @@ func (container *SubscriptionContainer) PublishAPIProduct() error {
 					Name:    connector.ProtocolName(endpoint.Protocol),
 					Version: &ver})
 			} else {
-				//todo detailed error message
-				return errors.New("Protocol/Version not in Environment")
+				return errors.New(fmt.Sprintf("Protocol/Version not in Environment [Host:%s] [Port:%d] [Protocol:%s]", endpoint.Host, endpoint.Port, endpoint.Protocol))
 			}
 		} else {
 			return errors.New("Environment not found")
@@ -524,12 +622,12 @@ func (container *SubscriptionContainer) RemoveAPIProduct(ignoreConflict bool) er
 
 //GetTeamApp - Facade to retrieve App as generic JSON
 func (container *SubscriptionContainer) GetTeamApp() (*connector.SolaceCredentialsDto, map[string]interface{}, error) {
-	return connector.GetOrgConnector().GetTeamApp(container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.Sub.GetID())
+	return connector.GetOrgConnector().GetTeamApp(container.GetEnvironmentName(), container.GetSubscriptionOwningTeamId(), container.GetSubscriptionId())
 }
 
 //GetAppApis - Facade to retrieve all AsyncApi specs of an app
 func (container *SubscriptionContainer) GetAppApis() ([]*map[string]interface{}, error) {
-	apiNames, error := connector.GetOrgConnector().GetAppApiNames(container.GetEnvironmentName(), container.Sub.GetID())
+	apiNames, error := connector.GetOrgConnector().GetAppApiNames(container.GetEnvironmentName(), container.GetSubscriptionId())
 	if error != nil {
 		return nil, error
 	}
@@ -537,7 +635,7 @@ func (container *SubscriptionContainer) GetAppApis() ([]*map[string]interface{},
 	apiSpecs := make([]*map[string]interface{}, 0)
 
 	for _, apiName := range *apiNames {
-		apiSpec, errorSpec := connector.GetOrgConnector().GetAppApiSpecification(container.GetEnvironmentName(), container.Sub.GetID(), apiName)
+		apiSpec, errorSpec := connector.GetOrgConnector().GetAppApiSpecification(container.GetEnvironmentName(), container.GetSubscriptionId(), apiName)
 		if errorSpec != nil {
 			return nil, errorSpec
 		}
@@ -550,7 +648,7 @@ func (container *SubscriptionContainer) GetAppApis() ([]*map[string]interface{},
 func (container *SubscriptionContainer) RemoveTeamApp() error {
 	apiProducts := make([]string, 0)
 	apiProducts = append(apiProducts, container.GetRevisionName())
-	return connector.GetOrgConnector().RemoveTeamApp(container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.Sub.GetID())
+	return connector.GetOrgConnector().RemoveTeamApp(container.GetEnvironmentName(), container.GetSubscriptionOwningTeamId(), container.GetSubscriptionId())
 }
 
 //PublishTeamApp - Facade to publish via Connector a Team Application
@@ -559,22 +657,22 @@ func (container *SubscriptionContainer) PublishTeamApp() (*connector.Credentials
 	apiProducts = append(apiProducts, container.GetRevisionName())
 	trustedCNSList := make([]string, 0)
 	var webHooks *connector.SolaceWebhook = nil
-	if len(container.Sub.GetPropertyValue(solace.SolaceHttpMethod)) > 0 {
-		trustedCNS := strings.TrimSpace(container.Sub.GetPropertyValue(solace.SolaceCallbackTrustedCNS))
+	if len(container.GetSubscriptionPropertyValue(solace.SolaceHttpMethod)) > 0 {
+		trustedCNS := strings.TrimSpace(container.GetSubscriptionPropertyValue(solace.SolaceCallbackTrustedCNS))
 		if len(trustedCNS) > 0 {
 			trustedCNSList = strings.Split(trustedCNS, ",")
 		}
 		webHooks = &connector.SolaceWebhook{
-			HttpMethod:               container.Sub.GetPropertyValue(solace.SolaceHttpMethod),
-			CallbackUrl:              container.Sub.GetPropertyValue(solace.SolaceCallback),
-			AuthenticationMethod:     container.Sub.GetPropertyValue(solace.SolaceAuthenticationMethod),
-			AuthenticationIdentifier: container.Sub.GetPropertyValue(solace.SolaceAuthenticationIdentifier),
-			AuthenticationSecret:     container.Sub.GetPropertyValue(solace.SolaceAuthenticationSecret),
-			InvocationOrder:          container.Sub.GetPropertyValue(solace.SolaceInvocationOrder),
+			HttpMethod:               container.GetSubscriptionPropertyValue(solace.SolaceHttpMethod),
+			CallbackUrl:              container.GetSubscriptionPropertyValue(solace.SolaceCallback),
+			AuthenticationMethod:     container.GetSubscriptionPropertyValue(solace.SolaceAuthenticationMethod),
+			AuthenticationIdentifier: container.GetSubscriptionPropertyValue(solace.SolaceAuthenticationIdentifier),
+			AuthenticationSecret:     container.GetSubscriptionPropertyValue(solace.SolaceAuthenticationSecret),
+			InvocationOrder:          container.GetSubscriptionPropertyValue(solace.SolaceInvocationOrder),
 			TrusedCNs:                trustedCNSList,
 		}
 	}
-	return connector.GetOrgConnector().PublishTeamApp(container.GetEnvironmentName(), container.Sub.GetOwningTeamId(), container.Sub.GetID(), "Created by Axway-Agent", apiProducts, webHooks)
+	return connector.GetOrgConnector().PublishTeamApp(container.GetEnvironmentName(), container.GetSubscriptionOwningTeamId(), container.GetSubscriptionId(), "Created by Axway-Agent", apiProducts, webHooks)
 }
 
 //PublishAPI - Facade to publish via Connector an API
@@ -588,5 +686,5 @@ func (container *SubscriptionContainer) PublishAPI() error {
 
 //PublishTeam - Facade to publish via Connector a Team
 func (container *SubscriptionContainer) PublishTeam() error {
-	return connector.GetOrgConnector().PublishTeam(container.GetEnvironmentName(), container.Sub.GetOwningTeamId())
+	return connector.GetOrgConnector().PublishTeam(container.GetEnvironmentName(), container.GetSubscriptionOwningTeamId())
 }

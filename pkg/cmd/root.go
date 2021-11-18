@@ -73,8 +73,8 @@ func registerSchemaProcessors() {
 func listenToSubscriptions() error {
 	registerSchemaProcessors()
 	//log.Info(agent.GetCentralClient().DumpToken())
+	log.Infof("======   Configured Solace-Connector URL:%s Axway-Environment:%s", connectorConfig.ConnectorURL, agent.GetCentralConfig().GetEnvironmentName())
 	subMan := agent.GetCentralClient().GetSubscriptionManager()
-
 	subMan.RegisterProcessor(apic.SubscriptionApproved, handleApprovedSubscription)
 	subMan.RegisterProcessor(apic.SubscriptionUnsubscribeInitiated, handleUnsubscribeSubscription)
 	subMan.Start()
@@ -151,32 +151,32 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 }
 
 func sendEmailSubscribe(container *gateway.SubscriptionContainer) error {
-	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.Sub.GetCatalogItemID()
-	message := notify.NewSubscriptionNotification(container.SubscriberEmailAddress, "message ignored ", apic.SubscriptionActive)
-	message.SetCatalogItemInfo(container.Sub.GetCatalogItemID(), container.CatalogItemName, url)
-	message.SetOauthInfo(container.SubscriptionCredentials.ConsumerKey, DerefString(container.SubscriptionCredentials.ConsumerSecret))
+	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.GetSubscriptionCatalogItemId()
+	message := notify.NewSubscriptionNotification(container.GetSubscriberEmailAddress(), "message ignored ", apic.SubscriptionActive)
+	message.SetCatalogItemInfo(container.GetSubscriptionCatalogItemId(), container.GetCatalogItemName(), url)
+	message.SetOauthInfo(container.GetSubscriptionCredentials().ConsumerKey, DerefString(container.GetSubscriptionCredentials().ConsumerSecret))
 	message.SetAuthorizationTemplate("oauth")
-	message.ApiManagerId = container.SolaceAsyncApiAppInternalId
-	err := message.NotifySubscriber(container.SubscriberEmailAddress)
+	message.ApiManagerId = container.GetSolaceAsyncApiAppInternalId()
+	err := message.NotifySubscriber(container.GetSubscriberEmailAddress())
 	if err != nil {
 		log.Errorf("Notification of SUBSCRIBE event by Email failed", err)
 		return err
 	} else {
-		log.Tracef("Informed %s by Email to %s about subscription", container.SubscriberUserName, container.SubscriberEmailAddress)
+		log.Tracef("Informed %s by Email to %s about subscription", container.GetSubscriberUserName(), container.GetSubscriberEmailAddress())
 		return nil
 	}
 }
 
 func sendEmailUnsubscribe(container *gateway.SubscriptionContainer) error {
-	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.Sub.GetCatalogItemID()
-	message := notify.NewSubscriptionNotification(container.SubscriberEmailAddress, "message ignored ", apic.SubscriptionUnsubscribed)
-	message.SetCatalogItemInfo(container.Sub.GetCatalogItemID(), container.CatalogItemName, url)
-	err := message.NotifySubscriber(container.SubscriberEmailAddress)
+	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.GetSubscriptionCatalogItemId()
+	message := notify.NewSubscriptionNotification(container.GetSubscriberEmailAddress(), "message ignored ", apic.SubscriptionUnsubscribed)
+	message.SetCatalogItemInfo(container.GetSubscriptionCatalogItemId(), container.GetCatalogItemName(), url)
+	err := message.NotifySubscriber(container.GetSubscriberUserName())
 	if err != nil {
 		log.Errorf("Notification of UNSUBSCRIBE event by Email failed", err)
 		return err
 	} else {
-		log.Tracef("Informed %s by Email to %s about unsubscribe", container.SubscriberUserName, container.SubscriberEmailAddress)
+		log.Tracef("Informed %s by Email to %s about unsubscribe", container.GetSubscriberUserName(), container.GetSubscriberEmailAddress())
 		return nil
 	}
 }

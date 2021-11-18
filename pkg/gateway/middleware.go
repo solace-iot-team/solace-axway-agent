@@ -16,7 +16,6 @@ import (
 )
 
 type AxwaySubscription interface {
-	//IsValid() bool
 	LogText() string
 	GetServiceAttributes() map[string]string
 	GetSolaceAsyncApiAppInternalId() string

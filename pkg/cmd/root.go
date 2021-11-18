@@ -88,7 +88,7 @@ func handleUnsubscribeSubscription(subscription apic.Subscription) {
 		log.Errorf("Handling Unsubscribe for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return
 	}
-	if subscription.GetRemoteAPIID() == "" && container.Valid {
+	if subscription.GetRemoteAPIID() == "" && container.IsValid() {
 		err := container.ProcessUnsubscribeSubscription()
 		if err != nil {
 			log.Error(err)
@@ -121,7 +121,7 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 		return
 	}
 
-	if subscription.GetRemoteAPIID() == "" && container.Valid {
+	if subscription.GetRemoteAPIID() == "" && container.IsValid() {
 		validSubscription, feedback := validateSolaceCallbackSubscription(subscription)
 		if !validSubscription {
 			log.Infof("Rejected subscription (%s) and set to FAILED STATE. Validation of Solace Callback failed: %s", subscription.GetName(), feedback)

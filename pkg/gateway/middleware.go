@@ -276,7 +276,7 @@ func (container *SubscriptionContainer) Debug() string {
 }
 
 // ProcessUnsubscribeSubscription - Orchestrates entire unsubscription steps
-func ProcessUnsubscribeSubscription(container *SubscriptionContainer) error {
+func (container *SubscriptionContainer) ProcessUnsubscribeSubscription() error {
 	log.Infof("Deprovisioning Subscription triggered %s", LogText(container))
 	check, err := container.IsEnvironmentAsOrgAvailable()
 	if err != nil {
@@ -341,7 +341,7 @@ func ProcessUnsubscribeSubscription(container *SubscriptionContainer) error {
 }
 
 // ProcessSubscription  - Orchestrates entire subscription steps
-func ProcessSubscription(container *SubscriptionContainer) error {
+func (container *SubscriptionContainer) ProcessSubscription() error {
 	log.Infof("Provisioning Subscription triggered [Environment:%s] [Revision/API:%s][", container.GetEnvironmentName(), container.GetRevisionName())
 	provisionedAPI := false
 	provisionedAPIProduct := false

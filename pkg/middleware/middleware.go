@@ -1,4 +1,4 @@
-package gateway
+package middleware
 
 import (
 	"encoding/base64"

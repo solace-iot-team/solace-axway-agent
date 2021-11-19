@@ -53,6 +53,15 @@ jobs:
             secret/data/sol/async/agent/ci NOTIFIER_URL | NOTIFIER_URL ;
             secret/data/sol/async/agent/ci INTEGRATIONTEST_ORG | INTEGRATIONTEST_ORG ;
             secret/data/sol/async/agent/ci INTEGRATIONTEST_ORGTOKEN | INTEGRATIONTEST_ORGTOKEN
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_ORGENVNAME | INTEGRATIONTEST_ORGENVNAME
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_SERVICEID | INTEGRATIONTEST_SERVICEID
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_TEAMNAME | INTEGRATIONTEST_TEAMNAME
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_TEAMAPPNAME | INTEGRATIONTEST_TEAMAPPNAME
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_APINAME | INTEGRATIONTEST_APINAME
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_APISPEC | INTEGRATIONTEST_APISPEC
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_APIPRODUCTNAME | INTEGRATIONTEST_APIPRODUCTNAME
+            secret/data/sol/async/agent/ci INTEGRATIONTEST_CLEANUP | INTEGRATIONTEST_CLEANUP
+
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
         with:

@@ -11,10 +11,11 @@ import (
 	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
-	"github.com/solace-iot-team/solace-axway-agent/pkg/gateway"
+	"github.com/solace-iot-team/solace-axway-agent/pkg/middleware"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
 	"strings"
+	"testing"
 )
 
 // RootCmd - Agent root command
@@ -35,7 +36,7 @@ func init() {
 		"solace_axway_agent_test", // Name of the yaml file
 		"Solace Axway Agent",      // Agent description
 		initConfig,                // Callback for initializing the agent config
-		executeIntegrationTests,   // Callback for executing the agent
+		run,                       // Callback for executing the agent
 		corecfg.DiscoveryAgent,    // Agent Type (Discovery or Traceability)
 	)
 }
@@ -43,24 +44,10 @@ func init() {
 // Callback that agent will call to process the execution
 func run() error {
 	//nothing to do
-
 	return nil
 }
 
-func executeIntegrationTests() error {
-	err := executeIntegrationTestsConnector()
-	if err != nil {
-		return err
-	}
-
-	err = executeIntegrationTestMiddleware()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func executeIntegrationTestMiddleware() error {
+func ExecuteIntegrationTestMiddleware() error {
 	apiSpec := iCfg.ApiSpec
 
 	container := IntegrationTestSubscriptionContainer{
@@ -85,7 +72,7 @@ func executeIntegrationTestMiddleware() error {
 			solace.SolaceInvocationOrder:          "parallel",
 		},
 		catalogItemName: "int-sub-ws-1-cat-name",
-		serviceInstanceSpecEndpoints: []gateway.AxwayEndpoint{
+		serviceInstanceSpecEndpoints: []middleware.AxwayEndpoint{
 			{
 				Host:     "mr1i5g7tif6z9h.messaging.solace.cloud",
 				Port:     1883,
@@ -94,7 +81,7 @@ func executeIntegrationTestMiddleware() error {
 		},
 	}
 
-	middleware := gateway.SubscriptionMiddleware{
+	middleware := middleware.SubscriptionMiddleware{
 		AxSub: &container,
 	}
 
@@ -138,7 +125,7 @@ type IntegrationTestSubscriptionContainer struct {
 	subscriptionCatalogItemId        string
 	subscriptionMetadataScopeName    string
 	subscriptionProperties           map[string]string
-	serviceInstanceSpecEndpoints     []gateway.AxwayEndpoint
+	serviceInstanceSpecEndpoints     []middleware.AxwayEndpoint
 
 	catalogItemName             string
 	subscriberEmailAddress      string
@@ -255,17 +242,17 @@ func (c *IntegrationTestSubscriptionContainer) GetServiceInstanceMetadataScopeNa
 	return c.subscriptionMetadataScopeName
 }
 
-func (c *IntegrationTestSubscriptionContainer) GetServiceInstanceSpecEndpoints() []gateway.AxwayEndpoint {
+func (c *IntegrationTestSubscriptionContainer) GetServiceInstanceSpecEndpoints() []middleware.AxwayEndpoint {
 	return c.serviceInstanceSpecEndpoints
 }
 
 type IntegrationTestSubscriptionMiddleware struct {
 	valid bool
-	AxSub gateway.AxwaySubscription
+	AxSub middleware.AxwaySubscription
 }
 
-func executeIntegrationTestsConnector() error {
-	log.Infof("=== Starting Integration Tests against Connector Server:%s with Org:%s", connectorConfig.ConnectorURL, iCfg.Org)
+func ExecuteIntegrationTestsConnector(t *testing.T) error {
+	t.Logf("=== Starting Integration Tests against Connector Server:%s with Org:%s", connectorConfig.ConnectorURL, iCfg.Org)
 	err := executeTestHealthCheck()
 	if err != nil {
 		return err
@@ -333,7 +320,7 @@ func executeIntegrationTestsConnector() error {
 		}
 		log.Infof("Removed organization:%s from Connector", iCfg.Org)
 	}
-	log.Infof("=== DONE Integration Tests against Connector Server:%s with Org:%s", connectorConfig.ConnectorURL, iCfg.Org)
+	t.Logf("=== DONE Integration Tests against Connector Server:%s with Org:%s", connectorConfig.ConnectorURL, iCfg.Org)
 	return nil
 
 }
@@ -649,7 +636,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		ProcessSubscriptionSchemaInterval: rootProps.IntPropertyValue("bootstrapping.processSubscriptionSchemaInterval"),
 	}
 
-	// Parse the config from bound properties and setup gateway config
+	// Parse the config from bound properties and setup middleware config
 	connectorConfig = &config.ConnectorConfig{
 		ConnectorURL:                rootProps.StringPropertyValue("connector.url"),
 		ConnectorAdminUser:          rootProps.StringPropertyValue("connector.adminUser"),

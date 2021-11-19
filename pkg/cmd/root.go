@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
-	"github.com/solace-iot-team/solace-axway-agent/pkg/gateway"
+	"github.com/solace-iot-team/solace-axway-agent/pkg/middleware"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 	"time"
 )
@@ -83,7 +83,7 @@ func listenToSubscriptions() error {
 
 func handleUnsubscribeSubscription(subscription apic.Subscription) {
 	log.Tracef(" Handling unsubscribe for [Subscription:%s] ", subscription.GetName())
-	container, err := gateway.NewSubscriptionMiddleware(subscription)
+	container, err := middleware.NewSubscriptionMiddleware(subscription)
 	if err != nil {
 		log.Errorf("Handling Unsubscribe for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return
@@ -115,7 +115,7 @@ func handleUnsubscribeSubscription(subscription apic.Subscription) {
 
 func handleApprovedSubscription(subscription apic.Subscription) {
 	log.Tracef(" Handling subscribe for [Subscription:%s] ", subscription.GetName())
-	container, err := gateway.NewSubscriptionMiddleware(subscription)
+	container, err := middleware.NewSubscriptionMiddleware(subscription)
 	if err != nil {
 		log.Errorf("Handling subscribe for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return
@@ -150,7 +150,7 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 	}
 }
 
-func sendEmailSubscribe(container *gateway.SubscriptionMiddleware) error {
+func sendEmailSubscribe(container *middleware.SubscriptionMiddleware) error {
 	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.AxSub.GetSubscriptionCatalogItemId()
 	message := notify.NewSubscriptionNotification(container.AxSub.GetSubscriberEmailAddress(), "message ignored ", apic.SubscriptionActive)
 	message.SetCatalogItemInfo(container.AxSub.GetSubscriptionCatalogItemId(), container.AxSub.GetCatalogItemName(), url)
@@ -167,7 +167,7 @@ func sendEmailSubscribe(container *gateway.SubscriptionMiddleware) error {
 	}
 }
 
-func sendEmailUnsubscribe(container *gateway.SubscriptionMiddleware) error {
+func sendEmailUnsubscribe(container *middleware.SubscriptionMiddleware) error {
 	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.AxSub.GetSubscriptionCatalogItemId()
 	message := notify.NewSubscriptionNotification(container.AxSub.GetSubscriberEmailAddress(), "message ignored ", apic.SubscriptionUnsubscribed)
 	message.SetCatalogItemInfo(container.AxSub.GetSubscriptionCatalogItemId(), container.AxSub.GetCatalogItemName(), url)
@@ -214,7 +214,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		ProcessSubscriptionSchemaInterval: rootProps.IntPropertyValue("bootstrapping.processSubscriptionSchemaInterval"),
 	}
 
-	// Parse the config from bound properties and setup gateway config
+	// Parse the config from bound properties and setup middleware config
 	connectorConfig = &config.ConnectorConfig{
 		ConnectorURL:                rootProps.StringPropertyValue("connector.url"),
 		ConnectorAdminUser:          rootProps.StringPropertyValue("connector.adminUser"),

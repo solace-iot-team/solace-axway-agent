@@ -22,7 +22,7 @@ type BootstrappingConfig struct {
 	ProcessSubscriptionSchemaInterval int  `config:"processSubscriptionSchemaInterval"`
 }
 
-// ConnectorConfig - represents the config for gateway
+// ConnectorConfig - represents the config for middleware
 type ConnectorConfig struct {
 	corecfg.IConfigValidator
 	corecfg.IResourceConfigCallback
@@ -36,7 +36,7 @@ type ConnectorConfig struct {
 	ConnectorLogHeader          bool   `config:"logHeader"`
 }
 
-// ConnectorConfig - represents the config for gateway
+// ConnectorConfig - represents the config for middleware
 type NotifierConfig struct {
 	corecfg.IConfigValidator
 	corecfg.IResourceConfigCallback
@@ -49,7 +49,7 @@ type NotifierConfig struct {
 	NotifierInsecureSkipVerify bool   `config:"acceptInsecureCertificates"`
 }
 
-// ValidateCfg - Validates the gateway config
+// ValidateCfg - Validates the middleware config
 func (c *ConnectorConfig) ValidateCfg() (err error) {
 	return
 }
@@ -59,7 +59,7 @@ func (c *ConnectorConfig) ApplyResources(agentResource *v1.ResourceInstance) err
 	return nil
 }
 
-// ValidateCfg - Validates the gateway config
+// ValidateCfg - Validates the middleware config
 func (c *NotifierConfig) ValidateCfg() (err error) {
 	if c.NotifierApiAuthType == "basic" || c.NotifierApiAuthType == "header" {
 		//all ok

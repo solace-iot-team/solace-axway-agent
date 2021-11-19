@@ -6,7 +6,7 @@ import (
 	"github.com/Axway/agent-sdk/pkg/apic"
 	"github.com/Axway/agent-sdk/pkg/jobs"
 	"github.com/Axway/agent-sdk/pkg/util/log"
-	"github.com/solace-iot-team/solace-axway-agent/pkg/gateway"
+	"github.com/solace-iot-team/solace-axway-agent/pkg/middleware"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
 	"net/url"
 	"strings"
@@ -130,7 +130,7 @@ func (j *SubscriptionSchemaProcessorJob) Execute() error {
 // validates Solace Callback attributes in subscription schema
 func validateSolaceCallbackSubscription(subscription apic.Subscription) (bool, string) {
 	log.Tracef(" Handling validateSubscription for [Subscription:%s] ", subscription.GetName())
-	_, err := gateway.NewSubscriptionMiddleware(subscription)
+	_, err := middleware.NewSubscriptionMiddleware(subscription)
 	if err != nil {
 		log.Errorf("Handling validateSubscription for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return false, "Subscription could not get validated."

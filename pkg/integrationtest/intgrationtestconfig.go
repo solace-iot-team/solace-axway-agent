@@ -1,6 +1,6 @@
 package integrationtest
 
-// ConnectorConfig - represents the config for gateway
+// ConnectorConfig - represents the config for middleware
 type IntegrationtestConfig struct {
 	Org            string `config:"org"`
 	OrgEnvName     string `config:"orgEnvName"`

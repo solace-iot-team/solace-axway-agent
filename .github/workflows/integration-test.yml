@@ -43,7 +43,6 @@ jobs:
             secret/data/sol/async/agent/ci CONNECTOR_ADMINUSER | CONNECTOR_ADMINUSER ;
             secret/data/sol/async/agent/ci CONNECTOR_ORGPASSWORD | CONNECTOR_ORGPASSWORD ;
             secret/data/sol/async/agent/ci CONNECTOR_ORGUSER | CONNECTOR_ORGUSER ;
-            secret/data/sol/async/agent/ci CONNECTOR_ORGUSER | CONNECTOR_ORGUSER ;
             secret/data/sol/async/agent/ci NOTIFIER_ACCEPTINSECURECERTIFICATES | NOTIFIER_ACCEPTINSECURECERTIFICATES ;
             secret/data/sol/async/agent/ci NOTIFIER_APIAUTHTYPE | NOTIFIER_APIAUTHTYPE ;
             secret/data/sol/async/agent/ci NOTIFIER_APICONSUMERKEY | NOTIFIER_APICONSUMERKEY ;
@@ -74,6 +73,7 @@ jobs:
         run: |
           export CENTRAL_AUTH_PUBLICKEY=$RUNNER_TEMP/public
           export CENTRAL_AUTH_PRIVATEKEY=$RUNNER_TEMP/private
+          export LOG=trace
           make dep
           make build
           make integrationtest

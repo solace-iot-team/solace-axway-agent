@@ -352,7 +352,7 @@ func executeTestCRUDTeamApp(addWebhook bool, addTrustedCNs bool) error {
 			webHooks = &connector.SolaceWebhook{
 				HttpMethod:               "post",
 				CallbackUrl:              "http://does.not.work",
-				AuthenticationMethod:     "header",
+				AuthenticationMethod:     "BasicAuthentication",
 				AuthenticationSecret:     "secret",
 				AuthenticationIdentifier: "identifier",
 				InvocationOrder:          "parallel",
@@ -362,7 +362,7 @@ func executeTestCRUDTeamApp(addWebhook bool, addTrustedCNs bool) error {
 			webHooks = &connector.SolaceWebhook{
 				HttpMethod:               "post",
 				CallbackUrl:              "http://does.not.work",
-				AuthenticationMethod:     "header",
+				AuthenticationMethod:     "BasicAuthentication",
 				AuthenticationSecret:     "secret",
 				AuthenticationIdentifier: "identifier",
 				InvocationOrder:          "parallel",

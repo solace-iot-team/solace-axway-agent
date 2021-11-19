@@ -73,7 +73,7 @@ jobs:
         run: |
           export CENTRAL_AUTH_PUBLICKEY=$RUNNER_TEMP/public
           export CENTRAL_AUTH_PRIVATEKEY=$RUNNER_TEMP/private
-          export LOG=trace
+          export LOG_LEVEL=trace
           make dep
           make build
           make integrationtest

@@ -3,6 +3,7 @@ package integrationtest
 // ConnectorConfig - represents the config for gateway
 type IntegrationtestConfig struct {
 	Org            string `config:"org"`
+	OrgEnvName     string `config:"orgEnvName"`
 	ServiceId      string `config:"serviceId"`
 	TeamName       string `config:"teamName"`
 	TeamAppName    string `config:"teamAppName"`

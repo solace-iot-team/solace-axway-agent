@@ -3,6 +3,7 @@ package integrationtest
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/Axway/agent-sdk/pkg/cmd"
 	corecmd "github.com/Axway/agent-sdk/pkg/cmd"
 	corecfg "github.com/Axway/agent-sdk/pkg/config"
@@ -10,7 +11,9 @@ import (
 	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
+	"github.com/solace-iot-team/solace-axway-agent/pkg/gateway"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
+	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
 	"strings"
 )
 
@@ -45,6 +48,223 @@ func run() error {
 }
 
 func executeIntegrationTests() error {
+	err := executeIntegrationTestsConnector()
+	if err != nil {
+		return err
+	}
+
+	err = executeIntegrationTestMiddleware()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func executeIntegrationTestMiddleware() error {
+	apiSpec := iCfg.ApiSpec
+
+	container := IntegrationTestSubscriptionContainer{
+		valid:                         true,
+		revisionName:                  "int-test-prod-2",
+		subscriptionMetadataScopeName: iCfg.OrgEnvName,
+		externalAPIName:               "int-test-mw-1",
+		externalAPIID:                 "int-test-mw-1",
+		apiSpec:                       string(apiSpec),
+		//permissions map[string]int{"foo": 1, "bar": 2}
+		serviceAttributes:         map[string]string{"att1": "value1,value2", "att2": "value3"},
+		subscriptionName:          "int-sub-mw-1",
+		subscriptionId:            "int-sub-mw-1-id",
+		subscriptionOwningTeamId:  "int-sub-ws-1-team-id",
+		subscriptionCatalogItemId: "int-sub-ws-1-cat-id",
+		subscriptionProperties: map[string]string{
+			solace.SolaceHttpMethod:               "post",
+			solace.SolaceCallback:                 "http://some.callback.org",
+			solace.SolaceAuthenticationMethod:     "basic",
+			solace.SolaceAuthenticationIdentifier: "username",
+			solace.SolaceAuthenticationSecret:     "secret",
+			solace.SolaceInvocationOrder:          "parallel",
+		},
+		catalogItemName: "int-sub-ws-1-cat-name",
+		serviceInstanceSpecEndpoints: []gateway.AxwayEndpoint{
+			{
+				Host:     "mr1i5g7tif6z9h.messaging.solace.cloud",
+				Port:     1883,
+				Protocol: "mqtt",
+			},
+		},
+	}
+
+	middleware := gateway.SubscriptionMiddleware{
+		AxSub: &container,
+	}
+
+	err := executeTestCRUDOrganization()
+	if err != nil {
+		log.Errorf("Error creating organization", err)
+		return err
+	}
+	err = executeTestCRUDEnvironment()
+	if err != nil {
+		log.Errorf("Error creating environment", err)
+		return err
+	}
+
+	err = middleware.ProcessSubscription()
+	if err != nil {
+		log.Errorf("Error processing subscription", err)
+		return err
+	}
+
+	err = middleware.ProcessUnsubscribeSubscription()
+	if err != nil {
+		log.Errorf("Error processing unsubscription", err)
+		return err
+	}
+	return nil
+}
+
+type IntegrationTestSubscriptionContainer struct {
+	valid                            bool
+	revisionName                     string
+	serviceInstanceMetadataScopeName string
+	externalAPIID                    string
+	externalAPIName                  string
+	apiSpec                          string
+	serviceAttributes                map[string]string
+	subscriptionName                 string
+	subscriptionApiServiceName       string
+	subscriptionId                   string
+	subscriptionOwningTeamId         string
+	subscriptionCatalogItemId        string
+	subscriptionMetadataScopeName    string
+	subscriptionProperties           map[string]string
+	serviceInstanceSpecEndpoints     []gateway.AxwayEndpoint
+
+	catalogItemName             string
+	subscriberEmailAddress      string
+	subscriberUserName          string
+	subscriptionCredentials     *connector.SolaceCredentialsDto
+	solaceCallbackApi           bool
+	solaceAsyncApiAppInternalId string
+}
+
+// LogText - Extracts Logging Details
+func (c *IntegrationTestSubscriptionContainer) LogText() string {
+	return fmt.Sprintf("[Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s]", c.GetEnvironmentName(), c.GetSubscriptionOwningTeamId(), c.GetRevisionName(), c.GetSubscriptionId(), c.GetRevisionName())
+}
+
+func (container *IntegrationTestSubscriptionContainer) GetSolaceAsyncApiAppInternalId() string {
+	return container.solaceAsyncApiAppInternalId
+}
+
+func (container *IntegrationTestSubscriptionContainer) GetCatalogItemName() string {
+	return container.catalogItemName
+}
+
+func (container *IntegrationTestSubscriptionContainer) SetSolaceAsyncApiAppInternalId(id string) {
+	container.solaceAsyncApiAppInternalId = id
+}
+
+func (container *IntegrationTestSubscriptionContainer) SetSubscriptionCredentials(credentials *connector.SolaceCredentialsDto) {
+	container.subscriptionCredentials = credentials
+}
+func (container *IntegrationTestSubscriptionContainer) GetSubscriptionCredentials() *connector.SolaceCredentialsDto {
+	return container.subscriptionCredentials
+}
+
+// GetSubscriberEmailAddress - Returns Email
+func (container *IntegrationTestSubscriptionContainer) GetSubscriberEmailAddress() string {
+	return container.subscriberEmailAddress
+}
+
+//todo refactor and remove error return type
+// GetSubscriberUserName - Returns Username
+func (container *IntegrationTestSubscriptionContainer) GetSubscriberUserName() string {
+	return container.subscriberUserName
+}
+
+// GetRevisionName - Facade to retrieve RevisionName
+func (container *IntegrationTestSubscriptionContainer) GetRevisionName() string {
+	return container.revisionName
+}
+
+// IsEnvironmentDefined - Facade to check if environment is set in Service Instance
+func (container *IntegrationTestSubscriptionContainer) IsEnvironmentDefined() bool {
+	return true
+}
+
+// GetEnvironmentName - Facade to get environment name (Service Instance Scope Name)
+func (container *IntegrationTestSubscriptionContainer) GetEnvironmentName() string {
+	return container.GetServiceInstanceMetadataScopeName()
+}
+
+// IsExternalAPIIDDefined - Facade to check if External API ID is set
+func (container *IntegrationTestSubscriptionContainer) IsExternalAPIIDDefined() bool {
+	return container.GetExternalAPIID() != ""
+}
+
+// IsExternalAPINameDefined - Facade to check if External API Name is set
+func (container *IntegrationTestSubscriptionContainer) IsExternalAPINameDefined() bool {
+	return container.GetExternalAPIName() != ""
+}
+
+// GetExternalAPIID - Facade to get External API ID
+func (container *IntegrationTestSubscriptionContainer) GetExternalAPIID() string {
+	return container.externalAPIID
+}
+
+// GetExternalAPIName - Facade to get External API Name
+func (container *IntegrationTestSubscriptionContainer) GetExternalAPIName() string {
+	return container.externalAPIName
+}
+
+// GetAPISpec - Facade ti get API Spec (AsyncAPI spec)
+func (container *IntegrationTestSubscriptionContainer) GetAPISpec() string {
+	return container.apiSpec
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetServiceAttributes() map[string]string {
+	return c.serviceAttributes
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionName() string {
+	return c.subscriptionName
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionAPIServiceName() string {
+	return c.subscriptionApiServiceName
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionId() string {
+	return c.subscriptionId
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionOwningTeamId() string {
+	return c.subscriptionOwningTeamId
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionCatalogItemId() string {
+	return c.subscriptionCatalogItemId
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionPropertyValue(key string) string {
+	return c.subscriptionProperties[key]
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetServiceInstanceMetadataScopeName() string {
+	return c.subscriptionMetadataScopeName
+}
+
+func (c *IntegrationTestSubscriptionContainer) GetServiceInstanceSpecEndpoints() []gateway.AxwayEndpoint {
+	return c.serviceInstanceSpecEndpoints
+}
+
+type IntegrationTestSubscriptionMiddleware struct {
+	valid bool
+	AxSub gateway.AxwaySubscription
+}
+
+func executeIntegrationTestsConnector() error {
 	log.Infof("=== Starting Integration Tests against Connector Server:%s with Org:%s", connectorConfig.ConnectorURL, iCfg.Org)
 	err := executeTestHealthCheck()
 	if err != nil {
@@ -214,13 +434,13 @@ func executeTestCRUDEnvironment() error {
 	}
 	foundEnv := false
 	for _, env := range listEnvs {
-		if env.Name == iCfg.ServiceId {
+		if env.Name == iCfg.OrgEnvName {
 			foundEnv = true
 		}
 	}
 	if foundEnv {
-		log.Tracef("connector.GetOrgConnector().DeleteEnvironment /%/%", iCfg.Org, iCfg.ServiceId)
-		success, err := connector.GetOrgConnector().DeleteEnvironment(iCfg.Org, iCfg.ServiceId)
+		log.Tracef("connector.GetOrgConnector().DeleteEnvironment /%/%", iCfg.Org, iCfg.OrgEnvName)
+		success, err := connector.GetOrgConnector().DeleteEnvironment(iCfg.Org, iCfg.OrgEnvName)
 		if err != nil {
 			log.Tracef("DeleteEnvironments faulted")
 			return err
@@ -229,7 +449,7 @@ func executeTestCRUDEnvironment() error {
 			log.Tracef("DeleteEnvironment was not HTTP-Code < 300")
 			return errors.New("DeleteEnvironment was not HTTP < 300")
 		}
-		log.Trace("Deleted Environment: %s", iCfg.ServiceId)
+		log.Trace("Deleted Environment: %s", iCfg.OrgEnvName)
 	}
 	protocolVersions := make([]map[string]string, 0)
 	protocolVersion := map[string]string{
@@ -237,8 +457,8 @@ func executeTestCRUDEnvironment() error {
 		"version": "3.1.1",
 	}
 	protocolVersions = append(protocolVersions, protocolVersion)
-	log.Tracef("connector.GetOrgConnector().CreateEnvironment /%/%", iCfg.Org, iCfg.ServiceId)
-	err = connector.GetOrgConnector().CreateEnvironment(iCfg.Org, iCfg.ServiceId, "Integration Test Environment", iCfg.ServiceId, protocolVersions)
+	log.Tracef("connector.GetOrgConnector().CreateEnvironment /%s/%s", iCfg.Org, iCfg.OrgEnvName)
+	err = connector.GetOrgConnector().CreateEnvironment(iCfg.Org, iCfg.OrgEnvName, "Integration Test Environment", iCfg.ServiceId, protocolVersions)
 	if err != nil {
 		log.Tracef("Could not create Environment")
 		return err
@@ -272,7 +492,7 @@ func executeTestCRUDApiProduct() error {
 	apiNames := make([]string, 0)
 	protocols := make([]connector.Protocol, 0)
 
-	envNames = append(envNames, iCfg.ServiceId)
+	envNames = append(envNames, iCfg.OrgEnvName)
 	apiNames = append(apiNames, iCfg.ApiName)
 	version := connector.CommonVersion("3.1.1")
 	protocols = append(protocols, connector.Protocol{
@@ -459,6 +679,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 
 	iCfg = &IntegrationtestConfig{
 		Org:            rootProps.StringPropertyValue("integrationtest.org"),
+		OrgEnvName:     rootProps.StringPropertyValue("integrationtest.orgEnvName"),
 		OrgToken:       rootProps.StringPropertyValue("integrationtest.orgToken"),
 		ServiceId:      rootProps.StringPropertyValue("integrationtest.serviceId"),
 		TeamName:       rootProps.StringPropertyValue("integrationtest.teamName"),
@@ -468,6 +689,8 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		TeamAppName:    rootProps.StringPropertyValue("integrationtest.teamAppName"),
 		Cleanup:        rootProps.BoolPropertyValue("integrationtest.cleanup"),
 	}
+
+	log.Tracef("Org:%s OrgEnvName:%s  ServiceId:%s", iCfg.Org, iCfg.OrgEnvName, iCfg.ServiceId)
 
 	// initialize solace-connector
 	err := connector.Initialize(connectorConfig)

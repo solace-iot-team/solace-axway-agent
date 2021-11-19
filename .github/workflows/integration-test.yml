@@ -14,6 +14,13 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image:
+          mongo:latest
+        volumes:
+          - $GITHUB_WORKSPACE/testing/mongodb:/data/db
+
     steps:
       - name: Import Secrets
         uses: hashicorp/vault-action@v2.4.0

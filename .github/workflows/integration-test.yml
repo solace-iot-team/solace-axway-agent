@@ -77,7 +77,8 @@ jobs:
           export PLATFORM_DATA_MOUNT_PATH=$GITHUB_WORKSPACE/testing/connector
           export LOG_LEVEL=trace
           export REST_ENABLED=true
-          docker-compose -f testing/compose.yml -up -d
+          pwd
+          docker-compose -f $GITHUB_WORKSPACE/testing/compose.yml -up -d
           make dep
           make build
           make integrationtest

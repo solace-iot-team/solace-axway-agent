@@ -13,7 +13,6 @@ services:
     image: solaceiotteam/apim-connector-server:0.3.0
     volumes:
       - ${PLATFORM_DATA_MOUNT_PATH}:/data
-    restart: unless-stopped
     environment:
       - DB_URL=mongodb://mongodb:27017/platform?retryWrites=true&w=majority
       - LOG_LEVEL=info
@@ -33,7 +32,6 @@ services:
   notifier:
     container_name: notifier
     image: ghcr.io/solace-iot-team/axway-slack-notifier:1.2.0
-    restart: unless-stopped
     environment:
       - REST_ENABLED=true
       - MQTT_CLIENT_SERVER_URI=${MQTT_CLIENT_SERVER_URI}

@@ -56,6 +56,10 @@ jobs:
             secret/data/sol/async/agent/ci NOTIFIER_ENABLED | NOTIFIER_ENABLED ;
             secret/data/sol/async/agent/ci NOTIFIER_HEALTHMESSAGE | NOTIFIER_HEALTHMESSAGE ;
             secret/data/sol/async/agent/ci NOTIFIER_URL | NOTIFIER_URL ;
+            secret/data/sol/async/agent/ci NOTIFIER_SLACK_SUBSCRIBE | NOTIFIER_SLACK_SUBSCRIBE ;
+            secret/data/sol/async/agent/ci NOTIFIER_SLACK_UNSUBSCRIBE | NOTIFIER_SLACK_UNSUBSCRIBE ;
+            secret/data/sol/async/agent/ci MONITOR_SLACK_SUCCESS | MONITOR_SLACK_SUCCESS ;
+            secret/data/sol/async/agent/ci MONITOR_SLACK_FAULT | MONITOR_SLACK_FAULT ;
             secret/data/sol/async/agent/ci INTEGRATIONTEST_ORG | INTEGRATIONTEST_ORG ;
             secret/data/sol/async/agent/ci INTEGRATIONTEST_ORGTOKEN | INTEGRATIONTEST_ORGTOKEN ;
             secret/data/sol/async/agent/ci INTEGRATIONTEST_ORGENVNAME | INTEGRATIONTEST_ORGENVNAME ;
@@ -89,6 +93,7 @@ jobs:
           mkdir $RUNNER_TEMP/testing/connector
           cp testing/connector/dummy.pem $RUNNER_TEMP/testing/connector
           cp testing/connector/organization_users.json $RUNNER_TEMP/testing/connector/organization_users.json
+          cp testing/connector/dummy.pem $RUNNER_TEMP/testing/connector/dummy.pem
 
           docker-compose -f testing/compose.yml up
           make dep

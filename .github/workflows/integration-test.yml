@@ -84,7 +84,7 @@ jobs:
           export CENTRAL_AUTH_PUBLICKEY="$RUNNER_TEMP/public"
           export CENTRAL_AUTH_PRIVATEKEY="$RUNNER_TEMP/private"
           export MONGODB_DATA_MOUNT_PATH="$RUNNER_TEMP/testing/mongodb"
-          export PLATFORM_DATA_MOUNT_PATH="$RUNNTER_TEMP/testing/connector"
+          export PLATFORM_DATA_MOUNT_PATH="$RUNNER_TEMP/testing/connector"
           export LOG_LEVEL=trace
           export REST_ENABLED=true
           echo "**************************************"
@@ -110,4 +110,8 @@ jobs:
           cp testing/connector/organization_users.json $RUNNER_TEMP/testing/connector/organization_users.json
           cp testing/connector/dummy.pem $RUNNER_TEMP/testing/connector/dummy.pem
 
+          docker-compose -f testing/compose.yml up
+          make dep
+          make build
+          make integrationtest
 

@@ -110,7 +110,7 @@ jobs:
           cp testing/connector/organization_users.json $RUNNER_TEMP/testing/connector/organization_users.json
           cp testing/connector/dummy.pem $RUNNER_TEMP/testing/connector/dummy.pem
 
-          docker-compose -f testing/compose.yml up
+          docker-compose -f testing/compose.yml up -d
           make dep
           make build
           make integrationtest

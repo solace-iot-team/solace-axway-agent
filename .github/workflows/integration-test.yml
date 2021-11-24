@@ -79,11 +79,17 @@ jobs:
         run: |
           export CENTRAL_AUTH_PUBLICKEY=$RUNNER_TEMP/public
           export CENTRAL_AUTH_PRIVATEKEY=$RUNNER_TEMP/private
-          export MONGODB_DATA_MOUNT_PATH=$GITHUB_WORKSPACE/testing/mongodb
-          export PLATFORM_DATA_MOUNT_PATH=$GITHUB_WORKSPACE/testing/connector
+          export MONGODB_DATA_MOUNT_PATH=$RUNNER_TEMP/testing/mongodb
+          export PLATFORM_DATA_MOUNT_PATH=$RUNNTER_TEMP/testing/connector
           export LOG_LEVEL=trace
           export REST_ENABLED=true
           pwd
+          mkdir $RUNNER_TEMP/testing
+          mkdir $RUNNER_TEMP/testing/mongodb
+          mkdir $RUNNER_TEMP/testing/connector
+          cp testing/connector/dummy.pem $RUNNER_TEMP/testing/connector
+          cp testing/connector/organization_users.json $RUNNER_TEMP/testing/connector/organization_users.json
+
           docker-compose -f testing/compose.yml up -d
           make dep
           make build

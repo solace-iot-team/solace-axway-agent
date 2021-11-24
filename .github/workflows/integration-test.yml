@@ -78,7 +78,7 @@ jobs:
           export LOG_LEVEL=trace
           export REST_ENABLED=true
           pwd
-          docker-compose -f $GITHUB_WORKSPACE/testing/compose.yml -up -d
+          docker-compose -f testing/compose.yml up -d
           make dep
           make build
           make integrationtest

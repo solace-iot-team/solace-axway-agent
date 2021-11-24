@@ -81,12 +81,27 @@ jobs:
 
       - name: build it
         run: |
-          export CENTRAL_AUTH_PUBLICKEY=$RUNNER_TEMP/public
-          export CENTRAL_AUTH_PRIVATEKEY=$RUNNER_TEMP/private
-          export MONGODB_DATA_MOUNT_PATH=$RUNNER_TEMP/testing/mongodb
-          export PLATFORM_DATA_MOUNT_PATH=$RUNNTER_TEMP/testing/connector
+          export CENTRAL_AUTH_PUBLICKEY="$RUNNER_TEMP/public"
+          export CENTRAL_AUTH_PRIVATEKEY="$RUNNER_TEMP/private"
+          export MONGODB_DATA_MOUNT_PATH="$RUNNER_TEMP/testing/mongodb"
+          export PLATFORM_DATA_MOUNT_PATH="$RUNNTER_TEMP/testing/connector"
           export LOG_LEVEL=trace
           export REST_ENABLED=true
+          echo "**************************************"
+          echo "RUNNER_TEMP"
+          echo $RUNNER_TEMP
+
+          echo "CENTRAL_AUTH_PUBLICKEY"
+          echo $CENTRAL_AUTH_PUBLICKEY
+
+          echo "CENTRAL_AUTH_PRIVATEKEY"
+          echo $CENTRAL_AUTH_PRIVATEKEY
+
+          echo "MONGODB_DATA_MOUNT_PATH"
+          echo $MONGODB_DATA_MOUNT_PATH
+
+          echo "PLATFORM_DATA_MOUNT_PATH"
+          echo $PLATFORM_DATA_MOUNT_PATH
           pwd
           mkdir $RUNNER_TEMP/testing
           mkdir $RUNNER_TEMP/testing/mongodb
@@ -94,12 +109,5 @@ jobs:
           cp testing/connector/dummy.pem $RUNNER_TEMP/testing/connector
           cp testing/connector/organization_users.json $RUNNER_TEMP/testing/connector/organization_users.json
           cp testing/connector/dummy.pem $RUNNER_TEMP/testing/connector/dummy.pem
-          echo "is dummy.pem there?"
-          ls -la $RUNNER_TEMP/testing/connector
-          echo "PLATFORM_DATA_MOUNT_PATH"
-          echo $PLATFORM_DATA_MOUNT_PATH
-          echo "ls -la of PLATFORM_DATA_MOUNT_PATH"
-          cd $PLATFORM_DATA_MOUNT_PATH
-          ls -la
 
 

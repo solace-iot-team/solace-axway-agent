@@ -14,13 +14,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    services:
-      mongodb:
-        image:
-          mongo:latest
-        volumes:
-          - $GITHUB_WORKSPACE/testing/mongodb:/data/db
-
     steps:
       - name: Import Secrets
         uses: hashicorp/vault-action@v2.4.0
@@ -80,7 +73,11 @@ jobs:
         run: |
           export CENTRAL_AUTH_PUBLICKEY=$RUNNER_TEMP/public
           export CENTRAL_AUTH_PRIVATEKEY=$RUNNER_TEMP/private
+          export MONGODB_DATA_MOUNT_PATH=$GITHUB_WORKSPACE/testing/mongodb
+          export PLATFORM_DATA_MOUNT_PATH=$GITHUB_WORKSPACE/testing/connector
           export LOG_LEVEL=trace
+          export REST_ENABLED=true
+          testing/start.sh
           make dep
           make build
           make integrationtest

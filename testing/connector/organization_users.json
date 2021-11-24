@@ -1,0 +1,9 @@
+{
+  "admin": {
+    "password": "secret",
+    "roles": [
+      "platform-admin",
+      "org-admin"
+    ]
+  }
+}

@@ -42,6 +42,12 @@ jobs:
           echo "VERSION=$VERSION">> $GITHUB_ENV
           echo "VERSION: $VERSION"
 
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 14
+      - run: npm ci
+      - run: npm install
+      - run: npm install shellj
       - name: Check Docker Version Tag not already published
         uses: actions/github-script@v5
         with:

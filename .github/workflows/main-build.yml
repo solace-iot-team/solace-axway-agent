@@ -46,6 +46,7 @@ jobs:
         uses: actions/github-script@v5
         with:
           script:  |
+            import s from 'shelljs';
             let code = s.exec(`docker manifest inspect solaceiotteam/solace-axway-agent:0.0.10`).code;
             if(code===0) {
              console.log(`aborting - image already exists:`);

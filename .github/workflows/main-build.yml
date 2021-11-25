@@ -54,14 +54,15 @@ jobs:
         with:
           script:  |
             const s = require('shelljs');
-            const ghid = "${process.env.IMAGE_NAME}:${process.env.VERSION}"
-            console.log('Looking up Docker Hub for ${ghid}`)
-            let code = s.exec(`docker manifest inspect ${ghid}`).code;
+            const image = process.env.IMAGE_NAME;
+            const version = process.env.VERSION;
+            console.log('Looking up Docker Hub for `)
+            let code = s.exec(`docker manifest inspect solaceiotteam/abc:1.0.0`).code;
             if(code===0) {
-             console.log(`aborting - image ${ghid} already exists`);
+             console.log(`aborting - image already exists`);
              process.exit(1);
             } else {
-             console.log(`new image to publish: ${ghid}`);
+             console.log(`new image to publish: `);
             }
 
  #     - name: Build and Deploy to Docker registry

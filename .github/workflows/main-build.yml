@@ -7,19 +7,6 @@ env:
   VERSION: "0.0.0"
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-go@v2
-        with:
-          go-version: '^1.16.9'
-      - run: |
-          go version
-          go get -u golang.org/x/lint/golint
-
-
   deploy:
     runs-on: ubuntu-latest
     # if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}

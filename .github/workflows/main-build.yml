@@ -57,7 +57,13 @@ jobs:
             const { VERSION, IMAGE_NAME } = process.env;
             const dhid = IMAGE_NAME+":"+ VERSION
             console.log('Looking up Docker Hub for:'+dhid);
-
+            let code = s.exec('docker manifest inspect '+dhid).code;
+            if(code===0) {
+              console.log(`aborting - image already exists`);
+              process.exit(1);
+            } else {
+              console.log(`new image to publish: `);
+            }
  #     - name: Build and Deploy to Docker registry
  #       uses: docker/build-push-action@v2
  #       with:

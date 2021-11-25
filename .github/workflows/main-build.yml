@@ -56,7 +56,7 @@ jobs:
             const s = require('shelljs');
             const { VERSION, IMAGE_NAME } = process.env
             const dhid = "${IMAGE_NAME}:${VERSION}"
-            console.log('Looking up Docker Hub for ${dhid}`
+            console.log('Looking up Docker Hub for ${dhid}`)
 
  #     - name: Build and Deploy to Docker registry
  #       uses: docker/build-push-action@v2

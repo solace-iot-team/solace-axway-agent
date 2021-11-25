@@ -47,7 +47,7 @@ jobs:
         with:
           script:  |
             let code = exec.exec(`docker manifest inspect solaceiotteam/solace-axway-agent:0.0.10`).code;
-            console.log(`CODE=$code`);
+            console.log(`CODE=${code}`);
             if(code===0) {
              console.log(`aborting - image already exists:`);
              process.exit(1);

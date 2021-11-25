@@ -23,9 +23,9 @@ jobs:
           echo "not authorized"
           echo '::set-output name=IS_AUTHORIZED::false'
         id: auth
-          - name: Cancel Workflow
-            if: ${{ always() && steps.auth.outputs.IS_AUTHORIZED == 'false' }}
-            uses: andymckay/cancel-action@0.2
+      - name: Cancel Workflow
+        if: ${{ always() && steps.auth.outputs.IS_AUTHORIZED == 'false' }}
+        uses: andymckay/cancel-action@0.2
 
       - name: Log in to GitHub Docker Registry
         uses: docker/login-action@v1

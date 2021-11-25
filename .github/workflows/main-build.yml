@@ -54,10 +54,7 @@ jobs:
         with:
           script:  |
             const s = require('shelljs');
-            var image = process.env.IMAGE_NAME;
-            var version = process.env.VERSION;
-            console.log('Looking up Docker Hub for `)
-
+            const { VERSION, IMAGE_NAME } = process.env
 
  #     - name: Build and Deploy to Docker registry
  #       uses: docker/build-push-action@v2

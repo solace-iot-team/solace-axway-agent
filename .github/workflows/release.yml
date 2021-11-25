@@ -1,0 +1,35 @@
+name: release
+on:
+  # for testing
+  workflow_dispatch:
+
+  # for production
+  release:
+    types: [created]
+
+env:
+  DEBUG_FLAG: ${{ true }}
+  # DEBUG_FLAG: ${{ false }}
+  RELEASE_PLATFORM_DIR: "release"
+  RELEASE_RUNNER_OUTPUT_DIR: "release/tmp"
+  RELEASE_OUTPUT_NAME: "platform-api-release"
+
+jobs:
+  release:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check Auth
+        if: github.event_name == 'workflow_dispatch' && github.actor != 'ricardojosegomezulmke' && github.actor != '195858'
+        run: |
+          echo "not authorized"
+          echo '::set-output name=IS_AUTHORIZED::false'
+        id: auth
+      - name: Cancel Workflow
+        if: ${{ always() && steps.auth.outputs.IS_AUTHORIZED == 'false' }}
+        uses: andymckay/cancel-action@0.2
+
+      - name: Checkout Current Branch
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+

@@ -42,11 +42,23 @@ jobs:
           echo "VERSION=$VERSION">> $GITHUB_ENV
           echo "VERSION: $VERSION"
 
-      - name: Build and Deploy to Docker registry
-        uses: docker/build-push-action@v2
+      - name: Check Docker Version Tag not already published
+        uses: actions/github-script@v5
         with:
-          context: .
-          push: true
-          tags: |
-            solaceiotteam/solace-axway-agent:alpha
-            solaceiotteam/solace-axway-agent:${{env.VERSION}}
+          script:  |
+            let code = s.exec(`docker manifest inspect solaceiotteam/solace-axway-agent:0.0.10`).code;
+            if(code===0) {
+             console.log(`aborting - image already exists:`);
+             process.exit(1);
+            } else {
+             console.log(`new image to publish:`);
+            }
+
+ #     - name: Build and Deploy to Docker registry
+ #       uses: docker/build-push-action@v2
+ #       with:
+ #         context: .
+ #         push: true
+ #         tags: |
+ #           solaceiotteam/solace-axway-agent:alpha
+ #           solaceiotteam/solace-axway-agent:${{env.VERSION}}

@@ -2,6 +2,9 @@ name: main-build-workflow
 on:
   # deployment to docker hub only manually triggered
   workflow_dispatch:
+env:
+  IMAGE_NAME: solaceiotteam/solace-axway-agent
+  VERSION: "0.0.0"
 
 jobs:
   build:
@@ -51,13 +54,13 @@ jobs:
         with:
           script:  |
             const s = require('shelljs');
-            let code = s.exec(`docker manifest inspect solaceiotteam/solace-axway-agent:0.0.11`).code;
-            console.log(`CODE=${code}`);
+            console.log('Looking up Docker Hub for ${IMAGE_NAME}:${VERSION}`)
+            let code = s.exec(`docker manifest inspect ${IMAGE_NAME}:${VERSION}`).code;
             if(code===0) {
-             console.log(`aborting - image already exists:`);
+             console.log(`aborting - image ${IMAGE_NAME}:${VERSION} already exists`);
              process.exit(1);
             } else {
-             console.log(`new image to publish:`);
+             console.log(`new image to publish: ${IMAGE_NAME}:${VERSION}`);
             }
 
  #     - name: Build and Deploy to Docker registry

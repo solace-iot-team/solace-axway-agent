@@ -87,22 +87,7 @@ jobs:
           export PLATFORM_DATA_MOUNT_PATH="$RUNNER_TEMP/testing/connector"
           export LOG_LEVEL=trace
           export REST_ENABLED=true
-          echo "**************************************"
-          echo "RUNNER_TEMP"
-          echo $RUNNER_TEMP
 
-          echo "CENTRAL_AUTH_PUBLICKEY"
-          echo $CENTRAL_AUTH_PUBLICKEY
-
-          echo "CENTRAL_AUTH_PRIVATEKEY"
-          echo $CENTRAL_AUTH_PRIVATEKEY
-
-          echo "MONGODB_DATA_MOUNT_PATH"
-          echo $MONGODB_DATA_MOUNT_PATH
-
-          echo "PLATFORM_DATA_MOUNT_PATH"
-          echo $PLATFORM_DATA_MOUNT_PATH
-          pwd
           mkdir $RUNNER_TEMP/testing
           mkdir $RUNNER_TEMP/testing/mongodb
           mkdir $RUNNER_TEMP/testing/connector

@@ -54,13 +54,14 @@ jobs:
         with:
           script:  |
             const s = require('shelljs');
-            console.log('Looking up Docker Hub for ${IMAGE_NAME}:${VERSION}`)
-            let code = s.exec(`docker manifest inspect ${IMAGE_NAME}:${VERSION}`).code;
+            const ghid = "${process.env.IMAGE_NAME}:${process.env.VERSION}"
+            console.log('Looking up Docker Hub for ${ghid}`)
+            let code = s.exec(`docker manifest inspect ${ghid}`).code;
             if(code===0) {
-             console.log(`aborting - image ${IMAGE_NAME}:${VERSION} already exists`);
+             console.log(`aborting - image ${ghid} already exists`);
              process.exit(1);
             } else {
-             console.log(`new image to publish: ${IMAGE_NAME}:${VERSION}`);
+             console.log(`new image to publish: ${ghid}`);
             }
 
  #     - name: Build and Deploy to Docker registry

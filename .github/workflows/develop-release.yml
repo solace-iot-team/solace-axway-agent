@@ -36,8 +36,8 @@ jobs:
           echo "VERSION: $VERSION"
 
       - uses: actions/setup-node@v2
-          with:
-            node-version: 14
+        with:
+          node-version: 14
       - run: npm install shelljs
       - name: Check Docker Version Tag
         uses: actions/github-script@v5

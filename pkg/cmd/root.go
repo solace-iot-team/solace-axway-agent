@@ -151,37 +151,35 @@ func handleApprovedSubscription(subscription apic.Subscription) {
 }
 
 func sendEmailSubscribe(container *middleware.SubscriptionMiddleware) error {
-	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.AxSub.GetSubscriptionCatalogItemId()
+	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.AxSub.GetSubscriptionCatalogItemID()
 	message := notify.NewSubscriptionNotification(container.AxSub.GetSubscriberEmailAddress(), "message ignored ", apic.SubscriptionActive)
-	message.SetCatalogItemInfo(container.AxSub.GetSubscriptionCatalogItemId(), container.AxSub.GetCatalogItemName(), url)
+	message.SetCatalogItemInfo(container.AxSub.GetSubscriptionCatalogItemID(), container.AxSub.GetCatalogItemName(), url)
 	message.SetOauthInfo(container.AxSub.GetSubscriptionCredentials().ConsumerKey, DerefString(container.AxSub.GetSubscriptionCredentials().ConsumerSecret))
 	message.SetAuthorizationTemplate("oauth")
-	message.ApiManagerId = container.AxSub.GetSolaceAsyncApiAppInternalId()
+	message.ApiManagerId = container.AxSub.GetSolaceAsyncAPIAppInternalID()
 	err := message.NotifySubscriber(container.AxSub.GetSubscriberEmailAddress())
 	if err != nil {
 		log.Errorf("Notification of SUBSCRIBE event by Email failed", err)
 		return err
-	} else {
-		log.Tracef("Informed %s by Email to %s about subscription", container.AxSub.GetSubscriberUserName(), container.AxSub.GetSubscriberEmailAddress())
-		return nil
 	}
+	log.Tracef("Informed %s by Email to %s about subscription", container.AxSub.GetSubscriberUserName(), container.AxSub.GetSubscriberEmailAddress())
+	return nil
 }
 
 func sendEmailUnsubscribe(container *middleware.SubscriptionMiddleware) error {
-	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.AxSub.GetSubscriptionCatalogItemId()
+	url := agent.GetCentralConfig().GetURL() + "/catalog/explore/" + container.AxSub.GetSubscriptionCatalogItemID()
 	message := notify.NewSubscriptionNotification(container.AxSub.GetSubscriberEmailAddress(), "message ignored ", apic.SubscriptionUnsubscribed)
-	message.SetCatalogItemInfo(container.AxSub.GetSubscriptionCatalogItemId(), container.AxSub.GetCatalogItemName(), url)
+	message.SetCatalogItemInfo(container.AxSub.GetSubscriptionCatalogItemID(), container.AxSub.GetCatalogItemName(), url)
 	err := message.NotifySubscriber(container.AxSub.GetSubscriberUserName())
 	if err != nil {
 		log.Errorf("Notification of UNSUBSCRIBE event by Email failed", err)
 		return err
-	} else {
-		log.Tracef("Informed %s by Email to %s about unsubscribe", container.AxSub.GetSubscriberUserName(), container.AxSub.GetSubscriberEmailAddress())
-		return nil
 	}
+	log.Tracef("Informed %s by Email to %s about unsubscribe", container.AxSub.GetSubscriberUserName(), container.AxSub.GetSubscriberEmailAddress())
+	return nil
 }
 
-// todo: refactor and move to some util package
+// DerefString - dereferences a string and returns zero-length string if NIL
 func DerefString(s *string) string {
 	if s != nil {
 		return *s
@@ -230,9 +228,9 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		NotifierEnabled:            rootProps.BoolPropertyValue("notifier.enabled"),
 		NotifierHealthMessage:      rootProps.StringPropertyValue("notifier.healthmessage"),
 		NotifierURL:                rootProps.StringPropertyValue("notifier.url"),
-		NotifierApiConsumerKey:     rootProps.StringPropertyValue("notifier.apiConsumerKey"),
-		NotifierApiConsumerSecret:  rootProps.StringPropertyValue("notifier.apiConsumerSecret"),
-		NotifierApiAuthType:        rootProps.StringPropertyValue("notifier.apiAuthType"),
+		NotifierAPIConsumerKey:     rootProps.StringPropertyValue("notifier.apiConsumerKey"),
+		NotifierAPIConsumerSecret:  rootProps.StringPropertyValue("notifier.apiConsumerSecret"),
+		NotifierAAPIAuthType:       rootProps.StringPropertyValue("notifier.apiAuthType"),
 		NotifierInsecureSkipVerify: rootProps.BoolPropertyValue("notifier.acceptInsecureCertificates"),
 	}
 
@@ -264,6 +262,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	return agentConfig, nil
 }
 
+// GetAgentConfig agent configuration
 func GetAgentConfig() *config.ConnectorConfig {
 	// GetAgentConfig - Returns the agent config
 	return connectorConfig

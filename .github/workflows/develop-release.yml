@@ -35,6 +35,25 @@ jobs:
           echo "VERSION=$VERSION">> $GITHUB_ENV
           echo "VERSION: $VERSION"
 
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 14
+      - run: npm install shelljs
+      - name: Check Docker Version Tag
+        uses: actions/github-script@v5
+        with:
+          script:  |
+            const s = require('shelljs');
+            const { VERSION, IMAGE_NAME } = process.env;
+            const dhid = IMAGE_NAME+":"+ VERSION
+            console.log('Looking up GitHub Container Registry for:'+dhid);
+            let code = s.exec('docker manifest inspect '+dhid).code;
+            if(code===0) {
+              console.log(`aborting - image already exists `+dhid);
+              process.exit(1);
+            } else {
+              console.log(`check ok - image can get published `+dhid);
+            }
       - name: Build and Deploy to Github Docker registry
         uses: docker/build-push-action@v2
         with:

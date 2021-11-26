@@ -2,10 +2,12 @@ name: integration-test
 on:
   # for testing
   workflow_dispatch:
-
-  push:
+  #push:
+  #  branches:
+  #    - develop
+  pull_request:
     branches:
-      - develop
+      - main
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: solace-iot-team/solace-axway-agent
@@ -15,6 +17,16 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Check Auth
+        if: github.event_name == 'workflow_dispatch' && github.actor != 'ricardojosegomezulmke' && github.actor != '195858' && github.actor!= 'mynecker'
+        run: |
+          echo "not authorized"
+          echo '::set-output name=IS_AUTHORIZED::false'
+        id: auth
+      - name: Cancel Workflow
+        if: ${{ always() && steps.auth.outputs.IS_AUTHORIZED == 'false' }}
+        uses: andymckay/cancel-action@0.2
+
       - name: Log in to GitHub Docker Registry
         uses: docker/login-action@v1
         with:

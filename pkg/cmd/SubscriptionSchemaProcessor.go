@@ -12,23 +12,26 @@ import (
 	"strings"
 )
 
-// Publishes the Subscription Schema
+// SubscriptionSchemaPublisherJob the publishing job
 type SubscriptionSchemaPublisherJob struct {
 	jobs.Job
 }
 
+// Status - of this job
 func (j *SubscriptionSchemaPublisherJob) Status() error {
 	// continually called determining the status of any dependencies for the job
 	// returning an error means the job should not be executed
 	return nil
 }
 
+// Ready - is this job ready
 func (j *SubscriptionSchemaPublisherJob) Ready() bool {
 	// called prior to executing the job the first time
 	// return true when the job can begin execution, false otherwise
 	return true
 }
 
+// Execute - executes this job
 func (j *SubscriptionSchemaPublisherJob) Execute() error {
 	// called each time the job should be executed
 	// returning an error stops continuous jobs from executing
@@ -74,22 +77,26 @@ func (j *SubscriptionSchemaPublisherJob) Execute() error {
 		Register()
 }
 
+// SubscriptionSchemaProcessorJob - the job
 type SubscriptionSchemaProcessorJob struct {
 	jobs.Job
 }
 
+// Status - the status of this job
 func (j *SubscriptionSchemaProcessorJob) Status() error {
 	// continually called determining the status of any dependencies for the job
 	// returning an error means the job should not be executed
 	return nil
 }
 
+// Ready - is this job ready
 func (j *SubscriptionSchemaProcessorJob) Ready() bool {
 	// called prior to executing the job the first time
 	// return true when the job can begin execution, false otherwise
 	return true
 }
 
+// Execute - executes this job
 func (j *SubscriptionSchemaProcessorJob) Execute() error {
 	// called each time the job should be executed
 	// returning an error stops continuous jobs from executing
@@ -98,36 +105,34 @@ func (j *SubscriptionSchemaProcessorJob) Execute() error {
 	if err != nil {
 		log.Errorf("SubscriptionSchemaProcessorJob: Could not query ApiServices (%s)", solace.SolaceCallbackEnabledAttributeQuery, err)
 		return err
-	} else {
-		for _, service := range resultlist {
-			log.Tracef("SubscriptionSchemaProcessorJob: Processing ApiService: %s ", service.Name)
-			cq := fmt.Sprintf("metadata.references.kind==APIService and metadata.references.name==%s", service.Name)
-			consumerInstances, errCi := agent.GetCentralClient().GetConsumerInstancesByQuery(cq)
-			if errCi != nil {
-				log.Errorf("SubscriptionSchemaProcessorJob:  Could not query ConsumerInstances", errCi)
-				return errCi
+	}
+	for _, service := range resultlist {
+		log.Tracef("SubscriptionSchemaProcessorJob: Processing ApiService: %s ", service.Name)
+		cq := fmt.Sprintf("metadata.references.kind==APIService and metadata.references.name==%s", service.Name)
+		consumerInstances, errCi := agent.GetCentralClient().GetConsumerInstancesByQuery(cq)
+		if errCi != nil {
+			log.Errorf("SubscriptionSchemaProcessorJob:  Could not query ConsumerInstances", errCi)
+			return errCi
+		}
+		for _, ci := range consumerInstances {
+			log.Tracef("SubscriptionSchemaProcessorJob: Processing ConsumerInstance: %s ", ci.Name)
+			if ci.Spec.Subscription.SubscriptionDefinition == solace.SolaceCallbackSubscriptionSchema {
+				//nothing to do
 			} else {
-				for _, ci := range consumerInstances {
-					log.Tracef("SubscriptionSchemaProcessorJob: Processing ConsumerInstance: %s ", ci.Name)
-					if ci.Spec.Subscription.SubscriptionDefinition == solace.SolaceCallbackSubscriptionSchema {
-						//nothing to do
-					} else {
-						errAttachSchema := agent.GetCentralClient().UpdateConsumerInstanceSubscriptionDefinitionByConsumerInstanceId(ci.Metadata.ID, solace.SolaceCallbackSubscriptionSchema)
-						if errAttachSchema != nil {
-							log.Errorf("SubscriptionSchemaProcessorJob: Could not attach Subscription Schema to ConsumerInstance:%s", ci.Name, errAttachSchema)
-							return errAttachSchema
-						} else {
-							log.Infof("SubscriptionSchemaProcessorJob: Attached SubscriptionSchema: %s to ConsumerInstance: %s", solace.SolaceCallbackSubscriptionSchema, ci.Name)
-						}
-					}
+				errAttachSchema := agent.GetCentralClient().UpdateConsumerInstanceSubscriptionDefinitionByConsumerInstanceId(ci.Metadata.ID, solace.SolaceCallbackSubscriptionSchema)
+				if errAttachSchema != nil {
+					log.Errorf("SubscriptionSchemaProcessorJob: Could not attach Subscription Schema to ConsumerInstance:%s", ci.Name, errAttachSchema)
+					return errAttachSchema
 				}
+				log.Infof("SubscriptionSchemaProcessorJob: Attached SubscriptionSchema: %s to ConsumerInstance: %s", solace.SolaceCallbackSubscriptionSchema, ci.Name)
 			}
 		}
+
 	}
 	return nil
 }
 
-// validates Solace Callback attributes in subscription schema
+// validateSolaceCallbackSubscription - validates Solace Callback attributes in subscription schema
 func validateSolaceCallbackSubscription(subscription apic.Subscription) (bool, string) {
 	log.Tracef(" Handling validateSubscription for [Subscription:%s] ", subscription.GetName())
 	_, err := middleware.NewSubscriptionMiddleware(subscription)
@@ -146,11 +151,11 @@ func validateSolaceCallbackSubscription(subscription apic.Subscription) (bool, s
 	//is it a solace-callback subscription?
 	// method is the indicator
 	if len(method) > 0 {
-		callbackUrl, err := url.ParseRequestURI(callback)
+		callbackURL, err := url.ParseRequestURI(callback)
 		if err != nil {
 			validationFeedback = "Callback URL is invalid."
 		} else {
-			if strings.ToLower(callbackUrl.Scheme) == "https" {
+			if strings.ToLower(callbackURL.Scheme) == "https" {
 				log.Tracef("IT IS A HTTPS CALLBACK with trusted CNs:%s", trustedCNS)
 
 			} else {

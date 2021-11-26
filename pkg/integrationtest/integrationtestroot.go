@@ -47,6 +47,7 @@ func run() error {
 	return nil
 }
 
+// ExecuteIntegrationTestMiddleware executes Middleware Integration Tests
 func ExecuteIntegrationTestMiddleware() error {
 	apiSpec := iCfg.ApiSpec
 
@@ -60,7 +61,7 @@ func ExecuteIntegrationTestMiddleware() error {
 		//permissions map[string]int{"foo": 1, "bar": 2}
 		serviceAttributes:         map[string]string{"att1": "value1,value2", "att2": "value3"},
 		subscriptionName:          "int-sub-mw-1",
-		subscriptionId:            "int-sub-mw-1-id",
+		subscriptionID:            "int-sub-mw-1-id",
 		subscriptionOwningTeamId:  "int-sub-ws-1-team-id",
 		subscriptionCatalogItemId: "int-sub-ws-1-cat-id",
 		subscriptionProperties: map[string]string{
@@ -110,6 +111,7 @@ func ExecuteIntegrationTestMiddleware() error {
 	return nil
 }
 
+// IntegrationTestSubscriptionContainer - mocks Axway Subscription Data
 type IntegrationTestSubscriptionContainer struct {
 	valid                            bool
 	revisionName                     string
@@ -119,8 +121,8 @@ type IntegrationTestSubscriptionContainer struct {
 	apiSpec                          string
 	serviceAttributes                map[string]string
 	subscriptionName                 string
-	subscriptionApiServiceName       string
-	subscriptionId                   string
+	subscriptionAPIServiceName       string
+	subscriptionID                   string
 	subscriptionOwningTeamId         string
 	subscriptionCatalogItemId        string
 	subscriptionMetadataScopeName    string
@@ -131,126 +133,142 @@ type IntegrationTestSubscriptionContainer struct {
 	subscriberEmailAddress      string
 	subscriberUserName          string
 	subscriptionCredentials     *connector.SolaceCredentialsDto
-	solaceCallbackApi           bool
-	solaceAsyncApiAppInternalId string
+	solaceCallbackAPI           bool
+	solaceAsyncAPIAppInternalID string
 }
 
 // LogText - Extracts Logging Details
 func (c *IntegrationTestSubscriptionContainer) LogText() string {
-	return fmt.Sprintf("[Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s]", c.GetEnvironmentName(), c.GetSubscriptionOwningTeamId(), c.GetRevisionName(), c.GetSubscriptionId(), c.GetRevisionName())
+	return fmt.Sprintf("[Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s]", c.GetEnvironmentName(), c.GetSubscriptionOwningTeamID(), c.GetRevisionName(), c.GetSubscriptionID(), c.GetRevisionName())
 }
 
-func (container *IntegrationTestSubscriptionContainer) GetSolaceAsyncApiAppInternalId() string {
-	return container.solaceAsyncApiAppInternalId
+// GetSolaceAsyncApiAppInternalId getter
+func (c *IntegrationTestSubscriptionContainer) GetSolaceAsyncAPIAppInternalID() string {
+	return c.solaceAsyncAPIAppInternalID
 }
 
-func (container *IntegrationTestSubscriptionContainer) GetCatalogItemName() string {
-	return container.catalogItemName
+// GetCatalogItemName getter
+func (c *IntegrationTestSubscriptionContainer) GetCatalogItemName() string {
+	return c.catalogItemName
 }
 
-func (container *IntegrationTestSubscriptionContainer) SetSolaceAsyncApiAppInternalId(id string) {
-	container.solaceAsyncApiAppInternalId = id
+// SetSolaceAsyncApiAppInternalId getter
+func (c *IntegrationTestSubscriptionContainer) SetSolaceAsyncAPIAppInternalID(id string) {
+	c.solaceAsyncAPIAppInternalID = id
 }
 
-func (container *IntegrationTestSubscriptionContainer) SetSubscriptionCredentials(credentials *connector.SolaceCredentialsDto) {
-	container.subscriptionCredentials = credentials
+// SetSubscriptionCredentials getter
+func (c *IntegrationTestSubscriptionContainer) SetSubscriptionCredentials(credentials *connector.SolaceCredentialsDto) {
+	c.subscriptionCredentials = credentials
 }
-func (container *IntegrationTestSubscriptionContainer) GetSubscriptionCredentials() *connector.SolaceCredentialsDto {
-	return container.subscriptionCredentials
+
+// GetSubscriptionCredentials getter
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionCredentials() *connector.SolaceCredentialsDto {
+	return c.subscriptionCredentials
 }
 
 // GetSubscriberEmailAddress - Returns Email
-func (container *IntegrationTestSubscriptionContainer) GetSubscriberEmailAddress() string {
-	return container.subscriberEmailAddress
+func (c *IntegrationTestSubscriptionContainer) GetSubscriberEmailAddress() string {
+	return c.subscriberEmailAddress
 }
 
-//todo refactor and remove error return type
 // GetSubscriberUserName - Returns Username
-func (container *IntegrationTestSubscriptionContainer) GetSubscriberUserName() string {
-	return container.subscriberUserName
+func (c *IntegrationTestSubscriptionContainer) GetSubscriberUserName() string {
+	return c.subscriberUserName
 }
 
 // GetRevisionName - Facade to retrieve RevisionName
-func (container *IntegrationTestSubscriptionContainer) GetRevisionName() string {
-	return container.revisionName
+func (c *IntegrationTestSubscriptionContainer) GetRevisionName() string {
+	return c.revisionName
 }
 
 // IsEnvironmentDefined - Facade to check if environment is set in Service Instance
-func (container *IntegrationTestSubscriptionContainer) IsEnvironmentDefined() bool {
+func (c *IntegrationTestSubscriptionContainer) IsEnvironmentDefined() bool {
 	return true
 }
 
 // GetEnvironmentName - Facade to get environment name (Service Instance Scope Name)
-func (container *IntegrationTestSubscriptionContainer) GetEnvironmentName() string {
-	return container.GetServiceInstanceMetadataScopeName()
+func (c *IntegrationTestSubscriptionContainer) GetEnvironmentName() string {
+	return c.GetServiceInstanceMetadataScopeName()
 }
 
 // IsExternalAPIIDDefined - Facade to check if External API ID is set
-func (container *IntegrationTestSubscriptionContainer) IsExternalAPIIDDefined() bool {
-	return container.GetExternalAPIID() != ""
+func (c *IntegrationTestSubscriptionContainer) IsExternalAPIIDDefined() bool {
+	return c.GetExternalAPIID() != ""
 }
 
 // IsExternalAPINameDefined - Facade to check if External API Name is set
-func (container *IntegrationTestSubscriptionContainer) IsExternalAPINameDefined() bool {
-	return container.GetExternalAPIName() != ""
+func (c *IntegrationTestSubscriptionContainer) IsExternalAPINameDefined() bool {
+	return c.GetExternalAPIName() != ""
 }
 
 // GetExternalAPIID - Facade to get External API ID
-func (container *IntegrationTestSubscriptionContainer) GetExternalAPIID() string {
-	return container.externalAPIID
+func (c *IntegrationTestSubscriptionContainer) GetExternalAPIID() string {
+	return c.externalAPIID
 }
 
 // GetExternalAPIName - Facade to get External API Name
-func (container *IntegrationTestSubscriptionContainer) GetExternalAPIName() string {
-	return container.externalAPIName
+func (c *IntegrationTestSubscriptionContainer) GetExternalAPIName() string {
+	return c.externalAPIName
 }
 
 // GetAPISpec - Facade ti get API Spec (AsyncAPI spec)
-func (container *IntegrationTestSubscriptionContainer) GetAPISpec() string {
-	return container.apiSpec
+func (c *IntegrationTestSubscriptionContainer) GetAPISpec() string {
+	return c.apiSpec
 }
 
+// GetServiceAttributes getter
 func (c *IntegrationTestSubscriptionContainer) GetServiceAttributes() map[string]string {
 	return c.serviceAttributes
 }
 
+// GetSubscriptionName getter
 func (c *IntegrationTestSubscriptionContainer) GetSubscriptionName() string {
 	return c.subscriptionName
 }
 
+// GetSubscriptionAPIServiceName getter
 func (c *IntegrationTestSubscriptionContainer) GetSubscriptionAPIServiceName() string {
-	return c.subscriptionApiServiceName
+	return c.subscriptionAPIServiceName
 }
 
-func (c *IntegrationTestSubscriptionContainer) GetSubscriptionId() string {
-	return c.subscriptionId
+// GetSubscriptionID getter
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionID() string {
+	return c.subscriptionID
 }
 
-func (c *IntegrationTestSubscriptionContainer) GetSubscriptionOwningTeamId() string {
+// GetSubscriptionOwningTeamID getter
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionOwningTeamID() string {
 	return c.subscriptionOwningTeamId
 }
 
-func (c *IntegrationTestSubscriptionContainer) GetSubscriptionCatalogItemId() string {
+// GetSubscriptionCatalogItemID getter
+func (c *IntegrationTestSubscriptionContainer) GetSubscriptionCatalogItemID() string {
 	return c.subscriptionCatalogItemId
 }
 
+// GetSubscriptionPropertyValue getter
 func (c *IntegrationTestSubscriptionContainer) GetSubscriptionPropertyValue(key string) string {
 	return c.subscriptionProperties[key]
 }
 
+// GetServiceInstanceMetadataScopeName getter
 func (c *IntegrationTestSubscriptionContainer) GetServiceInstanceMetadataScopeName() string {
 	return c.subscriptionMetadataScopeName
 }
 
+// GetServiceInstanceSpecEndpoints getter
 func (c *IntegrationTestSubscriptionContainer) GetServiceInstanceSpecEndpoints() []middleware.AxwayEndpoint {
 	return c.serviceInstanceSpecEndpoints
 }
 
+// IntegrationTestSubscriptionMiddleware middleware
 type IntegrationTestSubscriptionMiddleware struct {
 	valid bool
 	AxSub middleware.AxwaySubscription
 }
 
+// ExecuteIntegrationTestsConnector executes tests
 func ExecuteIntegrationTestsConnector(t *testing.T) error {
 	t.Logf("=== Starting Integration Tests against Connector Server:%s with Org:%s", connectorConfig.ConnectorURL, iCfg.Org)
 	err := executeTestHealthCheck()
@@ -281,11 +299,11 @@ func ExecuteIntegrationTestsConnector(t *testing.T) error {
 		return err
 	}
 
-	err = executeTestCRUDApiProduct()
+	err = executeTestCRUDAPIProduct()
 	if err != nil {
 		return err
 	}
-	err = executeTestCRUDApiProduct()
+	err = executeTestCRUDAPIProduct()
 	if err != nil {
 		return err
 	}
@@ -350,8 +368,8 @@ func executeTestCRUDTeamApp(addWebhook bool, addTrustedCNs bool) error {
 		if addTrustedCNs {
 			listCNs := strings.Split("*.solace.com,my.company.org", ",")
 			webHooks = &connector.SolaceWebhook{
-				HttpMethod:               "post",
-				CallbackUrl:              "http://does.not.work",
+				HTTPMethod:               "post",
+				CallbackURL:              "http://does.not.work",
 				AuthenticationMethod:     "BasicAuthentication",
 				AuthenticationSecret:     "secret123",
 				AuthenticationIdentifier: "identifier",
@@ -360,8 +378,8 @@ func executeTestCRUDTeamApp(addWebhook bool, addTrustedCNs bool) error {
 			}
 		} else {
 			webHooks = &connector.SolaceWebhook{
-				HttpMethod:               "post",
-				CallbackUrl:              "http://does.not.work",
+				HTTPMethod:               "post",
+				CallbackURL:              "http://does.not.work",
 				AuthenticationMethod:     "BasicAuthentication",
 				AuthenticationSecret:     "secret123",
 				AuthenticationIdentifier: "identifier",
@@ -454,7 +472,7 @@ func executeTestCRUDEnvironment() error {
 	return nil
 }
 
-func executeTestCRUDApiProduct() error {
+func executeTestCRUDAPIProduct() error {
 	log.Tracef("connector.GetOrgConnector().IsAPIProductAvailable /%s/%s", iCfg.Org, iCfg.ApiProductName)
 	found, err := connector.GetOrgConnector().IsAPIProductAvailable(iCfg.Org, iCfg.ApiProductName)
 	if err != nil {
@@ -603,7 +621,7 @@ func executeTestHealthCheck() error {
 	return nil
 }
 
-// todo: refactor and move to some util package
+// DerefString dereferences pointer, return empty string for NIL
 func DerefString(s *string) string {
 	if s != nil {
 		return *s
@@ -652,9 +670,9 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		NotifierEnabled:            rootProps.BoolPropertyValue("notifier.enabled"),
 		NotifierHealthMessage:      rootProps.StringPropertyValue("notifier.healthmessage"),
 		NotifierURL:                rootProps.StringPropertyValue("notifier.url"),
-		NotifierApiConsumerKey:     rootProps.StringPropertyValue("notifier.apiConsumerKey"),
-		NotifierApiConsumerSecret:  rootProps.StringPropertyValue("notifier.apiConsumerSecret"),
-		NotifierApiAuthType:        rootProps.StringPropertyValue("notifier.apiAuthType"),
+		NotifierAPIConsumerKey:     rootProps.StringPropertyValue("notifier.apiConsumerKey"),
+		NotifierAPIConsumerSecret:  rootProps.StringPropertyValue("notifier.apiConsumerSecret"),
+		NotifierAAPIAuthType:       rootProps.StringPropertyValue("notifier.apiAuthType"),
 		NotifierInsecureSkipVerify: rootProps.BoolPropertyValue("notifier.acceptInsecureCertificates"),
 	}
 

@@ -36,16 +36,16 @@ type ConnectorConfig struct {
 	ConnectorLogHeader          bool   `config:"logHeader"`
 }
 
-// ConnectorConfig - represents the config for middleware
+// NotifierConfig - represents the config for Notifier
 type NotifierConfig struct {
 	corecfg.IConfigValidator
 	corecfg.IResourceConfigCallback
 	NotifierEnabled            bool   `config:"enabled"`
 	NotifierHealthMessage      string `config:"healthmessage"`
 	NotifierURL                string `config:"url"`
-	NotifierApiConsumerKey     string `config:"apiConsumerKey"`
-	NotifierApiConsumerSecret  string `config:"apiConsumerSecret"`
-	NotifierApiAuthType        string `config:"apiAuthType"`
+	NotifierAPIConsumerKey     string `config:"apiConsumerKey"`
+	NotifierAPIConsumerSecret  string `config:"apiConsumerSecret"`
+	NotifierAAPIAuthType       string `config:"apiAuthType"`
 	NotifierInsecureSkipVerify bool   `config:"acceptInsecureCertificates"`
 }
 
@@ -61,10 +61,10 @@ func (c *ConnectorConfig) ApplyResources(agentResource *v1.ResourceInstance) err
 
 // ValidateCfg - Validates the middleware config
 func (c *NotifierConfig) ValidateCfg() (err error) {
-	if c.NotifierApiAuthType == "basic" || c.NotifierApiAuthType == "header" {
+	if c.NotifierAAPIAuthType == "basic" || c.NotifierAAPIAuthType == "header" {
 		//all ok
 	} else {
-		return errors.New("Configuration notifier.apiAuthType unsupported " + c.NotifierApiAuthType + "]. Only [basic] or [header] supported.")
+		return errors.New("Configuration notifier.apiAuthType unsupported " + c.NotifierAAPIAuthType + "]. Only [basic] or [header] supported.")
 	}
 	return
 }

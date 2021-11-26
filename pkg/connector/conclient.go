@@ -21,6 +21,7 @@ import (
 
 const connectorName = "Solace Connector"
 
+// ConClientResponse  - Raw response of Connector
 type ConClientResponse interface {
 	Body() []byte
 	HTTPResponse() *http.Response
@@ -46,6 +47,7 @@ type SolaceEnvironment struct {
 	ProtocolVersion map[string]string
 }
 
+// SolaceCredentialsDto - Credentials of App
 type SolaceCredentialsDto struct {
 	ConsumerKey    string
 	ConsumerSecret *string
@@ -58,22 +60,23 @@ type connectorClients struct {
 	OrgConnector   *Access
 }
 
-//Access Holds refernce to HTTP-Client to Solace Connector
+// Access Holds refernce to HTTP-Client to Solace Connector
 type Access struct {
 	Client    *ClientWithResponses
 	LogBody   bool
 	LogHeader bool
 }
 
-//Attribute Solace Connector Attribute
+// Attribute Solace Connector Attribute
 type Attribute struct {
 	Name  string `json:"name"`
 	Value string `json:"value"`
 }
 
+// SolaceWebhook Solace Webhook
 type SolaceWebhook struct {
-	HttpMethod               string
-	CallbackUrl              string
+	HTTPMethod               string
+	CallbackURL              string
 	AuthenticationMethod     string
 	AuthenticationIdentifier string
 	AuthenticationSecret     string
@@ -81,6 +84,7 @@ type SolaceWebhook struct {
 	TrusedCNs                []string
 }
 
+// GetWebHookAuth - Creates a WebHookAuth structure
 func (s *SolaceWebhook) GetWebHookAuth() *WebHookAuth {
 	var result WebHookAuth = nil
 	switch s.AuthenticationMethod {
@@ -108,22 +112,22 @@ func (s *SolaceWebhook) GetWebHookAuth() *WebHookAuth {
 	return &result
 }
 
+// GetWebHookMethod - Creates WebHookMethod
 func (s *SolaceWebhook) GetWebHookMethod() WebHookMethod {
-	if s.HttpMethod == solace.SolaceHttpMethodPut {
+	if s.HTTPMethod == solace.SolaceHttpMethodPut {
 		return WebHookMethodPUT
-	} else {
-		return WebHookMethodPOST
 	}
+	return WebHookMethodPOST
 }
 
+// GetMode - Returns either Parallel or Serial
 func (s *SolaceWebhook) GetMode() *WebHookMode {
 	if s.InvocationOrder == solace.SolaceInvocationOrderParallel {
 		result := WebHookModeParallel
 		return &result
-	} else {
-		result := WebHookModeSerial
-		return &result
 	}
+	result := WebHookModeSerial
+	return &result
 }
 
 var connectors = connectorClients{}
@@ -162,7 +166,7 @@ func NewConnectorAdminClient(gatewayCfg *config.ConnectorConfig) (*ClientWithRes
 	if basicAuthProviderErr != nil {
 		panic(basicAuthProviderErr)
 	}
-	myclient, err := NewClientWithResponses(gatewayCfg.ConnectorURL, WithTlsConfig(gatewayCfg.ConnectorInsecureSkipVerify), WithRequestEditorFn(basicAuthProvider.Intercept))
+	myclient, err := NewClientWithResponses(gatewayCfg.ConnectorURL, WithTLSConfig(gatewayCfg.ConnectorInsecureSkipVerify), WithRequestEditorFn(basicAuthProvider.Intercept))
 	if err != nil {
 		return nil, err
 	}
@@ -175,14 +179,15 @@ func NewConnectorOrgClient(gatewayCfg *config.ConnectorConfig) (*ClientWithRespo
 	if basicAuthProviderErr != nil {
 		panic(basicAuthProviderErr)
 	}
-	myclient, err := NewClientWithResponses(gatewayCfg.ConnectorURL, WithTlsConfig(gatewayCfg.ConnectorInsecureSkipVerify), WithRequestEditorFn(basicAuthProvider.Intercept))
+	myclient, err := NewClientWithResponses(gatewayCfg.ConnectorURL, WithTLSConfig(gatewayCfg.ConnectorInsecureSkipVerify), WithRequestEditorFn(basicAuthProvider.Intercept))
 	if err != nil {
 		return nil, err
 	}
 	return myclient, nil
 }
 
-func WithTlsConfig(insecureSkipVerify bool) ClientOption {
+// WithTLSConfig - Creates ClientOption
+func WithTLSConfig(insecureSkipVerify bool) ClientOption {
 
 	return func(c *Client) error {
 		//just set a pre-configured client if certificate validation should be skipped
@@ -288,6 +293,7 @@ func (c *Access) DeleteOrg(orgName string) (bool, error) {
 	return result.StatusCode() < 300, nil
 }
 
+// CreateOrg - creates an Org
 func (c *Access) CreateOrg(orgName string, token *interface{}) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
@@ -394,9 +400,9 @@ func (c *Access) CreateEnvironment(orgName string, envName string, description s
 	log.Tracef("[CONCLIENT] [CreateEnvironment] %s", c.logTextHttpResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() < 300 {
 		return nil
-	} else {
-		return errors.New("CreateEnvironment was not successful")
 	}
+	return errors.New("CreateEnvironment was not successful")
+
 }
 
 // DeleteEnvironment - Deletes Environment
@@ -521,6 +527,7 @@ func (c *Access) GetAppApiNames(orgName string, appName string) (*[]string, erro
 	return result.JSON200, nil
 }
 
+// GetAppApiSpecification - Queries Application Api Specification as raw JSON
 func (c *Access) GetAppApiSpecification(orgName string, appName string, apiName string) (*map[string]interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
@@ -595,7 +602,7 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 			//all environments
 			Method:     solaceWebhook.GetWebHookMethod(),
 			Mode:       solaceWebhook.GetMode(),
-			Uri:        solaceWebhook.CallbackUrl,
+			Uri:        solaceWebhook.CallbackURL,
 			TlsOptions: tlsOptions,
 		}
 		webhooks = append(webhooks, webhoock)
@@ -652,9 +659,8 @@ func (c *Access) DeleteTeam(orgName string, teamName string) error {
 		}
 
 		return returnError
-	} else {
-		return nil
 	}
+	return nil
 }
 
 // PublishTeam - publishes / creates a team
@@ -822,7 +828,7 @@ func (c *Access) PublishAPI(orgName string, apiName string, apiSpec []byte) erro
 	return nil
 }
 
-// todo: refactor and move to some util package
+// DerefString - dereferences String pointer and returns empty string for NIL
 func DerefString(s *string) string {
 	if s != nil {
 		return *s

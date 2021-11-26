@@ -21,6 +21,7 @@ type ConclientHTTPError struct {
 	Response       string
 }
 
+// SubscribeMetaDataDto
 type SubscribeMetaDataDto struct {
 	Api             string
 	Application     string
@@ -34,6 +35,7 @@ type SubscribeMetaDataDto struct {
 	ApiSpecs        []*map[string]interface{}
 }
 
+// UnsubscribeMetaDataDto
 type UnsubscribeMetaDataDto struct {
 	Api             string
 	Application     string
@@ -45,6 +47,7 @@ type UnsubscribeMetaDataDto struct {
 	Team            string
 }
 
+// MonitorDataDto
 type MonitorDataDto struct {
 	Trigger         MonitorDataTrigger
 	Success         bool
@@ -99,8 +102,8 @@ func Initialize(notifierCfg *config.NotifierConfig) error {
 
 // NewConnectorAdminClient - Creates a new Gateway Client
 func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithResponses, error) {
-	if notifierCfg.NotifierApiAuthType == "header" {
-		authProvider, authErr := securityprovider.NewSecurityProviderApiKey("header", notifierCfg.NotifierApiConsumerKey, notifierCfg.NotifierApiConsumerSecret)
+	if notifierCfg.NotifierAAPIAuthType == "header" {
+		authProvider, authErr := securityprovider.NewSecurityProviderApiKey("header", notifierCfg.NotifierAPIConsumerKey, notifierCfg.NotifierAPIConsumerSecret)
 		if authErr != nil {
 			panic(authErr)
 		}
@@ -109,8 +112,8 @@ func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithRespo
 			return nil, err
 		}
 		return myclient, nil
-	} else if notifierCfg.NotifierApiAuthType == "basic" {
-		authProvider, authErr := securityprovider.NewSecurityProviderBasicAuth(notifierCfg.NotifierApiConsumerKey, notifierCfg.NotifierApiConsumerSecret)
+	} else if notifierCfg.NotifierAAPIAuthType == "basic" {
+		authProvider, authErr := securityprovider.NewSecurityProviderBasicAuth(notifierCfg.NotifierAPIConsumerKey, notifierCfg.NotifierAPIConsumerSecret)
 		if authErr != nil {
 			panic(authErr)
 		}
@@ -121,9 +124,10 @@ func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithRespo
 		return myclient, nil
 	}
 	//safety
-	panic(errors.New("Illegal NotifierAuthType:" + notifierCfg.NotifierApiAuthType))
+	panic(errors.New("Illegal NotifierAuthType:" + notifierCfg.NotifierAAPIAuthType))
 }
 
+// WithTlsConfig prepares TSLConfig
 func WithTlsConfig(insecureSkipVerify bool) ClientOption {
 
 	return func(c *Client) error {
@@ -199,6 +203,7 @@ func (c *Access) IsHealthCheck() (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
+// NotifySubscribe
 func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 	//if there is no client, it is disabled
 	if c == nil {
@@ -236,6 +241,7 @@ func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
+// NotifyUnsubscribe
 func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
 	//if there is no client, it is disabled
 	if c == nil {
@@ -271,6 +277,7 @@ func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
+// NotifyFailureMonitor
 func (c *Access) NotifyFailureMonitor(dto MonitorDataDto) (bool, error) {
 	//if there is no client, it is disabled
 	if c == nil {
@@ -310,6 +317,7 @@ func (c *Access) NotifyFailureMonitor(dto MonitorDataDto) (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
+// NotifySuccessMonitor
 func (c *Access) NotifySuccessMonitor(dto MonitorDataDto) (bool, error) {
 	//if there is no client, it is disabled
 	if c == nil {

@@ -1212,12 +1212,12 @@ type ListAppApiSpecificationsParams struct {
 // ListAppApiSpecificationsParamsSortDirection defines parameters for ListAppApiSpecifications.
 type ListAppApiSpecificationsParamsSortDirection string
 
-// GetAppApiSpecificationParams defines parameters for GetAppApiSpecification.
+// GetAppApiSpecificationParams defines parameters for GetAppAPISpecification.
 type GetAppApiSpecificationParams struct {
 	Format *GetAppApiSpecificationParamsFormat `json:"format,omitempty"`
 }
 
-// GetAppApiSpecificationParamsFormat defines parameters for GetAppApiSpecification.
+// GetAppApiSpecificationParamsFormat defines parameters for GetAppAPISpecification.
 type GetAppApiSpecificationParamsFormat string
 
 // ListDevelopersParams defines parameters for ListDevelopers.
@@ -4460,7 +4460,7 @@ func NewListAppApiSpecificationsRequest(server string, organizationName Orgparam
 	return req, nil
 }
 
-// NewGetAppApiSpecificationRequest generates requests for GetAppApiSpecification
+// NewGetAppApiSpecificationRequest generates requests for GetAppAPISpecification
 func NewGetAppApiSpecificationRequest(server string, organizationName Orgparameter, appName AppName, apiName ApiName, params *GetAppApiSpecificationParams) (*http.Request, error) {
 	var err error
 
@@ -6682,7 +6682,7 @@ type ClientWithResponsesInterface interface {
 	// ListAppApiSpecifications request
 	ListAppApiSpecificationsWithResponse(ctx context.Context, organizationName Orgparameter, appName AppName, params *ListAppApiSpecificationsParams, reqEditors ...RequestEditorFn) (*ListAppApiSpecificationsResponse, error)
 
-	// GetAppApiSpecification request
+	// GetAppAPISpecification request
 	GetAppApiSpecificationWithResponse(ctx context.Context, organizationName Orgparameter, appName AppName, apiName ApiName, params *GetAppApiSpecificationParams, reqEditors ...RequestEditorFn) (*GetAppApiSpecificationResponse, error)
 
 	// ListDevelopers request

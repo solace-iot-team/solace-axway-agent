@@ -21,9 +21,9 @@ type ConclientHTTPError struct {
 	Response       string
 }
 
-// SubscribeMetaDataDto
+// SubscribeMetaDataDto - Metadata about Subscriber
 type SubscribeMetaDataDto struct {
-	Api             string
+	API             string
 	Application     string
 	Environment     string
 	Product         string
@@ -32,12 +32,12 @@ type SubscribeMetaDataDto struct {
 	Subscription    string
 	Team            string
 	ApplicationData map[string]interface{}
-	ApiSpecs        []*map[string]interface{}
+	APISpecs        []*map[string]interface{}
 }
 
-// UnsubscribeMetaDataDto
+// UnsubscribeMetaDataDto - Metadata about Subscriber
 type UnsubscribeMetaDataDto struct {
-	Api             string
+	API             string
 	Application     string
 	Environment     string
 	Product         string
@@ -47,13 +47,13 @@ type UnsubscribeMetaDataDto struct {
 	Team            string
 }
 
-// MonitorDataDto
+// MonitorDataDto - DTO for monitor notifications
 type MonitorDataDto struct {
 	Trigger         MonitorDataTrigger
 	Success         bool
 	Message         *string
-	CorrelationId   string
-	Api             string
+	CorrelationID   string
+	API             string
 	Application     string
 	Environment     string
 	Product         string
@@ -100,14 +100,14 @@ func Initialize(notifierCfg *config.NotifierConfig) error {
 	return nil
 }
 
-// NewConnectorAdminClient - Creates a new Gateway Client
+// NewNotificationClient - Creates a new Gateway Client
 func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithResponses, error) {
 	if notifierCfg.NotifierAAPIAuthType == "header" {
 		authProvider, authErr := securityprovider.NewSecurityProviderApiKey("header", notifierCfg.NotifierAPIConsumerKey, notifierCfg.NotifierAPIConsumerSecret)
 		if authErr != nil {
 			panic(authErr)
 		}
-		myclient, err := NewClientWithResponses(notifierCfg.NotifierURL, WithRequestEditorFn(authProvider.Intercept), WithTlsConfig(notifierCfg.NotifierInsecureSkipVerify))
+		myclient, err := NewClientWithResponses(notifierCfg.NotifierURL, WithRequestEditorFn(authProvider.Intercept), WithTlSConfig(notifierCfg.NotifierInsecureSkipVerify))
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithRespo
 		if authErr != nil {
 			panic(authErr)
 		}
-		myclient, err := NewClientWithResponses(notifierCfg.NotifierURL, WithRequestEditorFn(authProvider.Intercept), WithTlsConfig(notifierCfg.NotifierInsecureSkipVerify))
+		myclient, err := NewClientWithResponses(notifierCfg.NotifierURL, WithRequestEditorFn(authProvider.Intercept), WithTlSConfig(notifierCfg.NotifierInsecureSkipVerify))
 		if err != nil {
 			return nil, err
 		}
@@ -127,8 +127,8 @@ func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithRespo
 	panic(errors.New("Illegal NotifierAuthType:" + notifierCfg.NotifierAAPIAuthType))
 }
 
-// WithTlsConfig prepares TSLConfig
-func WithTlsConfig(insecureSkipVerify bool) ClientOption {
+// WithTlSConfig prepares TSLConfig
+func WithTlSConfig(insecureSkipVerify bool) ClientOption {
 
 	return func(c *Client) error {
 		//just set a pre-configured client if certificate validation should be skipped
@@ -203,7 +203,7 @@ func (c *Access) IsHealthCheck() (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
-// NotifySubscribe
+// NotifySubscribe - publishes Subscribe Notification
 func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 	//if there is no client, it is disabled
 	if c == nil {
@@ -213,7 +213,7 @@ func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 	defer cancel()
 	body := PostSubscribeJSONRequestBody{
 		Data: SubscribeData{
-			Api:             dto.Api,
+			Api:             dto.API,
 			Application:     dto.Application,
 			Environment:     dto.Environment,
 			Product:         dto.Product,
@@ -222,7 +222,7 @@ func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 			Subscription:    dto.Subscription,
 			Team:            dto.Team,
 			ApplicationData: dto.ApplicationData,
-			AsyncApis:       dto.ApiSpecs,
+			AsyncApis:       dto.APISpecs,
 		},
 		Datacontenttype: "application/json",
 		Id:              uuid.New().String(),
@@ -241,7 +241,7 @@ func (c *Access) NotifySubscribe(dto SubscribeMetaDataDto) (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
-// NotifyUnsubscribe
+// NotifyUnsubscribe - publishes Unsubscribe Notifications
 func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
 	//if there is no client, it is disabled
 	if c == nil {
@@ -251,7 +251,7 @@ func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
 	defer cancel()
 	body := PostUnsubscribeJSONRequestBody{
 		Data: UnsubscribeData{
-			Api:             dto.Api,
+			Api:             dto.API,
 			Application:     dto.Application,
 			Environment:     dto.Environment,
 			Product:         dto.Product,
@@ -277,7 +277,7 @@ func (c *Access) NotifyUnsubscribe(dto UnsubscribeMetaDataDto) (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
-// NotifyFailureMonitor
+// NotifyFailureMonitor - publishes failure
 func (c *Access) NotifyFailureMonitor(dto MonitorDataDto) (bool, error) {
 	//if there is no client, it is disabled
 	if c == nil {
@@ -290,8 +290,8 @@ func (c *Access) NotifyFailureMonitor(dto MonitorDataDto) (bool, error) {
 			Trigger:         dto.Trigger,
 			Success:         dto.Success,
 			Message:         dto.Message,
-			CorrelationId:   dto.CorrelationId,
-			Api:             dto.Api,
+			CorrelationId:   dto.CorrelationID,
+			Api:             dto.API,
 			Application:     dto.Application,
 			Environment:     dto.Environment,
 			Product:         dto.Product,
@@ -317,7 +317,7 @@ func (c *Access) NotifyFailureMonitor(dto MonitorDataDto) (bool, error) {
 	return result.StatusCode() == http.StatusOK, nil
 }
 
-// NotifySuccessMonitor
+// NotifySuccessMonitor - publishes success
 func (c *Access) NotifySuccessMonitor(dto MonitorDataDto) (bool, error) {
 	//if there is no client, it is disabled
 	if c == nil {
@@ -330,8 +330,8 @@ func (c *Access) NotifySuccessMonitor(dto MonitorDataDto) (bool, error) {
 			Trigger:         dto.Trigger,
 			Success:         dto.Success,
 			Message:         dto.Message,
-			CorrelationId:   dto.CorrelationId,
-			Api:             dto.Api,
+			CorrelationId:   dto.CorrelationID,
+			Api:             dto.API,
 			Application:     dto.Application,
 			Environment:     dto.Environment,
 			Product:         dto.Product,

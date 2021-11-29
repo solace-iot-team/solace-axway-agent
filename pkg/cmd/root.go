@@ -14,6 +14,7 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/middleware"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
+	"sync"
 	"time"
 )
 
@@ -25,6 +26,8 @@ var notifierConfig *config.NotifierConfig
 
 var sendEmail bool = false
 var sendNotification bool = false
+
+var wg sync.WaitGroup
 
 //called once by go convention
 func init() {
@@ -40,10 +43,18 @@ func init() {
 	)
 }
 
-// Callback that agent will call to process the execution
-func run() error {
-	//nothing to do
-
+func listenToSubscriptions() error {
+	registerSchemaProcessors()
+	//log.Info(agent.GetCentralClient().DumpToken())
+	log.Infof("======   Configured Solace-Connector URL:%s Axway-Environment:%s", connectorConfig.ConnectorURL, agent.GetCentralConfig().GetEnvironmentName())
+	subMan := agent.GetCentralClient().GetSubscriptionManager()
+	subMan.RegisterProcessor(apic.SubscriptionApproved, handleApprovedSubscription)
+	subMan.RegisterProcessor(apic.SubscriptionUnsubscribeInitiated, handleUnsubscribeSubscription)
+	subMan.Start()
+	// wait infinitely
+	//
+	wg.Add(1)
+	wg.Wait()
 	return nil
 }
 
@@ -67,18 +78,6 @@ func registerSchemaProcessors() {
 			log.Infof("Registered Subscription Schema Processor")
 		}
 	}
-
-}
-
-func listenToSubscriptions() error {
-	registerSchemaProcessors()
-	//log.Info(agent.GetCentralClient().DumpToken())
-	log.Infof("======   Configured Solace-Connector URL:%s Axway-Environment:%s", connectorConfig.ConnectorURL, agent.GetCentralConfig().GetEnvironmentName())
-	subMan := agent.GetCentralClient().GetSubscriptionManager()
-	subMan.RegisterProcessor(apic.SubscriptionApproved, handleApprovedSubscription)
-	subMan.RegisterProcessor(apic.SubscriptionUnsubscribeInitiated, handleUnsubscribeSubscription)
-	subMan.Start()
-	return nil
 }
 
 func handleUnsubscribeSubscription(subscription apic.Subscription) {

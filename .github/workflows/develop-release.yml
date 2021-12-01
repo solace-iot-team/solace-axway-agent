@@ -46,7 +46,7 @@ jobs:
             const s = require('shelljs');
             const { VERSION, IMAGE_NAME } = process.env;
             const dhid = IMAGE_NAME+":"+ VERSION
-            console.log('Looking up GitHub Container Registry for:'+dhid);
+            console.log('Looking up Docker Hub for:'+dhid);
             let code = s.exec('docker manifest inspect '+dhid).code;
             if(code===0) {
               console.log(`aborting - image already exists `+dhid);

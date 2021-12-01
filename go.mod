@@ -14,13 +14,14 @@ require (
 )
 
 replace (
-	// to bind against local version
-	// github.com/Axway/agent-sdk v1.1.7 => ../agent-sdk
-	//to bind against another commit of some branch
-	//change this line accordingly
-	// go mod tidy (will do the magic)
+	// Option A:
+	// to bind against local version of agent-sdk (or fork of it) point to the project root
+	//github.com/Axway/agent-sdk v1.1.7 => ../agent-sdk
 
-	github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211110171323-976577daa0f3
+	// Option B:
+	github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211130093916-bd677c207f11
+	//
+	// go mod tidy (will do the magic)
 
 	github.com/Shopify/sarama => github.com/elastic/sarama v0.0.0-20191122160421-355d120d0970
 	github.com/dop251/goja => github.com/andrewkroh/goja v0.0.0-20190128172624-dd2ac4456e20

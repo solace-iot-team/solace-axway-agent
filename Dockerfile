@@ -14,7 +14,8 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o solace-axway-agent .
+#RUN go build -o solace-axway-agent .
+RUN make build
 
 
 ######## Start a new stage from scratch #######
@@ -28,8 +29,8 @@ RUN addgroup -S agent && adduser -S agent -G agent
 
 WORKDIR /opt/agent
 
-COPY --from=build /build/solace-axway-agent solace-axway-agent
-COPY sample/agent-config.yml solace_axway_agent.yml
+COPY --from=build /build/bin/solace-axway-agent solace-axway-agent
+COPY sample/sample_min_solace_axway_agent.yml solace_axway_agent.yml
 
 RUN chown -R agent /opt/agent
 

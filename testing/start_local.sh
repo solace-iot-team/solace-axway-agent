@@ -1,2 +1,2 @@
 #!/bin/bash
-docker-compose --env-file .env.local -f compose.yml up -d
+docker-compose --env-file .env.local -f compose_local.yml up -d

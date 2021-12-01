@@ -48,9 +48,9 @@ func (j *SubscriptionSchemaPublisherJob) Execute() error {
 			IsString().
 			SetDescription("Trusted CN-Names (Comma-separated)")).
 		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
-			SetName(solace.SolaceHttpMethod).
+			SetName(solace.SolaceHTTPMethod).
 			IsString().
-			SetEnumValues([]string{solace.SolaceHttpMethodPost, solace.SolaceHttpMethodPut}).
+			SetEnumValues([]string{solace.SolaceHTTPMethodPost, solace.SolaceHTTPMethodPut}).
 			SetDescription("HTTP-Method / Verb").
 			SetRequired()).
 		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
@@ -62,7 +62,7 @@ func (j *SubscriptionSchemaPublisherJob) Execute() error {
 		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
 			SetName(solace.SolaceAuthenticationMethod).
 			IsString().
-			SetEnumValues([]string{solace.SolaceAuthenticationMethodNoAuthentication, solace.SolaceAuthenticationMethodBasicAuthentication, solace.SolaceAuthenticationMethodHttpHeaderAuthentication}).
+			SetEnumValues([]string{solace.SolaceAuthenticationMethodNoAuthentication, solace.SolaceAuthenticationMethodBasicAuthentication, solace.SolaceAuthenticationMethodHTTPHeaderAuthentication}).
 			SetDescription("Authentication method").
 			SetRequired()).
 		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
@@ -101,7 +101,7 @@ func (j *SubscriptionSchemaProcessorJob) Execute() error {
 	// called each time the job should be executed
 	// returning an error stops continuous jobs from executing
 	log.Tracef("SubscriptionSchemaProcessorJob triggered")
-	resultlist, err := agent.GetCentralClient().GetApiServicesByQuery(solace.SolaceCallbackEnabledAttributeQuery)
+	resultlist, err := agent.GetCentralClient().GetAPIServicesByQuery(solace.SolaceCallbackEnabledAttributeQuery)
 	if err != nil {
 		log.Errorf("SubscriptionSchemaProcessorJob: Could not query ApiServices (%s)", solace.SolaceCallbackEnabledAttributeQuery, err)
 		return err
@@ -119,7 +119,7 @@ func (j *SubscriptionSchemaProcessorJob) Execute() error {
 			if ci.Spec.Subscription.SubscriptionDefinition == solace.SolaceCallbackSubscriptionSchema {
 				//nothing to do
 			} else {
-				errAttachSchema := agent.GetCentralClient().UpdateConsumerInstanceSubscriptionDefinitionByConsumerInstanceId(ci.Metadata.ID, solace.SolaceCallbackSubscriptionSchema)
+				errAttachSchema := agent.GetCentralClient().UpdateConsumerInstanceSubscriptionDefinitionByConsumerInstanceID(ci.Metadata.ID, solace.SolaceCallbackSubscriptionSchema)
 				if errAttachSchema != nil {
 					log.Errorf("SubscriptionSchemaProcessorJob: Could not attach Subscription Schema to ConsumerInstance:%s", ci.Name, errAttachSchema)
 					return errAttachSchema
@@ -140,7 +140,7 @@ func validateSolaceCallbackSubscription(subscription apic.Subscription) (bool, s
 		log.Errorf("Handling validateSubscription for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return false, "Subscription could not get validated."
 	}
-	method := subscription.GetPropertyValue(solace.SolaceHttpMethod)
+	method := subscription.GetPropertyValue(solace.SolaceHTTPMethod)
 	callback := subscription.GetPropertyValue(solace.SolaceCallback)
 	authentication := subscription.GetPropertyValue(solace.SolaceAuthenticationMethod)
 	//invocationOrder := subscription.GetPropertyValue(SolaceInvocationOrder)
@@ -162,7 +162,7 @@ func validateSolaceCallbackSubscription(subscription apic.Subscription) (bool, s
 				log.Tracef("IT IS A HTTP CALLBACK")
 			}
 		}
-		if authentication == solace.SolaceAuthenticationMethodBasicAuthentication || authentication == solace.SolaceAuthenticationMethodHttpHeaderAuthentication {
+		if authentication == solace.SolaceAuthenticationMethodBasicAuthentication || authentication == solace.SolaceAuthenticationMethodHTTPHeaderAuthentication {
 			if len(authenticationIdentifier) == 0 {
 				validationFeedback = fmt.Sprintf("%s %s", validationFeedback, "Username / Header Name is missing.")
 			}

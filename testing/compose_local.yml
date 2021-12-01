@@ -1,0 +1,55 @@
+version: "3.7"
+services:
+  mongodb:
+    container_name: apim-mongodb
+    image : mongo:latest
+    volumes:
+      - ${MONGODB_DATA_MOUNT_PATH}:/data/db
+    restart: unless-stopped
+  apim-connector:
+    container_name: apim-connector
+    links:
+      - mongodb
+    image: solaceiotteam/apim-connector-server:0.3.0
+    volumes:
+      - ${PLATFORM_DATA_MOUNT_PATH}:/data
+    environment:
+      - DB_URL=mongodb://mongodb:27017/platform?retryWrites=true&w=majority
+      - LOG_LEVEL=info
+      - APP_ID=APIM-Connector-Dev
+      - FILE_USER_REGISTRY=/data/organization_users.json
+      - PLATFORM_PORT=3000
+      - AUTH_EXTRACTION_USER_PRINCIPAL=
+      - AUTH_EXTRACTION_ORGS=
+      - AUTH_EXTRACTION_ROLES=
+      - AUTH_VERIFICATION_KEY=/data/dummy.pem
+      - AUTH_VERIFICATION_ISSUER=https://dev-1.okta.com/oauth2/default
+      - AUTH_VERIFICATION_AUD=0oancf26sFegoXz8l5d6
+      - AUTH_DISCOVERY_OIDC_URL=https://dev-1.okta.com/x/oauth2/default/.well-known/openid-configuration
+  #   - APIS_PROXY_MODE=${APIS_PROXY_MODE}
+    ports:
+      - 3000:3000
+  notifier:
+    container_name: notifier
+    image: ghcr.io/solace-iot-team/axway-slack-notifier:1.2.0
+    environment:
+      - REST_ENABLED=true
+      - MQTT_CLIENT_SERVER_URI=${MQTT_CLIENT_SERVER_URI}
+      - MQTT_CLIENT_CLIENT_ID=${MQTT_CLIENT_CLIENT_ID}
+      - MQTT_CLIENT_USER_NAME=${MQTT_CLIENT_USER_NAME}
+      - MQTT_CLIENT_PASSWORD=${MQTT_CLIENT_PASSWORD}
+      - TOPIC_SUBSCRIBE=${TOPIC_SUBSCRIBE}
+      - TOPIC_UNSUBSCRIBE=${TOPIC_UNSUBSCRIBE}
+      - TOPIC_ECHO=${TOPIC_ECHO}
+      - TOPIC_SUCCESS=${TOPIC_SUCCESS}
+      - TOPIC_FAULT=${TOPIC_FAULT}
+      - NOTIFIER_SLACK_SUBSCRIBE=${NOTIFIER_SLACK_SUBSCRIBE}
+      - NOTIFIER_SLACK_UNSUBSCRIBE=${NOTIFIER_SLACK_UNSUBSCRIBE}
+      - MONITOR_SLACK_SUCCESS=${MONITOR_SLACK_SUCCESS}
+      - MONITOR_SLACK_FAULT=${MONITOR_SLACK_FAULT}
+    ports:
+      - 8080:8080
+networks:
+  default:
+    external: false
+    name: agent

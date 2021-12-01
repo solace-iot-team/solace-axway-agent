@@ -69,8 +69,8 @@ type SubscriptionContainer struct {
 	subscriberEmailAddress      string
 	subscriberUserName          string
 	subscriptionCredentials     *connector.SolaceCredentialsDto
-	solaceCallbackApi           bool
-	solaceAsyncApiAppInternalId string
+	solaceCallbackAPI           bool
+	solaceAsyncAPIAppInternalID string
 }
 
 // SubscriptionMiddleware holds AxwaySubscription and exposes functionality
@@ -79,7 +79,7 @@ type SubscriptionMiddleware struct {
 	AxSub AxwaySubscription
 }
 
-// NewSubscriptionContainer - creates new SubscriptionContainer
+// NewSubscriptionMiddleware - creates new SubscriptionContainer
 func NewSubscriptionMiddleware(subscription apic.Subscription) (*SubscriptionMiddleware, error) {
 	service, err := agent.GetCentralClient().GetAPIServiceByName(subscription.GetAPIServiceName())
 	if err != nil {
@@ -129,21 +129,27 @@ func (c *SubscriptionContainer) LogText() string {
 	return fmt.Sprintf("[Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s]", c.GetEnvironmentName(), c.GetSubscriptionOwningTeamID(), c.GetRevisionName(), c.GetSubscriptionID(), c.GetRevisionName())
 }
 
+// GetSolaceAsyncAPIAppInternalID - getter
 func (c *SubscriptionContainer) GetSolaceAsyncAPIAppInternalID() string {
-	return c.solaceAsyncApiAppInternalId
+	return c.solaceAsyncAPIAppInternalID
 }
 
+// GetCatalogItemName - getter
 func (c *SubscriptionContainer) GetCatalogItemName() string {
 	return c.catalogItemName
 }
 
+// SetSolaceAsyncAPIAppInternalID - setter
 func (c *SubscriptionContainer) SetSolaceAsyncAPIAppInternalID(id string) {
-	c.solaceAsyncApiAppInternalId = id
+	c.solaceAsyncAPIAppInternalID = id
 }
 
+// SetSubscriptionCredentials - setter
 func (c *SubscriptionContainer) SetSubscriptionCredentials(credentials *connector.SolaceCredentialsDto) {
 	c.subscriptionCredentials = credentials
 }
+
+// GetSubscriptionCredentials - getter
 func (c *SubscriptionContainer) GetSubscriptionCredentials() *connector.SolaceCredentialsDto {
 	return c.subscriptionCredentials
 }
@@ -153,8 +159,7 @@ func (c *SubscriptionContainer) GetSubscriberEmailAddress() string {
 	return c.subscriberEmailAddress
 }
 
-//todo refactor and remove error return type
-// GetSubscriberUserName - Returns Username
+// GetSubscriberUserName - getter
 func (c *SubscriptionContainer) GetSubscriberUserName() string {
 	return c.subscriberUserName
 }
@@ -214,17 +219,17 @@ func (c *SubscriptionContainer) GetSubscriptionAPIServiceName() string {
 	return c.sub.GetAPIServiceName()
 }
 
-// GetSubscriptionId getter
+// GetSubscriptionID getter
 func (c *SubscriptionContainer) GetSubscriptionID() string {
 	return c.sub.GetID()
 }
 
-// GetSubscriptionOwningTeamId getter
+// GetSubscriptionOwningTeamID getter
 func (c *SubscriptionContainer) GetSubscriptionOwningTeamID() string {
-	return c.sub.GetOwningTeamId()
+	return c.sub.GetOwningTeamID()
 }
 
-// GetSubscriptionCatalogItemId getter
+// GetSubscriptionCatalogItemID getter
 func (c *SubscriptionContainer) GetSubscriptionCatalogItemID() string {
 	return c.sub.GetCatalogItemID()
 }
@@ -296,7 +301,7 @@ func (sm *SubscriptionMiddleware) ProcessUnsubscribeSubscription() error {
 	username := sm.AxSub.GetSubscriberUserName()
 	userEmail := sm.AxSub.GetSubscriberEmailAddress()
 	dto := notification.UnsubscribeMetaDataDto{
-		Api:             sm.AxSub.GetRevisionName(),
+		API:             sm.AxSub.GetRevisionName(),
 		Team:            sm.AxSub.GetSubscriptionOwningTeamID(),
 		Product:         sm.AxSub.GetRevisionName(),
 		Application:     sm.AxSub.GetSubscriptionID(),
@@ -420,14 +425,14 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 		sm.AxSub.SetSolaceAsyncAPIAppInternalID("unknown internal id")
 	}
 
-	apiSpecs, errApiSpecs := sm.GetAppApis()
-	if errApiSpecs != nil {
+	apiSpecs, errAPISpecs := sm.GetAppApis()
+	if errAPISpecs != nil {
 		log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [GetAppApis] [Could not retrieve AsyncAPI specifications for application]", err)
-		return errApiSpecs
+		return errAPISpecs
 	}
 
 	dto := notification.SubscribeMetaDataDto{
-		Api:             sm.AxSub.GetRevisionName(),
+		API:             sm.AxSub.GetRevisionName(),
 		Team:            sm.AxSub.GetSubscriptionOwningTeamID(),
 		Product:         sm.AxSub.GetRevisionName(),
 		Application:     sm.AxSub.GetSubscriptionID(),
@@ -436,7 +441,7 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 		Subscriber:      username,
 		Subscriberemail: userEmail,
 		ApplicationData: applicationData,
-		ApiSpecs:        apiSpecs,
+		APISpecs:        apiSpecs,
 	}
 	okNotification, errNotification := notification.GetNotifierClient().NotifySubscribe(dto)
 	if errNotification != nil {
@@ -452,12 +457,12 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 }
 
 // NotifySuccess notifies success
-func (sm *SubscriptionMiddleware) NotifySuccess(trigger string, message string, correlationId string) (bool, error) {
+func (sm *SubscriptionMiddleware) NotifySuccess(trigger string, message string, correlationID string) (bool, error) {
 	userEmail := sm.AxSub.GetSubscriberEmailAddress()
 	username := sm.AxSub.GetSubscriberUserName()
 
 	dto := notification.MonitorDataDto{
-		Api:             sm.AxSub.GetRevisionName(),
+		API:             sm.AxSub.GetRevisionName(),
 		Team:            sm.AxSub.GetSubscriptionOwningTeamID(),
 		Product:         sm.AxSub.GetRevisionName(),
 		Application:     sm.AxSub.GetSubscriptionID(),
@@ -468,7 +473,7 @@ func (sm *SubscriptionMiddleware) NotifySuccess(trigger string, message string, 
 		Trigger:         notification.MonitorDataTrigger(trigger),
 		Success:         true,
 		Message:         &message,
-		CorrelationId:   "undefined",
+		CorrelationID:   "undefined",
 	}
 
 	okNotification, err := notification.GetNotifierClient().NotifySuccessMonitor(dto)
@@ -484,12 +489,12 @@ func (sm *SubscriptionMiddleware) NotifySuccess(trigger string, message string, 
 }
 
 // NotifyFailure publishes failure notification
-func (sm *SubscriptionMiddleware) NotifyFailure(trigger string, message string, correlationId string) (bool, error) {
+func (sm *SubscriptionMiddleware) NotifyFailure(trigger string, message string, correlationID string) (bool, error) {
 	userEmail := sm.AxSub.GetSubscriberEmailAddress()
 	username := sm.AxSub.GetSubscriberUserName()
 
 	dto := notification.MonitorDataDto{
-		Api:             sm.AxSub.GetRevisionName(),
+		API:             sm.AxSub.GetRevisionName(),
 		Team:            sm.AxSub.GetSubscriptionOwningTeamID(),
 		Product:         sm.AxSub.GetRevisionName(),
 		Application:     sm.AxSub.GetSubscriptionID(),
@@ -499,7 +504,7 @@ func (sm *SubscriptionMiddleware) NotifyFailure(trigger string, message string, 
 		Subscriberemail: userEmail,
 		Trigger:         notification.MonitorDataTrigger(trigger),
 		Success:         false,
-		CorrelationId:   "undefined",
+		CorrelationID:   "undefined",
 		Message:         &message,
 	}
 
@@ -603,7 +608,7 @@ func (sm *SubscriptionMiddleware) GetTeamApp() (*connector.SolaceCredentialsDto,
 
 //GetAppApis - Facade to retrieve all AsyncApi specs of an app
 func (sm *SubscriptionMiddleware) GetAppApis() ([]*map[string]interface{}, error) {
-	apiNames, error := connector.GetOrgConnector().GetAppApiNames(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionID())
+	apiNames, error := connector.GetOrgConnector().GetAppAPINames(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionID())
 	if error != nil {
 		return nil, error
 	}
@@ -611,7 +616,7 @@ func (sm *SubscriptionMiddleware) GetAppApis() ([]*map[string]interface{}, error
 	apiSpecs := make([]*map[string]interface{}, 0)
 
 	for _, apiName := range *apiNames {
-		apiSpec, errorSpec := connector.GetOrgConnector().GetAppApiSpecification(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionID(), apiName)
+		apiSpec, errorSpec := connector.GetOrgConnector().GetAppAPISpecification(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionID(), apiName)
 		if errorSpec != nil {
 			return nil, errorSpec
 		}
@@ -633,13 +638,13 @@ func (sm *SubscriptionMiddleware) PublishTeamApp() (*connector.Credentials, erro
 	apiProducts = append(apiProducts, sm.AxSub.GetRevisionName())
 	trustedCNSList := make([]string, 0)
 	var webHooks *connector.SolaceWebhook = nil
-	if len(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceHttpMethod)) > 0 {
+	if len(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceHTTPMethod)) > 0 {
 		trustedCNS := strings.TrimSpace(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceCallbackTrustedCNS))
 		if len(trustedCNS) > 0 {
 			trustedCNSList = strings.Split(trustedCNS, ",")
 		}
 		webHooks = &connector.SolaceWebhook{
-			HTTPMethod:               sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceHttpMethod),
+			HTTPMethod:               sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceHTTPMethod),
 			CallbackURL:              sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceCallback),
 			AuthenticationMethod:     sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceAuthenticationMethod),
 			AuthenticationIdentifier: sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceAuthenticationIdentifier),

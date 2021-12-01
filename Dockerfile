@@ -14,8 +14,8 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o solace-axway-agent .
-# RUN make build
+#RUN go build -o solace-axway-agent .
+RUN make build
 
 
 ######## Start a new stage from scratch #######

@@ -1,0 +1,120 @@
+# SAMPLE of configuration options
+log:
+  level: trace
+# optional - directory containing SSL/TLS public certificates of endpoints this agent is establishing connections to
+ssl_cert_dir: "/path/to/directory"
+# Configuration options offered by Axway Agent SDK
+central:
+  # Pollinterval agent is polling Axway Central
+  pollInterval: 10s
+  # Axway Central API Endpoint
+  url: https://central.eu-fr.axway.com
+  # Axway Central Organization ID
+  organizationID: 12345
+  # Axway Central Environment
+  environment: abc-efg-1
+  auth:
+    # Axway Central Service Account
+    clientID: DOSA_abc123
+    # Path and Filename of Axway Central Service Account private key as PEM
+    privateKey: "/path/to/private_key.pem"
+      # Optional - PEM content as one line PEM
+      #            will be written as PEM in central.auth.privateKey file defined in here
+      #            can get used to bootstrap and share PEM via environment variable
+      # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file
+      data: "-----BEGIN PRIVATE KEY----- ..."
+    # Path and Filename of Axway Central Service Account public key as PEM
+    publicKey: "/path/to/public_key.pem"
+      # Optional - PEM content as one line PEM
+      #            will be written as PEM in central.auth.publicKey file defined in here
+      #            can get used to bootstrap and share PEM via environment variable
+      # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file
+      data: "-----BEGIN PUBLIC KEY----- ..."
+  # configuration related to management of subscriptions (subscribe / unsubscribe)
+  subscriptions:
+    # SMTP Notification options
+    notifications:
+      # only SMTP supported for Solace-Axway-Agent
+      type:
+        - smtp
+      smtp:
+        # SMTP host
+        host: smtp.host.com
+        # SMTP Port
+        port: 1234
+        # Sender of notification
+        fromAddress: sender@host.com
+        # SMTP authentication
+        authType: plain
+        # SMTP server username
+        username: theusername
+        # SMTP server password
+        password: thepassword
+        subscribe:
+          # go-template for subscribe emails
+          body: >
+            <p>A Subscription just got created for AsyncAPI {{.CatalogItemName}}.</p>Detailed description of the AsyncAPI can get found at: <a href={{.CatalogItemURL}}">Axway Central {{.CatalogItemName}} </a> <p></p><p>The subscribed AsyncAPI is secured with <ul><li>Username: <b> {{.ClientID}} </b></li><li>Password: <b> {{.ClientSecret}} </b></li></ul></p><p>AsyncAPI runtime internal AppId: {{.APIManagerID}} </p>
+          # go-template for rendering credentials in subscribe emails
+          oauth: "</br></a>Your API is secured using Username: <b> {{.ClientID}} </b> and Password=<b> {{.ClientSecret}} </b>"
+        unsubscribe:
+          # go-template for unsubscribe emails
+          body: >
+            <p>A Subscription just got unsubscribed for AsyncAPI {{.CatalogItemName}}.</p>Detailed description of the AsyncAPI can get found at: <a href={{.CatalogItemURL}}">Axway Central {{.CatalogItemName}} </a> <p>
+# Solace-Axway-Agent specific
+bootstrapping:
+  # Publish (idempotent) Axway Subscription Schema in Axway Central
+  # Publishing is executed once per Solace-Axway-Agent start-up
+  publishSubscriptionSchema: true
+  # Assignment of Axway Subscription Schema to AsyncAPIs with attribute solace-webhook-enabled==true
+  # see also solaceconst.go
+  processSubscriptionSchema: true
+  # Pollinterval in seconds for querying subscriptions
+  processSubscriptionSchemaInterval: 60
+
+# Solace Connector specific configurations
+connector:
+  # Solace Connector endpoint
+  url: http://url:port/path
+  # Solace Connector admin user
+  adminUser: admin
+  # Solace Connector admin password
+  adminPassword: secret
+  # Solace Connector organization user
+  orgUser: user
+  # Solace Connector organization user password
+  orgPassword: secret
+  # Enable / disable TLS certificate validation of connector endpoint
+  #   provide (root)-certificate of endpoint in ssl_cert_dir to enable it
+  acceptinsecurecertificates: false
+  # Enable/ disable logging of HTTP-REST requests sent to Solace-Connector
+  #   sensitive information will be written to the log (e.g. usernames and passwords of AsyncAPI subscriptions)
+  #   only for debugging and development
+  logBody: false
+  # Enable / disable logging of HTTP Headers sent to Solace-Connector
+  #   sensitive information will be written to the log (username / password used to authenticate against Solace-Connector)
+  #   only for debugging and development
+  logHeader: false
+
+# Notifier Endpoint configuration
+notifier:
+  # Enable / disable notifier
+  enabled: false
+  # Notifier endpoint
+  url: http://notifier.endpoint.com/path
+  # Enable / disable TLS certificate validation of notifier endpoint
+  #   provide (root)-certificate of endpoint in ssl_cert_dir to enable it
+  acceptinsecurecertificates: false
+  # Authentication type
+  #   basic: BasicAuth
+  #   header: HTTPHeader / Value
+  apiAuthType: basic
+  # Depending on Authentication Type
+  #   basic: username
+  #   header: headername
+  apiConsumerKey: username/headername
+  # Authentication Type
+  #   basic: password
+  #   header: headervalue apikey, etc.
+  apiConsumerSecret: abcefg
+  # Health message sent to Notifier health endpoint
+  healthmessage: "ping"

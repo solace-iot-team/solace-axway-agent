@@ -226,7 +226,7 @@ func (c *SubscriptionContainer) GetSubscriptionID() string {
 
 // GetSubscriptionOwningTeamID getter
 func (c *SubscriptionContainer) GetSubscriptionOwningTeamID() string {
-	return c.sub.GetOwningTeamId()
+	return c.sub.GetOwningTeamID()
 }
 
 // GetSubscriptionCatalogItemID getter

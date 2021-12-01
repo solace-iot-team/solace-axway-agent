@@ -155,7 +155,7 @@ func sendEmailSubscribe(container *middleware.SubscriptionMiddleware) error {
 	message.SetCatalogItemInfo(container.AxSub.GetSubscriptionCatalogItemID(), container.AxSub.GetCatalogItemName(), url)
 	message.SetOauthInfo(container.AxSub.GetSubscriptionCredentials().ConsumerKey, DerefString(container.AxSub.GetSubscriptionCredentials().ConsumerSecret))
 	message.SetAuthorizationTemplate("oauth")
-	message.ApiManagerId = container.AxSub.GetSolaceAsyncAPIAppInternalID()
+	message.APIManagerID = container.AxSub.GetSolaceAsyncAPIAppInternalID()
 	err := message.NotifySubscriber(container.AxSub.GetSubscriberEmailAddress())
 	if err != nil {
 		log.Errorf("Notification of SUBSCRIBE event by Email failed", err)

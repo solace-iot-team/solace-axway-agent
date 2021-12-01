@@ -101,7 +101,7 @@ func (j *SubscriptionSchemaProcessorJob) Execute() error {
 	// called each time the job should be executed
 	// returning an error stops continuous jobs from executing
 	log.Tracef("SubscriptionSchemaProcessorJob triggered")
-	resultlist, err := agent.GetCentralClient().GetApiServicesByQuery(solace.SolaceCallbackEnabledAttributeQuery)
+	resultlist, err := agent.GetCentralClient().GetAPIServicesByQuery(solace.SolaceCallbackEnabledAttributeQuery)
 	if err != nil {
 		log.Errorf("SubscriptionSchemaProcessorJob: Could not query ApiServices (%s)", solace.SolaceCallbackEnabledAttributeQuery, err)
 		return err
@@ -119,7 +119,7 @@ func (j *SubscriptionSchemaProcessorJob) Execute() error {
 			if ci.Spec.Subscription.SubscriptionDefinition == solace.SolaceCallbackSubscriptionSchema {
 				//nothing to do
 			} else {
-				errAttachSchema := agent.GetCentralClient().UpdateConsumerInstanceSubscriptionDefinitionByConsumerInstanceId(ci.Metadata.ID, solace.SolaceCallbackSubscriptionSchema)
+				errAttachSchema := agent.GetCentralClient().UpdateConsumerInstanceSubscriptionDefinitionByConsumerInstanceID(ci.Metadata.ID, solace.SolaceCallbackSubscriptionSchema)
 				if errAttachSchema != nil {
 					log.Errorf("SubscriptionSchemaProcessorJob: Could not attach Subscription Schema to ConsumerInstance:%s", ci.Name, errAttachSchema)
 					return errAttachSchema

@@ -1,4 +1,4 @@
-name: main-build-workflow
+name: release
 on:
   # deployment to docker hub only manually triggered
   workflow_dispatch:

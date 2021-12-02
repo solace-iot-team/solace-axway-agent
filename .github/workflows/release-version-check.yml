@@ -1,31 +1,41 @@
-name: develop-release
+name: release-version-check
 on:
-  # deployment to internal ghcr repo only manually triggered
+  # deployment to docker hub only manually triggered
   workflow_dispatch:
-
+  pull_request:
+    branches:
+      - main
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: solace-iot-team/solace-axway-agent
+  IMAGE_NAME: solaceiotteam/solace-axway-agent
   VERSION: "0.0.0"
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    # if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    if: ${{ github.ref == 'refs/heads/main' }}
     steps:
-      - name: Log in to GitHub Docker Registry
-        uses: docker/login-action@v1
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check Auth
+        if: github.event_name == 'workflow_dispatch' && github.actor != 'ricardojosegomezulmke' && github.actor != '195858' && github.actor!= 'mynecker'
+        run: |
+          echo "not authorized"
+          echo '::set-output name=IS_AUTHORIZED::false'
+        id: auth
+      - name: Cancel Workflow
+        if: ${{ always() && steps.auth.outputs.IS_AUTHORIZED == 'false' }}
+        uses: andymckay/cancel-action@0.2
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v1
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v1
+
+      - name: Log in to GitHub Docker Registry
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_ACCESSTOKEN }}
 
       - uses: actions/checkout@v2
 
@@ -45,7 +55,7 @@ jobs:
           script:  |
             const s = require('shelljs');
             const { VERSION, IMAGE_NAME } = process.env;
-            const dhid = "ghcr.io"+"/"+IMAGE_NAME+":"+ VERSION
+            const dhid = IMAGE_NAME+":"+ VERSION
             console.log('Looking up Docker Hub for:'+dhid);
             let code = s.exec('docker manifest inspect '+dhid).code;
             if(code===0) {
@@ -54,11 +64,4 @@ jobs:
             } else {
               console.log(`check ok - image can get published `+dhid);
             }
-      - name: Build and Deploy to Github Docker registry
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/${{env.IMAGE_NAME}}:alpha
-            ghcr.io/${{env.IMAGE_NAME}}:${{env.VERSION}}
+      - run: echo "Version $VERSION is ok"

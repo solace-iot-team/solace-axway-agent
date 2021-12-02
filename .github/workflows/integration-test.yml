@@ -2,12 +2,8 @@ name: integration-test
 on:
   # for testing
   workflow_dispatch:
-  #push:
-  #  branches:
-  #    - develop
   pull_request:
     branches:
-      - develop
       - main
 env:
   REGISTRY: ghcr.io

@@ -1,0 +1,4112 @@
+openapi: 3.0.0
+info:
+  title: Solace API Management Connector
+  description: 'Solace API Management Connector API. Note: basic authentication security mechanism is deprecated.'
+  version: 0.5.3
+servers:
+  - url: /v1
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    BasicAuth:
+      type: http
+      scheme: basic
+      description: Deprecated, may be removed in future version of the API
+    OpenId:
+      type: openIdConnect
+      openIdConnectUrl: /auth/.well-known/openid-configuration
+  parameters:
+    orgparameter:
+      name: organization_name
+      description: the name of the organization (tenant) a resource belongs to
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "[a-zA-Z0-9_-]*"
+        minLength: 4
+        maxLength: 188
+    app_name:
+      name: app_name
+      description: the name of the app
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "[a-zA-Z0-9_-]*"
+        minLength: 4
+        maxLength: 188
+    api_name:
+      name: api_name
+      description: the name of the api
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "[a-zA-Z0-9_-]*"
+        minLength: 4
+        maxLength: 188
+    api_product_name:
+      name: api_product_name
+      description: the id of the api product
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "[a-zA-Z0-9_-]*"
+        minLength: 4
+        maxLength: 188
+    event_api_product_id:
+      name: event_api_product_id
+      description: the id of the event api product in the Event Portal
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "[a-z0-9]*"
+        minLength: 4
+        maxLength: 32
+    developer_username:
+      name: developer_username
+      description: username of developer
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/CommonUserName"
+    team_name:
+      name: team_name
+      description: name of a team
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "[a-zA-Z0-9_-]*"
+        minLength: 4
+        maxLength: 188
+    env_name:
+      name: env_name
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "[a-zA-Z0-9_-]*"
+        minLength: 2
+        maxLength: 188
+    page_size:
+      name: pageSize
+      in: query
+      description: "The number of items to get per page. Min: 1 Max: 100"
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+    page_number:
+      name: pageNumber
+      in: query
+      description: "The page number to get. Min: 1"
+      required: false
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 16384
+    sort_direction:
+      name: sortDirection
+      in: query
+      description: sort direction
+      required: false
+      schema:
+        type: string
+        default: asc
+        enum:
+          - asc
+          - desc
+    sort_field_name:
+      name: sortFieldName
+      in: query
+      description: name of a field to sort on
+      required: false
+      schema:
+        type: string
+        pattern: "[a-zA-Z0-9_-]*"
+        minLength: 2
+        maxLength: 512
+    topicSyntax:
+      name: topicSyntax
+      in: query
+      schema:
+        type: string
+        default: smf
+        enum:
+          - smf
+          - mqtt
+    api_list_format:
+      name: format
+      in: query
+      description: the format of the API List returned, compact returns the API names, summary and extended return additional API metadata
+      schema:
+        type: string
+        default: compact
+        enum:
+          - compact
+          - summary
+          - extended
+  responses:
+    BadRequest:
+      description: Bad Request.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Not Found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotAcceptable:
+      description: Not Acceptable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    UnsupportedMediaType:
+      description: Unsupported Media Type.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: Too many requests.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Internal Server Error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: Service Unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    GatewayTimeout:
+      description: Gateway Timeout.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      properties:
+        message:
+          type: string
+          minLength: 0
+          maxLength: 1024
+          pattern: "[\\S]([\\S\\s]|[[:punct:]])*"
+          example: "An error occurred"
+        errorId:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426655440000"
+          minLength: 0
+          maxLength: 64
+          pattern: "[a-zA-Z0-9_-]*"
+        meta:
+          type: object
+          additionalProperties: true
+    EventAPIProductList:
+      type: array
+      minItems: 0
+      maxItems: 32768
+      items:
+        "$ref": "#/components/schemas/EventAPIProduct"
+
+    EventAPIProduct:
+      type: object
+      additionalProperties: false
+      properties:
+        createdTime:
+          $ref: '#/components/schemas/CommonTimestampInteger'
+        updatedTime:
+          $ref: '#/components/schemas/CommonTimestampInteger'
+        createdBy:
+          $ref: '#/components/schemas/CommonSolaceCloudObjectId'
+        changedBy:
+          $ref: '#/components/schemas/CommonSolaceCloudObjectId'
+        id:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        virtualBrokerId:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        name:
+          type: string
+          example: IoT Sensor API
+          minLength: 4
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        published:
+          type: boolean
+        publishedTime:
+          $ref: "#/components/schemas/CommonTimestampInteger"
+        serverUrl:
+          $ref: "#/components/schemas/CommonURL"
+        serverProtocol:
+          type: string
+          example: mqtt
+          minLength: 2
+          maxLength: 256
+          pattern: "[a-zA-z0-9\\-\\.]*"
+        summary:
+          $ref: "#/components/schemas/CommonDescription"
+        unpublishedTime:
+          $ref: "#/components/schemas/CommonTimestampInteger"
+        version:
+          $ref: "#/components/schemas/CommonVersion"
+        numberOfEvents:
+          type: integer
+          format: int64
+          example: 3
+          maximum: 32768
+          minimum: 0
+        websiteUrl:
+          $ref: '#/components/schemas/CommonURL'
+        restUrlJson:
+          $ref: '#/components/schemas/CommonURL'
+        restUrlYaml:
+          $ref: '#/components/schemas/CommonURL'
+        type:
+          type: string
+          minLength: 0
+          maxLength: 1024
+          pattern: "[\\s\\S]*"
+          default: apiProduct
+      required:
+        - id
+        - name
+
+    APIParameter:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          description: name of the parameter as defined in the AsyncAPI Spec
+          example: model
+          minLength: 0
+          maxLength: 512
+          pattern: ".*"
+        type:
+          type: string
+          description: type of the parameter
+          enum:
+            - string
+            - number
+            - integer
+            - boolean
+        enum:
+          type: array
+          description: any allowed enumerated values for the parameter
+          minItems: 1
+          maxItems: 32768
+          items:
+            type: string
+            minLength: 1
+            maxLength: 512
+            pattern: ".*"
+          example:
+            - A
+            - T
+            - N
+    APIInfo:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - source
+        - createdBy
+        - createdTime
+        - description
+        - summary
+        - version
+      properties:
+        source:
+          type: string
+          description: source of the API spec
+          enum:
+            - EventAPIProduct
+            - Upload
+            - EventPortalLink
+        sourceId:
+          description: id of the entity in the source system
+          type: string
+          example: 7avdj5n26cq
+          minLength: 0
+          maxLength: 64
+          pattern: "[a-zA-Z0-9_-]*"
+        createdTime:
+          $ref: '#/components/schemas/CommonTimestampInteger'
+        updatedTime:
+          $ref: '#/components/schemas/CommonTimestampInteger'
+        createdBy:
+          $ref: '#/components/schemas/CommonUserName'
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        name:
+          $ref: "#/components/schemas/CommonName"
+        summary:
+          $ref: "#/components/schemas/CommonDescription"
+        version:
+          $ref: "#/components/schemas/CommonVersion"
+        apiParameters:
+          type: array
+          minItems: 0
+          maxItems: 32768
+          items:
+            $ref: '#/components/schemas/APIParameter'
+        sourceMetadata:
+          description: any metadata as returned by the external System (if applicable)
+          type: object
+          additionalProperties: true
+
+    APIImport:
+      type: object
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+          description: source system for loading the Async API
+          enum:
+            - EventAPIProduct
+        id:
+          description: id of the entity in the source system
+          type: string
+          example: 7avdj5n26cq
+          minLength: 1
+          maxLength: 128
+          pattern: "[a-zA-Z0-9_-]*"
+        overwrite:
+          description: indicates if an existing API entity shall be replaced
+          type: boolean
+          default: true
+
+    APIProduct:
+      required:
+        - name
+        - displayName
+        - attributes
+        - subResources
+        - pubResources
+        - apis
+      type: object
+      description: "An API product consists of a list of API resources (URIs) and custom metadata required by the API provider. API products enable you to bundle and distribute your APIs to multiple developer groups simultaneously"
+      additionalProperties: false
+      properties:
+        apis:
+          description: APIs associated with this product.
+          items:
+            $ref: '#/components/schemas/CommonName'
+          example:
+            - 'api1'
+            - 'api2'
+          type: array
+          minItems: 0
+          maxItems: 32768
+        approvalType:
+          description: manual or auto. If manual, credetials will only be activated on manual approval
+          enum:
+            - manual
+            - auto
+          type: string
+        attributes:
+          $ref: '#/components/schemas/attributes'
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        environments:
+          description: An array of environment names in an organization. Requests to environments not listed are rejected.
+          items:
+            $ref: '#/components/schemas/CommonName'
+          type: array
+          minItems: 0
+          maxItems: 32768
+        name:
+          $ref: "#/components/schemas/CommonName"
+        pubResources:
+          description: An array of Publish API resources to be bundled in the API Product.
+          items:
+            $ref: '#/components/schemas/CommonTopic'
+          type: array
+          minItems: 0
+          maxItems: 32768
+        subResources:
+          description: An array of Subscribe API resources to be bundled in the API Product.
+          items:
+            $ref: '#/components/schemas/CommonTopic'
+          type: array
+          minItems: 0
+          maxItems: 32768
+        protocols:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Protocol'
+        clientOptions:
+          $ref: '#/components/schemas/ClientOptions'
+
+    APIProductPatch:
+      type: object
+      description: "Used for PATCH operation, An API product consists of a list of API resources (URIs) and custom metadata required by the API provider. API products enable you to bundle and distribute your APIs to multiple developer groups simultaneously"
+      additionalProperties: false
+      properties:
+        apis:
+          description: APIs associated with this product.
+          items:
+            $ref: '#/components/schemas/CommonName'
+          example:
+            - 'api1'
+            - 'api2'
+          type: array
+          minItems: 0
+          maxItems: 32768
+        approvalType:
+          description: manual or auto. If manual, credentials will only be activated on manual approval
+          enum:
+            - manual
+            - auto
+          type: string
+        attributes:
+          $ref: '#/components/schemas/attributes'
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        environments:
+          description: A list of environment name in an organization. Requests to environments not listed are rejected.
+          items:
+            $ref: '#/components/schemas/CommonName'
+          type: array
+          minItems: 0
+          maxItems: 32768
+        pubResources:
+          description: A comma separated list of Publish API resources to be bundled in the API Product.
+          items:
+            $ref: '#/components/schemas/CommonTopic'
+          type: array
+          minItems: 0
+          maxItems: 32768
+        subResources:
+          description: A comma separated list of Publish API resources to be bundled in the API Product.
+          items:
+            $ref: '#/components/schemas/CommonTopic'
+          type: array
+          minItems: 0
+          maxItems: 32768
+        protocols:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Protocol'
+        clientOptions:
+          $ref: '#/components/schemas/ClientOptions'
+
+    Developer:
+      description: "A profile for a developer. After the developer is created, they can register an app and receive API credentials"
+      type: object
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          minLength: 1
+          maxLength: 512
+          format: email
+          pattern: ".*@.*\\.[a-zA-Z]*"
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 128
+          pattern: "([[:punct:]]|[a-zA-Z])*"
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 128
+          pattern: "([[:punct:]]|[a-zA-Z])*"
+        userName:
+          $ref: "#/components/schemas/CommonUserName"
+        attributes:
+          $ref: '#/components/schemas/attributes'
+      required:
+        - email
+        - firstName
+        - lastName
+        - userName
+
+    DeveloperPatch:
+      type: object
+      description: "Used for PATCH operation, A profile for a developer. After the developer is created, they can register an app and receive API credentials"
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          minLength: 1
+          maxLength: 512
+          format: email
+          pattern: ".*@.*\\.[a-zA-Z]*"
+        firstName:
+          type: string
+          minLength: 2
+          maxLength: 128
+          pattern: "([[:punct:]]|[a-zA-Z])*"
+        lastName:
+          type: string
+          minLength: 2
+          maxLength: 128
+          pattern: "([[:punct:]]|[a-zA-Z])*"
+        attributes:
+          $ref: '#/components/schemas/attributes'
+
+    Team:
+      description: "A profile of a team. After the team is created, an app can be registered and API credentials are created"
+      type: object
+      additionalProperties: false
+      properties:
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        name:
+          $ref: '#/components/schemas/CommonName'
+        attributes:
+          $ref: '#/components/schemas/attributes'
+      required:
+        - displayName
+        - name
+
+    TeamPatch:
+      type: object
+      description: "Used for PATCH operation, A profile of a team. After the team is created, an app can be registered and API credentials are created"
+      additionalProperties: false
+      properties:
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        attributes:
+          $ref: '#/components/schemas/attributes'
+
+    attributes:
+      description: Arbitrary name/value pairs associated with an API product, team, developer or app.
+      items:
+        additionalProperties: false
+        properties:
+          name:
+            description: Attribute name, access is a special value as it governs access control to the product.
+            example:
+              access
+            type: string
+            pattern: "[a-zA-Z0-9_-]*"
+            minLength: 2
+            maxLength: 1024
+          value:
+            description: Value of the attribute.
+            example:
+              'public, private, or internal'
+            type: string
+            pattern: "[a-zA-Z0-9_\\-\\s,\\*]*"
+            minLength: 1
+            maxLength: 1024
+        required:
+          - name
+          - value
+        type: object
+      type: array
+      minItems: 0
+      maxItems: 32768
+
+
+    ClientOptions:
+      type: object
+      additionalProperties: false
+      properties:
+        guaranteedMessaging:
+          $ref: '#/components/schemas/ClientOptionsGuaranteedMessaging'
+
+    ClientOptionsGuaranteedMessaging:
+      type: object
+      additionalProperties: false
+      properties:
+        requireQueue:
+          type: boolean
+          description: "Automatically provision a queue with all subscriptions permitted for this app attached"
+          example: true
+        accessType:
+          type: string
+          description: access mode for the queue
+          example: exclusive
+          default: exclusive
+          enum:
+            - exclusive
+            - non-exclusive
+        maxTtl:
+          type: integer
+          format: int64
+          maximum: 9007199254740991
+          minimum: 0
+          description: retention policy for message on the queue, default to 24 hours. Set to 0 if messages are to be kept indefinitely
+          default: 86400
+          example: 3600
+        maxMsgSpoolUsage:
+          type: integer
+          format: int64
+          maximum: 9007199254740991
+          minimum: 0
+          description: The maximum message spool usage allowed by the Queue, in megabytes (MB). A value of 0 only allows spooling of the last message received and disables quota checking
+          default: 500
+          example: 50
+
+    ClientInformation:
+      type: object
+      additionalProperties: false
+      properties:
+        guaranteedMessaging:
+          $ref: '#/components/schemas/ClientInformationGuaranteedMessaging'
+
+    ClientInformationGuaranteedMessaging:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          description: "The name of the queue that is available for this app's API Product subcription"
+          example: "AlAOLG3xxuYCVDpoXl4wKGwWAIURFGuK"
+          minLength: 2
+          maxLength: 250
+          pattern: ".*"
+        apiProduct:
+          $ref: "#/components/schemas/CommonName"
+        accessType:
+          type: string
+          description: access mode for the queue
+          example: exclusive
+          default: exclusive
+          enum:
+            - exclusive
+            - non-exclusive
+
+    App:
+      type: object
+      description: "An app associated with an owner (developer, team etc). Associates the app with an API product, and auto-generates an API credentials for the app to use"
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        internalName:
+          type: string
+          pattern: "[a-zA-Z0-9_]*"
+          minLength: 4
+          maxLength: 32
+          description: the internal name of the app used within the connector. This name is auto generated by default. Warning - should ONLY be set if a naming convention for broker objects must be imposed. This value can not be updated.
+        expiresIn:
+          type: integer
+          format: int64
+          maximum: 9007199254740991
+          minimum: -1
+          description: A setting, in milliseconds, for the lifetime of the consumer key that will be  generated for the developer app. The default value, -1, indicates an infinite validity period. Once set, the expiration can't be updated.
+        apiProducts:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommonName'
+          minItems: 0
+          maxItems: 255
+        attributes:
+          $ref: '#/components/schemas/attributes'
+        callbackUrl:
+          $ref: '#/components/schemas/CommonURL'
+        webHooks:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/WebHook'
+        credentials:
+          $ref: '#/components/schemas/Credentials'
+      required:
+        - name
+        - apiProducts
+        - credentials
+
+    AppPatch:
+      description: "Used for PATCH operation. An app associated with a developer. Associates the app with an API product, and auto-generates an API credentials for the app to use"
+      type: object
+      additionalProperties: false
+      properties:
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        apiProducts:
+          type: array
+          items:
+            type: string
+            pattern: "[a-zA-Z0-9_-]*"
+            minLength: 4
+            maxLength: 188
+          minItems: 0
+          maxItems: 255
+        attributes:
+          $ref: '#/components/schemas/attributes'
+        callbackUrl:
+          $ref: '#/components/schemas/CommonURL'
+        webHooks:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/WebHook'
+        credentials:
+          $ref: '#/components/schemas/Credentials'
+        status:
+          $ref: '#/components/schemas/AppStatus'
+    AppStatus:
+      type: string
+      enum:
+        - approved
+        - pending
+    AppResponse:
+      type: object
+      description: "App Response Object - includes protocol binding information and app premissions. An app associated with a developer. Associates the app with an API product, and auto-generates an API credentials for the app to use."
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        internalName:
+          type: string
+          pattern: "[a-zA-Z0-9_]*"
+          minLength: 4
+          maxLength: 32
+          description: the internal name of the app used within the connector. This name is auto generated by default. Warning - should ONLY be set if a naming convention for broker objects must be imposed. This value can not be updated.
+        expiresIn:
+          type: integer
+          format: int64
+          minimum: -1
+          maximum: 9007199254740991
+          description: A setting, in milliseconds, for the lifetime of the consumer key that will be  generated for the developer app. The default value, -1, indicates an infinite validity period. Once set, the expiration can't be updated.
+        apiProducts:
+          type: array
+          items:
+            type: string
+            pattern: "[a-zA-Z0-9_-]*"
+            minLength: 4
+            maxLength: 188
+          minItems: 0
+          maxItems: 255
+        attributes:
+          $ref: '#/components/schemas/attributes'
+        clientInformation:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/ClientInformation'
+        callbackUrl:
+          $ref: '#/components/schemas/CommonURL'
+        webHooks:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/WebHook'
+        credentials:
+          $ref: '#/components/schemas/Credentials'
+        environments:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/AppEnvironment'
+        status:
+          $ref: '#/components/schemas/AppStatus'
+      required:
+        - name
+        - apiProducts
+        - credentials
+
+    AppListItem:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        appType:
+          type: string
+          enum:
+            - developer
+            - team
+        ownerId:
+          type: string
+          example: "Developer-1"
+          pattern: ".*"
+          minLength: 4
+          maxLength: 188
+        apiProducts:
+          type: array
+          items:
+            type: string
+            pattern: "[a-zA-Z0-9_-]*"
+            minLength: 4
+            maxLength: 188
+          minItems: 0
+          maxItems: 255
+        status:
+          $ref: '#/components/schemas/AppStatus'
+
+    AppEnvironment:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        messagingProtocols:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Endpoint'
+        permissions:
+          $ref: '#/components/schemas/Permissions'
+
+    Permissions:
+      description: lists all the publish and subscribe topics an app has access to. Restrictions on   topic elements are taken into account.
+      type: object
+      additionalProperties: false
+      properties:
+        subscribe:
+          type: array
+          minItems: 0
+          maxItems: 32768
+          items:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/ChannelPermission'
+          example:
+            - order/notifications/{country_id}/{order_id}:
+                permissions:
+                  - order/notifications/FR/>
+                  - order/notifications/DE/>
+                channelId: c1
+                isChannel: true
+            - another/random/exception/{resource_id}:
+                permissions:
+                  - another/random/exception/1
+                  - another/random/exception/2
+                isChannel: false
+        publish:
+          type: array
+          minItems: 0
+          maxItems: 32768
+          items:
+            type: object
+            additionalProperties:
+              $ref: '#/components/schemas/ChannelPermission'
+          example:
+            - order/create/{country_id}/{order_id}:
+                permissions:
+                  - order/create/FR/>
+                  - order/create/DE/>
+                channelId: c2
+                isChannel: true
+            - order/update/{country_id}/{order_id}:
+                permissions:
+                  - order/update/FR/>
+                  - order/update/DE/>
+                channelId: orderUpdateChannel
+                isChannel: true
+            - another/random/exception/{resource_id}:
+                permissions:
+                  - another/random/exception/3
+                  - another/random/exception/4
+                isChannel: false
+    ChannelPermission:
+      description: a permission and its associated channel
+      type: object
+      required:
+        - permissions
+      additionalProperties: false
+      properties:
+        permissions:
+          type: array
+          minItems: 0
+          maxItems: 32768
+          items:
+            $ref: '#/components/schemas/CommonTopic'
+          example:
+            - order/notifications/FR/>
+            - order/notifications/DE/>
+        channelId:
+          type: string
+          minLength: 1
+          maxLength: 2048
+          pattern: "[\\s\\S]*"
+        isChannel:
+          type: boolean
+          default: true
+
+    Credentials:
+      description: Credentials object associated with an app
+      type: object
+      required:
+        - expiresAt
+      additionalProperties: false
+      properties:
+        expiresAt:
+          default: -1
+          type: integer
+          format: int64
+          minimum: -1
+          maximum: 9007199254740991
+        issuedAt:
+          $ref: '#/components/schemas/CommonTimestampInteger'
+        secret:
+          $ref: '#/components/schemas/Secret'
+
+    Secret:
+      type: object
+      required:
+        - consumerKey
+      additionalProperties: false
+      properties:
+        consumerKey:
+          type: string
+          pattern: "[a-zA-Z0-9_-]*"
+          minLength: 8
+          maxLength: 64
+        consumerSecret:
+          type: string
+          pattern: "[a-zA-Z0-9_-]*"
+          minLength: 8
+          maxLength: 64
+    Environment:
+      description: an environment
+      type: object
+      required:
+        - name
+        - description
+        - serviceId
+        - exposedProtocols
+      additionalProperties: true
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        serviceId:
+          type: string
+          example: xm7dc2dfas4
+          pattern: "[a-zA-Z0-9_-]*"
+          minLength: 4
+          maxLength: 64
+        exposedProtocols:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Protocol'
+
+    EnvironmentListItem:
+      description: a list item in the environmentslist
+      type: object
+      properties:
+        msgVpnName:
+          $ref: '#/components/schemas/MsgVpnName'
+        messagingProtocols:
+          type: array
+          description: All of the protocols that the broker service exposes
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Endpoint'
+        name:
+          $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        serviceId:
+          type: string
+          example: xm7dc2dfas4
+          pattern: "[a-zA-Z0-9_-]*"
+          minLength: 4
+          maxLength: 64
+        exposedProtocols:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Protocol'
+
+    EnvironmentResponse:
+      description: an environment
+      type: object
+      required:
+        - name
+        - description
+        - serviceId
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        exposedProtocols:
+          type: array
+          description: The protocols that can be exposed for use with APIs
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Protocol'
+        messagingProtocols:
+          type: array
+          description: All of the protocols that the broker service exposes
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Endpoint'
+        serviceId:
+          $ref: '#/components/schemas/CommonSolaceCloudObjectId'
+        serviceName:
+          type: string
+          example: DEV-GW
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        msgVpnName:
+          $ref: '#/components/schemas/MsgVpnName'
+        datacenterId:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        datacenterProvider:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        serviceTypeId:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        serviceClassId:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        creationState:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        serviceClassDisplayedAttributes:
+          $ref: '#/components/schemas/ServiceClassDisplayedAttributes'
+
+    ServiceClassDisplayedAttributes:
+      type: object
+      additionalProperties: false
+      properties:
+        High Availability:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        Network Speed:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        Storage:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        Message Broker Tenancy:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        Queues:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        Clients:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        Network Usage:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+      required:
+        - High Availability
+        - Network Speed
+        - Storage
+        - Message Broker Tenancy
+        - Queues
+        - Clients
+        - Network Usage
+
+    EnvironmentPatch:
+      description: used for PATCH operation, an environment
+      type: object
+      additionalProperties: false
+      properties:
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        serviceId:
+          type: string
+          example: xm7dc2dfas4
+          minLength: 1
+          maxLength: 64
+          pattern: "[a-zA-Z0-9]*"
+        exposedProtocols:
+          description: The protocols that can be exposed for use with APIs
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Protocol'
+
+    Service:
+      description: provides information about a service in the Solace Cloud account.
+      type: object
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        timestamp:
+          $ref: '#/components/schemas/CommonTimestampInteger'
+        userId:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        serviceId:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        infrastructureId:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        msgVpnName:
+          $ref: '#/components/schemas/MsgVpnName'
+        datacenterId:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        datacenterProvider:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        serviceTypeId:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        serviceClassId:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        adminState:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        adminProgress:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        created:
+          $ref: '#/components/schemas/CommonTimestampInteger'
+        creationState:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        messagingProtocols:
+          minItems: 0
+          maxItems: 255
+          type: array
+          description: The protocols supported by this service
+          items:
+            $ref: '#/components/schemas/Endpoint'
+        msgVpnAttributes:
+          $ref: '#/components/schemas/MsgVpnAttributes'
+        locked:
+          type: boolean
+        messagingStorage:
+          type: integer
+          format: int64
+          maximum: 9007199254740991
+          minimum: 0
+        serviceStage:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        servicePackageId:
+          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+        serviceClassDisplayedAttributes:
+          $ref: '#/components/schemas/ServiceClassDisplayedAttributes'
+        accountingLimits:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/AccountingLimit'
+
+    AccountingLimit:
+      type: object
+      additionalProperties: false
+      properties:
+        id:
+          $ref: '#/components/schemas/CommonSolaceCloudObjectId'
+        value:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        thresholds:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/Threshold'
+      required:
+        - id
+        - value
+        - unit
+        - thresholds
+
+    Threshold:
+      type: object
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        value:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+      required:
+        - type
+        - value
+
+    MsgVpnAttributes:
+      type: object
+      additionalProperties: false
+      properties:
+        authenticationClientCertEnabled:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+        authenticationBasicEnabled:
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "[\\s\\S]*"
+      required:
+        - authenticationClientCertEnabled
+        - authenticationBasicEnabled
+
+    Organization:
+      type: object
+      required:
+        - name
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        sempV2Authentication:
+          $ref: "#/components/schemas/SempV2Authentication"
+        cloud-token:
+          oneOf:
+            - type: string
+              pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+              minLength: 1
+              maxLength: 16384
+              description: a Solace Cloud API Token, requires "get services" and "event portal read" permissions
+              example: eyXhbGciOiJSUzI1NiIsImtpZCI6Im1hYXNfcHJvZF8yMDIwMDMyNiIsInR5cCI6IkpXVCJ9.eyJvcmcifiJzb2xhY2Vpb3R0ZWFtIiwib3JnVHlwZSI6IkVOVEVSUFJJU0UiLCJzdWIiOiIzZTJvY214MTA1IiwicGVybWlzc2lvbnMiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQXdBQU09IiwiYXBpVG9rZW5JZCI6Inlhb2wzc2ZveG03IiwiaXNzIjoiU29sYWNlIENvcnBvcmF0aW9uIiwiaWF0IjoxNjAzODA3NzQ1fQ.QIBpi5_U6b1DnAwbDbJiFIT0pomqa4AyOLtmSOEF6zhoxKMm4Y27WbILZnxnh_gpdX-tvt18Ycuck4xs3T5JjFfU3qrczRHSuj2vEdsCpDQWdyZTPV4NQ-zPxRvigTjaTlcdXin8XwMGh8nZdylgRMlRQjvotomnXQxgbUol0Kl1ziFFMybqeD10qCDsUW6Jv-PKibBN3cnCsWwPZX6d_XYUECs1AHjgs5pk-A8v3DHcnvbXiAP4XXrry6ztopAWKMc5rVFoB_WFY4yi0reuTYjn6Sf0g7vZxFifRZZHZmqZtNQUiX6S80eQG4kF3YDKlr5PfLDNp4iRfe0-3svIPw
+            - "$ref": "#/components/schemas/CloudToken"
+
+    SempV2Authentication:
+      description: Specifies how requests to the SEMPv2 Management API are authenticated, defaults to BasicAuth. If APIKey is specified the username returned in the Services/Environments response is used as API Key.
+      type: object
+      required:
+        - authType
+      additionalProperties: false
+      properties:
+        authType:
+          type: string
+          enum:
+            - BasicAuth
+            - APIKey
+          default: BasicAuth
+          example: APIKey
+        apiKeyLocation:
+          type: string
+          enum:
+            - header
+            - query
+          default: query
+          example: header
+        apiKeyName:
+          type: string
+          minLength: 4
+          maxLength: 512
+          pattern: "[a-zA-Z0-9_-]*"
+          description: the name of the query parameter or HTTP header for submitting the API Key
+          example: X-API-KEY
+
+    CloudToken:
+      type: object
+      required:
+        - eventPortal
+        - cloud
+      additionalProperties: true
+      properties:
+        eventPortal:
+          "$ref": "#/components/schemas/CustomCloudEndpoint"
+        cloud:
+          "$ref": "#/components/schemas/CustomCloudEndpoint"
+
+    CustomCloudEndpoint:
+      type: object
+      required:
+        - baseUrl
+      additionalProperties: false
+      properties:
+        baseUrl:
+          type: string
+          pattern: "https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+          example: https://solace.cloud/v1
+          minLength: 0
+          maxLength: 200
+        token:
+          type: string
+          minLength: 2
+          maxLength: 16384
+          pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+          example: eyXhbGciOiJSUzI1NiIsImtpZCI6Im1hYXNfcHJvZF8yMDIwMDMyNiIsInR5cCI6IkpXVCJ9.eyJvcmcifiJzb2xhY2Vpb3R0ZWFtIiwib3JnVHlwZSI6IkVOVEVSUFJJU0UiLCJzdWIiOiIzZTJvY214MTA1IiwicGVybWlzc2lvbnMiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQXdBQU09IiwiYXBpVG9rZW5JZCI6Inlhb2wzc2ZveG03IiwiaXNzIjoiU29sYWNlIENvcnBvcmF0aW9uIiwiaWF0IjoxNjAzODA3NzQ1fQ.QIBpi5_U6b1DnAwbDbJiFIT0pomqa4AyOLtmSOEF6zhoxKMm4Y27WbILZnxnh_gpdX-tvt18Ycuck4xs3T5JjFfU3qrczRHSuj2vEdsCpDQWdyZTPV4NQ-zPxRvigTjaTlcdXin8XwMGh8nZdylgRMlRQjvotomnXQxgbUol0Kl1ziFFMybqeD10qCDsUW6Jv-PKibBN3cnCsWwPZX6d_XYUECs1AHjgs5pk-A8v3DHcnvbXiAP4XXrry6ztopAWKMc5rVFoB_WFY4yi0reuTYjn6Sf0g7vZxFifRZZHZmqZtNQUiX6S80eQG4kF3YDKlr5PfLDNp4iRfe0-3svIPw
+    History:
+      type: object
+      additionalProperties: false
+      properties:
+        title:
+          type: string
+          example: Update product "Product 1"
+          minLength: 1
+          maxLength: 1024
+          pattern: ".*"
+        operation:
+          type: string
+          example: PATCH
+          enum:
+            - PATCH
+            - POST
+            - PUT
+            - DELETE
+        at:
+          type: number
+          maximum: 9007199254740991
+          minimum: 0
+          description: UNIX timestamp when auditable event occurred
+          example: 1610714525243
+        user:
+          $ref: "#/components/schemas/CommonUserName"
+        requestURI:
+          type: string
+          description: the request URI
+          minLength: 1
+          maxLength: 1024
+          pattern: ".*"
+        requestBody:
+          type: object
+          additionalProperties: true
+        responseCode:
+          type: integer
+          format: int64
+          minimum: 100
+          maximum: 599
+          example: 200
+
+    Protocol:
+      type: object
+      required:
+        - name
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          enum:
+            - amqp
+            - amqps
+            - http
+            - https
+            - jms
+            - secure-jms
+            - mqtt
+            - secure-mqtt
+            - ws-mqtt
+            - wss-mqtt
+            - ws
+            - wss
+            - smf
+            - smfs
+            - compressed-smf
+        version:
+          $ref: "#/components/schemas/CommonVersion"
+    WebHookBasicAuth:
+      type: object
+      additionalProperties: false
+      properties:
+        authMethod:
+          type: string
+          enum:
+            - Basic
+        username:
+          $ref: "#/components/schemas/CommonUserName"
+        password:
+          type: string
+          minLength: 8
+          maxLength: 256
+          pattern: "[\\S]*"
+
+      required:
+        - username
+        - password
+    WebHookHeaderAuth:
+      type: object
+      description: A HTTP header used for authentication
+      additionalProperties: false
+      properties:
+        authMethod:
+          type: string
+          enum:
+            - Header
+        headerName:
+          type: string
+          minLength: 1
+          maxLength: 512
+          pattern: "[\\s\\S]*"
+        headerValue:
+          type: string
+          minLength: 1
+          maxLength: 16384
+          pattern: "[\\s\\S]*"
+      required:
+        - headerName
+        - headerValue
+    WebHookAuth:
+      additionalProperties: true
+      anyOf:
+        - $ref: '#/components/schemas/WebHookBasicAuth'
+        - $ref: '#/components/schemas/WebHookHeaderAuth'
+    WebHookTLSOptions:
+      additionalProperties: false
+      description: TLS options required to support older PS+ brokers.
+      deprecated: true
+      properties:
+        tlsTrustedCommonNames:
+          type: array
+          items:
+            type: string
+          minItems: 0
+          maxItems: 255
+          description: "The Trusted Common Names for the REST Consumer are used by encrypted transports to verify the name in the certificate presented by the remote REST consumer. They must include the common name of the remote REST consumer's server certificate."
+
+    WebHook:
+      type: object
+      required:
+        - uri
+        - method
+      additionalProperties: false
+      properties:
+        uri:
+          type: string
+          pattern: "https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+          minLength: 0
+          maxLength: 200
+        environments:
+          type: array
+          description: environments that this webhook serves, if absent webhook will be used for all environments
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: "#/components/schemas/CommonName"
+        method:
+          type: string
+          enum:
+            - POST
+            - PUT
+          default:
+            POST
+        mode:
+          type:
+            string
+          enum:
+            - parallel
+            - serial
+          default: parallel
+        authentication:
+          "$ref": "#/components/schemas/WebHookAuth"
+        tlsOptions:
+          "$ref": "#/components/schemas/WebHookTLSOptions"
+
+    Endpoint:
+      type: object
+      additionalProperties: false
+      properties:
+        protocol:
+          "$ref": "#/components/schemas/Protocol"
+
+        transport:
+          type: string
+          example: TCP
+          description: The protocol transport
+          minLength: 1
+          maxLength: 32
+          pattern: "[A-Za-z0-9\\/\\.]"
+        secure:
+          type: string
+          enum:
+            - yes
+            - no
+        compressed:
+          type: string
+          enum:
+            - yes
+            - no
+        uri:
+          type: string
+          minLength: 5
+          maxLength: 2083
+          pattern: "[a-zA-Z0-9\\.\\-+]*:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+          example: "amqp://mr1i5g7tif6z9h.messaging.solace.cloud:5672"
+    About:
+      type: object
+      additionalProperties: false
+      properties:
+        APIS_PROXY_MODE:
+          type: boolean
+          example: true
+          description: indicates if the Connector is running in Proxy Mode. In this mode all published Event API Products in Event Portal are automatically available as APIs in the connector
+        version:
+          type: object
+          description: version information
+          example: {"connector-version":"1.0"}
+          additionalProperties: true
+
+    APIList:
+      type: array
+      minItems: 0
+      maxItems: 32768
+      items:
+        "$ref": "#/components/schemas/CommonName"
+
+    APISummaryList:
+      type: array
+      minItems: 0
+      maxItems: 32768
+      items:
+        "$ref": "#/components/schemas/APISummary"
+
+    APISummary:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        description:
+          $ref: "#/components/schemas/CommonDescription"
+        source:
+          type: string
+          enum:
+            - EventAPIProduct
+            - Upload
+            - EventPortalLink
+        createdBy:
+          $ref: "#/components/schemas/CommonUserName"
+
+    APIInfoList:
+      type: array
+      minItems: 0
+      maxItems: 32768
+      items:
+        "$ref": "#/components/schemas/APIInfo"
+
+    String2MB:
+      type: string
+      minLength: 1
+      maxLength: 2000000
+      pattern: "[\\s\\S]*"
+      example: |
+        asyncapi: 2.0.0
+          info:
+            title: Hello world application
+            version: '0.1.0'
+          channels:
+            hello:
+              publish:
+                message:
+                  payload:
+                    type: string
+
+    CommonDisplayName:
+      description: Friendly name of an object for display in UIs, Developer Portals. Can be changed after object creation
+      example: 'A new IoT API / v2.0'
+      type: string
+      minLength: 1
+      maxLength: 256
+      pattern: "[\\/\\sa-z.A-z0-9_-]*"
+    CommonName:
+      description: 'The internal name of an object. Characters you can use in the name are restricted to: A-Z0-9._-. Once the object is created the internal name can not be changed'
+      example:
+        '{name}'
+      type: string
+      pattern: "[a-zA-Z0-9_-]*"
+      minLength: 2
+      maxLength: 188
+    CommonUserName:
+      type: string
+      minLength: 1
+      maxLength: 64
+      pattern: "[.a-zA-Z0-9@-_]*"
+      example: tom
+    CommonDescription:
+      description: An overview of the object. Include key information about the object that is not captured by other fields..
+      example: |
+        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed ac laoreet libero. Maecenas lacus urna, dignissim sollicitudin nisi nec, mollis finibus tortor. Mauris ipsum dolor, eleifend eu bibendum iaculis, pulvinar sit amet justo. Curabitur vestibulum quis quam at pretium. Fusce a nulla non diam dapibus pretium. Phasellus vehicula interdum ex at dapibus. Cras non pretium metus. Nulla auctor nibh non lacus gravida, vitae molestie leo ultricies. Nunc tempor eros tempor dapibus vulputate.
+
+        Vivamus eget vulputate ipsum, vel ornare nulla. Aenean hendrerit, magna id mollis elementum, enim purus convallis arcu, eget eleifend metus ipsum vitae felis. Cras condimentum feugiat fringilla. Etiam ligula dui, malesuada ut finibus imperdiet, bibendum tristique velit. Phasellus consectetur venenatis augue ac ornare. Ut vel sem in lorem fermentum porttitor. Pellentesque eget fermentum enim. Suspendisse risus elit, imperdiet facilisis volutpat in, congue ac ligula. Aenean mollis sagittis finibus. Vestibulum viverra metus magna, ut volutpat dui imperdiet ultricies.
+      type: string
+      minLength: 0
+      maxLength: 4096
+      pattern: "^[\\s\\S]*$"
+    CommonSolaceCloudObjectId:
+      type: string
+      description: id as used/issued by the back end apis, alphanumeric characters only
+      example: n8kg4fjka9r
+      pattern: "[a-zA-Z0-9]*"
+      minLength: 2
+      maxLength: 32
+    CommonTimestampInteger:
+      type: integer
+      format: int64
+      example: 1620311683577
+      maximum: 9007199254740991
+      minimum: 0
+    CommonURL:
+      type: string
+      minLength: 8
+      maxLength: 2083
+      example: "https://solace.cloud/api/v0/eventPortal/apiProducts/abc123/asyncApi.json"
+      pattern: "https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+    CommonTopic:
+      type: string
+      minLength: 2
+      maxLength: 250
+      pattern: "^[a-zA-Z0-9][\\S]*[^\\/]$"
+      example: deliver/*/enroute/v1/45*/-75*/vehicle4*/>
+    CommonVersion:
+      type: string
+      minLength: 1
+      maxLength: 32
+      pattern: "[_\\-\\S\\.]*"
+      example: "3.1.1-alpha"
+    MsgVpnName:
+      type: string
+      minLength: 1
+      maxLength: 32
+      example: "API-GW-EU:AWS:1"
+      pattern: "^[^*^?]*$"
+security:
+  - OpenId: []
+  - BasicAuth: []
+  - BearerAuth: []
+tags:
+  - name: apis
+    description: "Represents Async API specifications. The specifications must be compliant documents in JSON or YML format"
+  - name: apiProducts
+    description: "An API product consists of a list of API resources (URIs) and custom metadata required by the API provider. API products enable you to bundle and distribute your APIs to multiple developer groups simultaneously"
+  - name: developers
+    description: "Developers must register. After they are registered, developers register their apps, choose the APIs they want to use, and receive the unique API credentials (consumer keys and secrets) needed to access APIs."
+  - name: teams
+    description: "Teams can be set up. There is no concept of team membership currently. After creation, apps can be created for a team, choosing the APIs they want to use, and creating the unique API credentials (consumer keys and secrets) needed to access APIs."
+  - name: apps
+    description: "Manage consumer credentials for apps"
+  - name: environments
+    description: "An environment provides a runtime execution context for APIs. Each environment is associated with a specific Service in the associated Solace Cloud account. Typical environments are dev, stage, prod ..."
+  - name: management
+    description: "Manage organization settings, audit history"
+  - name: administration
+    description: "Manage tenants/orgs. Requires admin access level."
+  - name: eventPortal
+    description: "Provides read-only access to the Solace Event Portal associated with the account."
+paths:
+  /organizations:
+    get:
+      operationId: listOrganizations
+      security:
+        - OpenId:
+            - org-admin
+      tags:
+        - administration
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: list of organizations
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  "$ref": "#/components/schemas/Organization"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createOrganization
+      security:
+        - OpenId:
+            - org-admin
+      tags:
+        - administration
+      requestBody:
+        description: "Organization"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/Organization"
+      responses:
+        '201':
+          description: New Organization
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          description: "Bad request. Likely an invalid auth token provided."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /organizations/{organization_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: getOrganization
+      tags:
+        - administration
+      responses:
+        '200':
+          description: the organization
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Organization"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateOrganization
+      tags:
+        - administration
+      requestBody:
+        description: "Organization"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/Organization"
+      responses:
+        '200':
+          description: Updated Organization
+          content:
+            "application/json":
+              schema:
+                $ref: '#/components/schemas/Organization'
+        '400':
+          description: "Bad request. Likely an invalid auth token provided."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteOrganization
+      tags:
+        - administration
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /healthcheck:
+    get:
+      operationId: healthcheck
+      description: Checks the health of the API. Returns ststuas code 200 if healthy, status code 503 if unhleathy
+      security:
+        - OpenId:
+            - org-admin
+      tags:
+        - administration
+      responses:
+        '200':
+          description: health of the API
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  status:
+                    type: string
+                    default: ok
+                    enum:
+                      - ok
+                      - failure
+        '503':
+          description: "Service Unavailable."
+          content:
+            "application/json":
+              schema:
+                type: object
+                additionalProperties: false
+                properties:
+                  status:
+                    type: string
+                    default: error
+                    minLength: 1
+                    maxLength: 128
+                    pattern: "[\\S]*"
+                  error:
+                    type: array
+                    minItems: 0
+                    maxItems: 32768
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        message:
+                          type: string
+                          minLength: 0
+                          maxLength: 1024
+                          example: NO_DB_CONNECTION
+                          pattern: "[\\S\\s]*"
+                  details:
+                    type: array
+                    minItems: 0
+                    maxItems: 32768
+                    items:
+                      type: object
+                      additionalProperties: false
+                      properties:
+                        message:
+                          type: string
+                          example: NO_DB_CONNECTION
+                          minLength: 0
+                          maxLength: 1024
+                          pattern: "[\\S\\s]*"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /about:
+    get:
+      operationId: about
+      description: Returns informaiton about the Connector Version and configuration
+      security:
+        - OpenId:
+            - org-admin
+      tags:
+        - administration
+      responses:
+        '200':
+          description: Information about the connector
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/About"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/history:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: listHistory
+      tags:
+        - management
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: audit history
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  "$ref": "#/components/schemas/History"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/token:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: getToken
+      tags:
+        - management
+      responses:
+        '200':
+          description:  cloud token
+          content:
+            "text/plain":
+              schema:
+                type: string
+                pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+                minLength: 1
+                maxLength: 16384
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    put:
+      operationId: updateToken
+      tags:
+        - management
+      requestBody:
+        description: "Solace Cloud Token"
+        content:
+          "text/plain":
+            schema:
+              type: string
+              minLength: 100
+              maxLength: 16384
+              pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+      responses:
+        '201':
+          description: The cloud token
+          content:
+            application/json:
+              schema:
+                type: string
+                minLength: 1
+                maxLength: 16384
+                pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/apis:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: listApis
+      tags:
+        - apis
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+        - $ref: '#/components/parameters/api_list_format'
+      responses:
+        '200':
+          description: list of APIs
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                anyOf:
+                  - $ref: '#/components/schemas/APIList'
+                  - $ref: '#/components/schemas/APISummaryList'
+                  - $ref: '#/components/schemas/APIInfoList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: importApi
+      description: Imports an Async API from an external source
+      tags:
+        - apis
+      requestBody:
+        description: "Import request."
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/APIImport"
+      responses:
+        '201':
+          description: New API that was imported
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+            application/x-yaml:
+              schema:
+                $ref: "#/components/schemas/String2MB"
+        '400':
+          description: "Invalid API specification provided"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/apis/{api_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_name'
+    put:
+      operationId: createApi
+      tags:
+        - apis
+      requestBody:
+        description: "Async API specification"
+        content:
+          "text/plain":
+            schema:
+              $ref: "#/components/schemas/String2MB"
+      responses:
+        '201':
+          description: The async API specification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+            application/x-yaml:
+              schema:
+                $ref: "#/components/schemas/String2MB"
+        '400':
+          description: "Invalid API specification provided"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    get:
+      operationId: getApi
+      tags:
+        - apis
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+              - application/json
+              - application/x-yaml
+      responses:
+        '200':
+          description:  async api sepc
+          content:
+            application/json:
+              schema:
+                type: object
+            application/x-yaml:
+              schema:
+                $ref: "#/components/schemas/String2MB"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateApi
+      tags:
+        - apis
+      requestBody:
+        description: "async api specification"
+        content:
+          "text/plain":
+            schema:
+              $ref: "#/components/schemas/String2MB"
+      responses:
+        '200':
+          description: updated async api specification
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+            application/x-yaml:
+              schema:
+                $ref: "#/components/schemas/String2MB"
+        '400':
+          description: "Invalid API specification provided"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteApi
+      tags:
+        - apis
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apis/{api_name}/info:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_name'
+    get:
+      operationId: getApiInfo
+      tags:
+        - apis
+      responses:
+        '200':
+          description: API meta information
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/APIInfo"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apiProducts:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: listApiProducts
+      tags:
+        - apiProducts
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: list of API Products
+          content:
+            "application/json":
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: '#/components/schemas/APIProduct'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createApiProduct
+      tags:
+        - apiProducts
+      requestBody:
+        description: "Application domains have a name and topic domain."
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/APIProduct"
+      responses:
+        '201':
+          description: New API Product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIProduct'
+        '422':
+          description: "Duplicate API Product or invalid object reference e.g. invalid environment name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/apiProducts/{api_product_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_product_name'
+    get:
+      operationId: getApiProduct
+      tags:
+        - apiProducts
+      responses:
+        '200':
+          description:  an API Product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIProduct'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateApiProduct
+      tags:
+        - apiProducts
+      requestBody:
+        description: "Application domains have a name and topic domain."
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/APIProductPatch"
+      responses:
+        '200':
+          description: Updated API Product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/APIProduct'
+        '422':
+          description: "Duplicate API Product or invalid object reference e.g. invalid environment name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteApiProduct
+      tags:
+        - apiProducts
+      responses:
+        '204':
+          description: No content
+        '409':
+          description: "Can't delete, API Product is still referenced."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apiProducts/{api_product_name}/apis:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_product_name'
+    get:
+      operationId: listApiProductApis
+      tags:
+        - apps
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description:  api names associated with the api product
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  type: string
+                  minLength: 4
+                  maxLength: 188
+                  pattern: "[a-zA-Z0-9_-]*"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apiProducts/{api_product_name}/apis/{api_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_product_name'
+      - $ref: '#/components/parameters/api_name'
+    get:
+      operationId: getApiProductApiSpecification
+      tags:
+        - apps
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+              - application/json
+              - application/x-yaml
+      responses:
+        '200':
+          description:  async api sepc
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+            application/x-yaml:
+              schema:
+                $ref: "#/components/schemas/String2MB"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/developers:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: listDevelopers
+      tags:
+        - developers
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: list of Developers
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: '#/components/schemas/Developer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createDeveloper
+      tags:
+        - developers
+      requestBody:
+        description: "Developer account information"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/Developer"
+      responses:
+        '201':
+          description: New developer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Developer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/developers/{developer_username}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/developer_username'
+    get:
+      operationId: getDeveloper
+      tags:
+        - developers
+      responses:
+        '200':
+          description:  a developer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Developer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateDeveloper
+      tags:
+        - developers
+      requestBody:
+        description: "Application domains have a name and topic domain."
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/DeveloperPatch"
+      responses:
+        '200':
+          description: Updated developer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Developer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteDeveloper
+      tags:
+        - developers
+      responses:
+        '204':
+          description: No content
+        '409':
+          description: "Can't delete, developer is still referenced."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/developers/{developer_username}/apps:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/developer_username'
+    get:
+      operationId: listDeveloperApps
+      tags:
+        - apps
+        - developers
+      parameters:
+        - in: query
+          name: status
+          schema:
+            "$ref": "#/components/schemas/AppStatus"
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: list of apps
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: '#/components/schemas/App'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createDeveloperApp
+      tags:
+        - apps
+        - developers
+      requestBody:
+        description: "App information"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/App"
+      responses:
+        '201':
+          description: New app
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        '400':
+          description: "Bad request, contains information about failed back end calls when the app is  provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: "Duplicate app or invalid object reference e.g. invalid API product name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '500':
+          description: "Internal Server error, contains information about failed back end calls when the app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/developers/{developer_username}/apps/{app_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/developer_username'
+      - $ref: '#/components/parameters/app_name'
+    get:
+      operationId: getDeveloperApp
+      parameters:
+        - $ref: '#/components/parameters/topicSyntax'
+      tags:
+        - apps
+        - developers
+      responses:
+        '200':
+          description:  an app
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateDeveloperApp
+      tags:
+        - apps
+        - developers
+      requestBody:
+        description: ""
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/AppPatch"
+      responses:
+        '200':
+          description: App
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        '400':
+          description: "Bad request, contains information about failed back end calls when the app is  provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: "Duplicate app or invalid object reference e.g. invalid API product name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '500':
+          description: "Internal Server error, contains information about failed back end calls when the  app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteDeveloperApp
+      tags:
+        - apps
+        - developers
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/teams:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: listTeams
+      tags:
+        - teams
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: list of Teams
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: '#/components/schemas/Team'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createTeam
+      tags:
+        - teams
+      requestBody:
+        description: "Team information"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/Team"
+      responses:
+        '201':
+          description: New team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/teams/{team_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/team_name'
+    get:
+      operationId: getTeam
+      tags:
+        - teams
+      responses:
+        '200':
+          description:  a team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateTeam
+      tags:
+        - teams
+      requestBody:
+        description: "An updated team object."
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/TeamPatch"
+      responses:
+        '200':
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Team'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteTeam
+      tags:
+        - teams
+      responses:
+        '204':
+          description: No content
+        '409':
+          description: "Can't delete, team is still referenced."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/teams/{team_name}/apps:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/team_name'
+    get:
+      operationId: listTeamApps
+      tags:
+        - apps
+        - teams
+      parameters:
+        - in: query
+          name: status
+          schema:
+            "$ref": "#/components/schemas/AppStatus"
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: list of apps
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: '#/components/schemas/AppResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createTeamApp
+      tags:
+        - apps
+        - teams
+      requestBody:
+        description: "App information"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/App"
+      responses:
+        '201':
+          description: New app
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        '400':
+          description: "Bad request, contains information about failed back end calls when the app is  provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: "Duplicate app or invalid object reference e.g. invalid API product name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '500':
+          description: "Internal Server error, contains information about failed back end calls when the app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/teams/{team_name}/apps/{app_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/team_name'
+      - $ref: '#/components/parameters/app_name'
+    get:
+      operationId: getTeamApp
+      parameters:
+        - $ref: '#/components/parameters/topicSyntax'
+      tags:
+        - apps
+        - teams
+      responses:
+        '200':
+          description:  an app
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+    patch:
+      operationId: updateTeamApp
+      tags:
+        - apps
+        - teams
+      requestBody:
+        description: ""
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/AppPatch"
+      responses:
+        '200':
+          description: App
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        '400':
+          description: "Bad request, contains information about failed back end calls when the app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: "Duplicate app or invalid object reference e.g. invalid API product name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '500':
+          description: "Internal Server error, contains information about failed back end calls when the app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteTeamApp
+      tags:
+        - apps
+        - teams
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/apps:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - in: query
+        name: status
+        schema:
+          "$ref": "#/components/schemas/AppStatus"
+    get:
+      operationId: listApps
+      tags:
+        - apps
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: list of apps
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: '#/components/schemas/AppListItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apps/{app_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/app_name'
+    get:
+      operationId: getApp
+      parameters:
+        - $ref: '#/components/parameters/topicSyntax'
+      tags:
+        - apps
+      responses:
+        '200':
+          description:  an app
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/apps/{app_name}/apis:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/app_name'
+    get:
+      operationId: listAppApiSpecifications
+      tags:
+        - apps
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description:  api names associated with the app
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  type: string
+                  minLength: 4
+                  maxLength: 188
+                  pattern: "[a-zA-Z0-9_-]*"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apps/{app_name}/apis/{api_name}:
+    parameters:
+      - $ref: '#/components/parameters/app_name'
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_name'
+    get:
+      operationId: getAppApiSpecification
+      tags:
+        - apps
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+              - application/json
+              - application/x-yaml
+      responses:
+        '200':
+          description:  async api sepc
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+            application/x-yaml:
+              schema:
+                $ref: "#/components/schemas/String2MB"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/environments:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: listEnvironments
+      tags:
+        - environments
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+        - name: format
+          in: query
+          schema:
+            type: string
+            default: summary
+            enum:
+              - summary
+              - full
+      responses:
+        '200':
+          description: list of environments
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: '#/components/schemas/EnvironmentListItem'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createEnvironment
+      tags:
+        - environments
+      requestBody:
+        description: "Environment information"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/Environment"
+      responses:
+        '201':
+          description: New environment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Environment'
+        '422':
+          description: "INvalid object reference, for example cloud service reference invalid or protocol not supported by the cloud service."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/environments/{env_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/env_name'
+    get:
+      operationId: getEnvironment
+      tags:
+        - environments
+      responses:
+        '200':
+          description:  environment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvironmentResponse'
+        '409':
+          description: "Can't delete, environment is still referenced."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateEnvironment
+      tags:
+        - environments
+      requestBody:
+        description: "Application domains have a name and topic domain."
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/EnvironmentPatch"
+      responses:
+        '200':
+          description: Updated Environment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Environment'
+        '422':
+          description: "INvalid object reference, for example cloud service reference invalid or protocol not supported by the cloud service."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteEnvironment
+      tags:
+        - environments
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/services:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: listServices
+      tags:
+        - environments
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description: list of services on the associated Solace Cloud account
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: '#/components/schemas/Service'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/eventApiProducts:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+    get:
+      operationId: listEventAPIProducts
+      tags:
+        - eventPortal
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+      responses:
+        '200':
+          description: list of event api products defined in the associated Event Portal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventAPIProductList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/eventApiProducts/{event_api_product_id}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/event_api_product_id'
+    get:
+      operationId: getEventAPIProduct
+      tags:
+        - eventPortal
+      responses:
+        '200':
+          description: an event api products defined in the associated Event Portal
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventAPIProduct'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/eventApiProducts/{event_api_product_id}/asyncApi:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/event_api_product_id'
+    get:
+      operationId: getEventAPIProductAsyncAPI
+      tags:
+        - eventPortal
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+              - application/json
+              - application/x-yaml
+      responses:
+        '200':
+          description: the Async API spec in JSON format
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                example:
+                  asyncapi: 2.0.0
+                  info:
+                    title: Hello world application
+                    version: '0.1.0'
+                  channels:
+                    hello:
+                      publish:
+                        message:
+                          payload:
+                            type: string
+            application/x-yaml:
+              schema:
+                $ref: "#/components/schemas/String2MB"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'

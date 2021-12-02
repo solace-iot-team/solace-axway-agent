@@ -1,0 +1,64 @@
+name: develop-release
+on:
+  # deployment to internal ghcr repo only manually triggered
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: solace-iot-team/solace-axway-agent
+  VERSION: "0.0.0"
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Log in to GitHub Docker Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v1
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - uses: actions/checkout@v2
+
+      - name: Set versions properties
+        run:  |
+          VERSION=$(<version)
+          echo "VERSION=$VERSION">> $GITHUB_ENV
+          echo "VERSION: $VERSION"
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 14
+      - run: npm install shelljs
+      - name: Check Docker Version Tag
+        uses: actions/github-script@v5
+        with:
+          script:  |
+            const s = require('shelljs');
+            const { VERSION, IMAGE_NAME } = process.env;
+            const dhid = "ghcr.io"+"/"+IMAGE_NAME+":"+ VERSION
+            console.log('Looking up Docker Hub for:'+dhid);
+            let code = s.exec('docker manifest inspect '+dhid).code;
+            if(code===0) {
+              console.log(`aborting - image already exists `+dhid);
+              process.exit(1);
+            } else {
+              console.log(`check ok - image can get published `+dhid);
+            }
+      - name: Build and Deploy to Github Docker registry
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{env.IMAGE_NAME}}:alpha
+            ghcr.io/${{env.IMAGE_NAME}}:${{env.VERSION}}

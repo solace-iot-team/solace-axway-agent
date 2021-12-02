@@ -1,0 +1,26 @@
+version: "3.9"
+services:
+  agent:
+    image: "solace-axway-agent:alpha"
+    environment:
+      CENTRAL_POLLINTERVAL: "10s"
+      CENTRAL_URL: "https://central.eu-fr.axway.com"
+      CENTRAL_ORGANIZATIONID:
+      CENTRAL_ENVIRONMENT:
+      CENTRAL_AUTH_CLIENTID: "DOSA_"
+      CENTRAL_AUTH_PRIVATEKEY_DATA: "-----BEGIN PRIVATE KEY----------END PRIVATE KEY-----\n"
+      CENTRAL_AUTH_PUBLICKEY_DATA: "-----BEGIN PUBLIC KEY----- \n-----END PUBLIC KEY-----\n"
+      CONNECTOR_URL:
+      CONNECTOR_ADMINUSER:
+      CONNECTOR_ADMINPASSWORD:
+      CONNECTOR_ORGUSER:
+      CONNECTOR_ORGPASSWORD:
+      CONNECTOR_ACCEPTINSECURECERTIFICATES:
+      NOTIFIER_URL:
+      NOTIFIER_APITOKENHEADER:
+      NOTIFIER_APITOKEN:
+      NOTIFIER_ACCEPTINSECURECERTIFICATES:
+      SSL_CERT_DIR: "/var/agent/certs"
+    volumes:
+      - /local/path/to/ca_certs:/var/agent/certs
+

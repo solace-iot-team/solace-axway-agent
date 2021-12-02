@@ -1,5 +1,11 @@
 # Release Notes
 
+## Version 0.0.12
+
+### Features
+* **Release**
+    - added docker image latest tag to docker hub image
+
 ## Version 0.0.11
 
 ### Features

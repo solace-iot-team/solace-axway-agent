@@ -1,11 +1,10 @@
-name: release
+name: release-version-check
 on:
   # deployment to docker hub only manually triggered
   workflow_dispatch:
-
-  # for production
-  release:
-    types: [ created ]
+  pull_request:
+    branches:
+      - main
 env:
   IMAGE_NAME: solaceiotteam/solace-axway-agent
   VERSION: "0.0.0"
@@ -65,11 +64,4 @@ jobs:
             } else {
               console.log(`check ok - image can get published `+dhid);
             }
- #     - name: Build and Deploy to Docker registry
- #       uses: docker/build-push-action@v2
- #       with:
- #         context: .
- #         push: true
- #         tags: |
- #           solaceiotteam/solace-axway-agent:alpha
- #           solaceiotteam/solace-axway-agent:${{env.VERSION}}
+      - run: echo "Version $VERSION is ok"

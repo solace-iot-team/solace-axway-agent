@@ -1,4 +1,4 @@
-name: develop-release-workflow
+name: develop-release
 on:
   # deployment to internal ghcr repo only manually triggered
   workflow_dispatch:

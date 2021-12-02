@@ -63,11 +63,11 @@ jobs:
             } else {
               console.log(`check ok - image can get published `+dhid);
             }
- #     - name: Build and Deploy to Docker registry
- #       uses: docker/build-push-action@v2
- #       with:
- #         context: .
- #         push: true
- #         tags: |
- #           solaceiotteam/solace-axway-agent:alpha
- #           solaceiotteam/solace-axway-agent:${{env.VERSION}}
+      - name: Build and Deploy to Docker registry
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: true
+          tags: |
+            solaceiotteam/solace-axway-agent:alpha
+            solaceiotteam/solace-axway-agent:${{env.VERSION}}

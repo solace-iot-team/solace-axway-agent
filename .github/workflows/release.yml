@@ -13,8 +13,6 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
-    if: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - name: Check Auth
         if: github.event_name == 'workflow_dispatch' && github.actor != 'ricardojosegomezulmke' && github.actor != '195858' && github.actor!= 'mynecker'

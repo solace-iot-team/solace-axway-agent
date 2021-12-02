@@ -69,5 +69,5 @@ jobs:
           context: .
           push: true
           tags: |
-            solaceiotteam/solace-axway-agent:alpha
-            solaceiotteam/solace-axway-agent:${{env.VERSION}}
+            ${{env.IMAGE_NAME}}:alpha
+            ${{env.IMAGE_NAME}}:${{env.VERSION}}

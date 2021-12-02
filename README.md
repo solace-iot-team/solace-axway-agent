@@ -2,6 +2,43 @@
 
 Axway Agent for provisioning AsyncAPIs into Solace Brokers. 
 
+## Concepts and Architecture
+
+* Solace-Axway-Agent polls Axway Central for `subscriptions` (states `subscribing` or  `unsubscribing`).
+* Solace-Axway-Agent registers a `Subscription Schema` for Webhooks in Axway Central
+* Solace-Axway-Agent polls Axway Central for Axway Catalog Items that are marked as `Webhook Enabled` and assigns the `Subscription Schema`
+
+### Subscribing AsyncAPIs in Axway
+
+For each `subscribing` subscription Solace-Axway-Agents deploys in Solace-Connector:
+* The associated AsyncAPI as `API`
+* A `Product` with the `API`
+* A `Team` 
+* A `TeamApp` with the `Product` assigned to
+
+Solace-Axway-Agent shares by Email and / or HTTP-Notification Call
+* Credentials to be used to connect to Solace Broker
+  * Username and Password
+
+Solace-Connector provisions into Solace Broker:
+* `User` for the `Team`
+* `ACLs` assigned to that User
+* optionally `Queues`
+* optionally `RDPs` (Rest Delivery Points)
+
+### Unsubscribing AsyncAPIs in Axway
+
+For each `unsubscribing` subscription Solace-Axway-Agents undeploys in Solace-Connector
+* `TeamApp`
+* `Product`
+
+Solace-Connector removes in Solace Broker:
+* `User`
+* `ACLs`
+* optionally `Queues`
+* optionally `RDPs`
+
+
 ## Development 
 ### Prerequisites
 
@@ -13,19 +50,6 @@ Axway Agent for provisioning AsyncAPIs into Solace Brokers.
 
 * Solace-Axway-Agent is based on [solace-iot-team/agent-sdk](https://github.com/solace-iot-team/agent-sdk) which is a fork of [Axway/agent-sdk](https://github.com/Axway/agent-sdk) 
   * how to import `agent-sdk` is documented inline in `go.mod`
-
-### Prepare Environment for Integration Tests
-
-* Provide `.env.local` file in `/testing`
-  * sample is in `/sample/.env`
-* Start Docker-Compose to bring up 
-  * Solace-Connector
-  * Notifier Service
-* Start testing by `make integrationtest`
-  * set environment variables (sample is located in `/testing`)
-
-### How to build
-
 * Checkout repository
 * Build project
   `make build`
@@ -34,6 +58,11 @@ Axway Agent for provisioning AsyncAPIs into Solace Brokers.
 
 ### Code Generation
 Solace-Connector and Notifier HTTP-Clients are generated. Detailed information is located in `/specs`
+
+### Integration Testing
+
+* Detailed information in `/testing/README.md`
+
 # How to use
 
 ## Prerequisites
@@ -79,127 +108,3 @@ Sample of an agent running on localhost:
 * `curl http://localhost:8989/status/solace`
 
 
-### Environment / Configuration
-
-
-```yaml
-log:
-  level: trace
-# optional - directory containing SSL/TLS public certificates of endpoints this agent is esablishing connections to
-ssl_cert_dir: "/path/to/directory"
-# Configuration options offered by Axway Agent SDK 
-central:
-  # Pollinterval agent is polling Axway Central
-  pollInterval: 10s
-  # Axway Central API Endpoint
-  url: https://central.eu-fr.axway.com
-  # Axway Central Organization ID 
-  organizationID: 12345
-  # Axway Central Environment 
-  environment: abc-efg-1
-  auth:
-    # Axway Central Service Account 
-    clientID: DOSA_abc123
-    # Path and Filename of Axway Central Service Account private key as PEM 
-    privateKey: "/path/to/private_key.pem"
-      # Optional - PEM content as one line PEM 
-      #            will be written as PEM in central.auth.privateKey file defined in here
-      #            can get used to bootstrap and share PEM via environment variable
-      # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file 
-      data: "-----BEGIN PRIVATE KEY----- ..."
-    # Path and Filename of Axway Central Service Account public key as PEM
-    publicKey: "/path/to/public_key.pem"
-      # Optional - PEM content as one line PEM 
-      #            will be written as PEM in central.auth.publicKey file defined in here
-      #            can get used to bootstrap and share PEM via environment variable
-      # use awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem  to transform PEM file 
-      data: "-----BEGIN PUBLIC KEY----- ..."
-  # configuration related to management of subscriptions (subscribe / unsubscribe)    
-  subscriptions:
-    # SMTP Notification options
-    notifications:
-      # only SMTP supported for Solace-Axway-Agent 
-      type:
-      - smtp
-      smtp:
-        # SMTP host 
-        host: smtp.host.com 
-        # SMTP Port
-        port: 1234
-        # Sender of notification 
-        fromAddress: sender@host.com
-        # SMTP authentication
-        authType: plain
-        # SMTP server username
-        username: theusername
-        # SMTP server password
-        password: thepassword
-        subscribe:
-          # go-template for subscribe emails
-          body: >
-            <p>A Subscription just got created for AsyncAPI {{.CatalogItemName}}.</p>Detailed description of the AsyncAPI can get found at: <a href={{.CatalogItemURL}}">Axway Central {{.CatalogItemName}} </a> <p></p><p>The subscribed AsyncAPI is secured with <ul><li>Username: <b> {{.ClientID}} </b></li><li>Password: <b> {{.ClientSecret}} </b></li></ul></p><p>AsyncAPI runtime internal AppId: {{.APIManagerID}} </p>
-          # go-template for rendering credentials in subscribe emails
-          oauth: "</br></a>Your API is secured using Username: <b> {{.ClientID}} </b> and Password=<b> {{.ClientSecret}} </b>" 
-        unsubscribe:
-          # go-template for unsubscribe emails
-          body: >
-            <p>A Subscription just got unsubscribed for AsyncAPI {{.CatalogItemName}}.</p>Detailed description of the AsyncAPI can get found at: <a href={{.CatalogItemURL}}">Axway Central {{.CatalogItemName}} </a> <p>
-# Solace-Axway-Agent specific 
-bootstrapping:
-  # Publish (idempotent) Axway Subscription Schema in Axway Central 
-  # Publishing is executed once per Solace-Axway-Agent start-up
-  publishSubscriptionSchema: true
-  # Assignment of Axway Subscription Schema to AsyncAPIs with attribute solace-webhook-enabled==true
-  # see also solaceconst.go 
-  processSubscriptionSchema: true
-  # Pollinterval in seconds for querying subscriptions
-  processSubscriptionSchemaInterval: 60
-  
-# Solace Connector specific configurations
-connector:
-  # Solace Connector endpoint
-  url: http://url:port/path
-  # Solace Connector admin user
-  adminUser: admin
-  # Solace Connector admin password
-  adminPassword: secret
-  # Solace Connector organization user 
-  orgUser: user
-  # Solace Connector organization user password
-  orgPassword: secret
-  # Enable / disable TLS certificate validation of connector endpoint
-  #   provide (root)-certificate of endpoint in ssl_cert_dir to enable it
-  acceptinsecurecertificates: false  
-  # Enable/ disable logging of HTTP-REST requests sent to Solace-Connector
-  #   sensitive information will be written to the log (e.g. usernames and passwords of AsyncAPI subscriptions)
-  #   only for debugging and development 
-  logBody: true
-  # Enable / disable logging of HTTP Headers sent to Solace-Connector
-  #   sensitive information will be written to the log (username / password used to authenticate against Solace-Connector)
-  #   only for debugging and development 
-  logHeader: true
-
-# Notifier Endpoint configuration
-notifier:
-  # Enable / disable notifier
-  enabled: false
-  # Notifier endpoint
-  url: http://notifier.endpoint.com/path
-  # Enable / disable TLS certificate validation of notifier endpoint
-  #   provide (root)-certificate of endpoint in ssl_cert_dir to enable it
-  acceptinsecurecertificates: false
-  # Authentication type
-  #   basic: BasicAuth
-  #   header: HTTPHeader / Value
-  apiAuthType: basic
-  # Authentication Type
-  #   basic: username
-  #   header: headername
-  apiConsumerKey: username/headername
-  # Authentication Type
-  #   basic: password
-  #   header: headervalue apikey, etc. 
-  apiConsumerSecret: abcefg
-  # Health message sent to Notifier health endpoint 
-  healthmessage: "ping"
-```

@@ -9,6 +9,9 @@ central:
   pollInterval: 10s
   # Axway Central API Endpoint
   url: https://central.eu-fr.axway.com
+  # Proxy for Axway Central Endpoint
+  # proxyUrl: https://abc:123
+
   # Axway Central Organization ID
   organizationID: 12345
   # Axway Central Environment
@@ -75,6 +78,10 @@ bootstrapping:
 connector:
   # Solace Connector endpoint
   url: http://url:port/path
+
+  # Proxy for Solace Connector endpoint
+  # proxyUrl: http://abc:123
+
   # Solace Connector admin user
   adminUser: admin
   # Solace Connector admin password
@@ -101,6 +108,10 @@ notifier:
   enabled: false
   # Notifier endpoint
   url: http://notifier.endpoint.com/path
+
+  # Proxy for Notifier endpoint
+  # proxyUrl: http://abc:123
+
   # Enable / disable TLS certificate validation of notifier endpoint
   #   provide (root)-certificate of endpoint in ssl_cert_dir to enable it
   acceptinsecurecertificates: false

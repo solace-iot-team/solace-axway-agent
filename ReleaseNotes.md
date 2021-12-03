@@ -1,5 +1,15 @@
 # Release Notes
 
+## Version 0.0.12
+
+### Features
+* **HTTP-Proxy support**
+  - HTTP-Proxies can get defined for Axway Client, Solace-Connector Client and Notifier Client
+  - Configuration in [sample_solace_axway_agent.yml](sample/sample_solace_axway_agent.yml) as dedicated environment variables / configuration fields
+
+### Fixes
+* no fixes
+
 ## Version 0.0.11
 
 ### Features

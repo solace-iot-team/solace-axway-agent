@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/Axway/agent-sdk/pkg/util"
 	hc "github.com/Axway/agent-sdk/pkg/util/healthcheck"
 	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/deepmap/oapi-codegen/pkg/securityprovider"
@@ -15,7 +16,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	url2 "net/url"
+	"os"
 	"time"
 )
 
@@ -162,11 +165,12 @@ func Initialize(gatewayCfg *config.ConnectorConfig) error {
 
 // NewConnectorAdminClient - Creates a new Gateway Client
 func NewConnectorAdminClient(gatewayCfg *config.ConnectorConfig) (*ClientWithResponses, error) {
+	timeout := getTimeoutFromEnvironment()
 	basicAuthProvider, basicAuthProviderErr := securityprovider.NewSecurityProviderBasicAuth(gatewayCfg.ConnectorAdminUser, gatewayCfg.ConnectorAdminPassword)
 	if basicAuthProviderErr != nil {
 		panic(basicAuthProviderErr)
 	}
-	myclient, err := NewClientWithResponses(gatewayCfg.ConnectorURL, WithTLSConfig(gatewayCfg.ConnectorInsecureSkipVerify), WithRequestEditorFn(basicAuthProvider.Intercept))
+	myclient, err := NewClientWithResponses(gatewayCfg.ConnectorURL, WithTLSConfig(gatewayCfg.ConnectorInsecureSkipVerify, gatewayCfg.ConnectorProxyURL, timeout), WithRequestEditorFn(basicAuthProvider.Intercept))
 	if err != nil {
 		return nil, err
 	}
@@ -175,11 +179,12 @@ func NewConnectorAdminClient(gatewayCfg *config.ConnectorConfig) (*ClientWithRes
 
 // NewConnectorOrgClient - Creates a new Gateway Client
 func NewConnectorOrgClient(gatewayCfg *config.ConnectorConfig) (*ClientWithResponses, error) {
+	timeout := getTimeoutFromEnvironment()
 	basicAuthProvider, basicAuthProviderErr := securityprovider.NewSecurityProviderBasicAuth(gatewayCfg.ConnectorOrgUser, gatewayCfg.ConnectorOrgPassword)
 	if basicAuthProviderErr != nil {
 		panic(basicAuthProviderErr)
 	}
-	myclient, err := NewClientWithResponses(gatewayCfg.ConnectorURL, WithTLSConfig(gatewayCfg.ConnectorInsecureSkipVerify), WithRequestEditorFn(basicAuthProvider.Intercept))
+	myclient, err := NewClientWithResponses(gatewayCfg.ConnectorURL, WithTLSConfig(gatewayCfg.ConnectorInsecureSkipVerify, gatewayCfg.ConnectorProxyURL, timeout), WithRequestEditorFn(basicAuthProvider.Intercept))
 	if err != nil {
 		return nil, err
 	}
@@ -187,29 +192,54 @@ func NewConnectorOrgClient(gatewayCfg *config.ConnectorConfig) (*ClientWithRespo
 }
 
 // WithTLSConfig - Creates ClientOption
-func WithTLSConfig(insecureSkipVerify bool) ClientOption {
+func WithTLSConfig(insecureSkipVerify bool, proxyURL string, timeout time.Duration) ClientOption {
 
 	return func(c *Client) error {
+
+		url, err := url.Parse(proxyURL)
+		if err != nil {
+			log.Errorf("Error parsing proxyURL from config (connector.proxyUrl); creating a non-proxy client: %s", err.Error())
+		}
+
 		//just set a pre-configured client if certificate validation should be skipped
 		if insecureSkipVerify {
 			transCfg := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+				Proxy:           util.GetProxyURL(url),
 			}
 			c.Client = &http.Client{
+				Timeout:   timeout,
 				Transport: transCfg,
 			}
 			log.Warn("[CONCLIENT] Skipping validation of TLS-Certificates of Connector API Endpoint.")
 		} else {
-
 			transCfg := &http.Transport{
 				TLSClientConfig: &tls.Config{},
+				Proxy:           util.GetProxyURL(url),
 			}
 			c.Client = &http.Client{
+				Timeout:   timeout,
 				Transport: transCfg,
 			}
 		}
 		return nil
 	}
+}
+
+// borrowed from Axway/agent-sdk api/client.go
+func getTimeoutFromEnvironment() time.Duration {
+	defaultTimeout := time.Second * 60
+
+	cfgHTTPClientTimeout := os.Getenv("HTTP_CLIENT_TIMEOUT")
+	if cfgHTTPClientTimeout == "" {
+		return defaultTimeout
+	}
+	timeout, err := time.ParseDuration(cfgHTTPClientTimeout)
+	if err != nil {
+		log.Tracef("Unable to parse the HTTP_CLIENT_TIMEOUT value, using the default http client timeout")
+		return defaultTimeout
+	}
+	return timeout
 }
 
 // Healthcheck - verify connection to Solace connector

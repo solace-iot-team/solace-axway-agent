@@ -93,7 +93,7 @@ Configuration of the agent can get provided by a config-file ('solace_axway_agen
 
 
 ### Prepare `solace_axway_agent.yml` configuration
-* Prepare and configure `solace_axway_agent.yml` file. Sample is located in `sample/`
+* Prepare and configure `solace_axway_agent.yml` file. Sample is located in [sample/sample_solace_axway_agent.yml](sample/sample_solace_axway_agent.yml)
 * Or set environment variables. Sample is located in `sample/`
   * Although all configuration options can get defined via environment variables, Solace-Axway-Agent must have access to a minimum `solace_axway_agent.yml` configuration file. This file can get located alongside the executable (same directory) or the directory containing the configuration file can get defined as option `--pathConfig`
 

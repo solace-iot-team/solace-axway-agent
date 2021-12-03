@@ -69,5 +69,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{env.IMAGE_NAME}}:alpha
+            ${{env.IMAGE_NAME}}:latest
             ${{env.IMAGE_NAME}}:${{env.VERSION}}

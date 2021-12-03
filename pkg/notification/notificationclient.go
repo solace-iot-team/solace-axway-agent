@@ -5,12 +5,15 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/Axway/agent-sdk/pkg/util"
 	hc "github.com/Axway/agent-sdk/pkg/util/healthcheck"
 	"github.com/Axway/agent-sdk/pkg/util/log"
 	"github.com/deepmap/oapi-codegen/pkg/securityprovider"
 	"github.com/google/uuid"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/config"
 	"net/http"
+	"net/url"
+	"os"
 	"time"
 )
 
@@ -102,12 +105,13 @@ func Initialize(notifierCfg *config.NotifierConfig) error {
 
 // NewNotificationClient - Creates a new Gateway Client
 func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithResponses, error) {
+	timeout := getTimeoutFromEnvironment()
 	if notifierCfg.NotifierAAPIAuthType == "header" {
 		authProvider, authErr := securityprovider.NewSecurityProviderApiKey("header", notifierCfg.NotifierAPIConsumerKey, notifierCfg.NotifierAPIConsumerSecret)
 		if authErr != nil {
 			panic(authErr)
 		}
-		myclient, err := NewClientWithResponses(notifierCfg.NotifierURL, WithRequestEditorFn(authProvider.Intercept), WithTlSConfig(notifierCfg.NotifierInsecureSkipVerify))
+		myclient, err := NewClientWithResponses(notifierCfg.NotifierURL, WithRequestEditorFn(authProvider.Intercept), WithTlSConfig(notifierCfg.NotifierInsecureSkipVerify, notifierCfg.NotifierProxyURL, timeout))
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +121,7 @@ func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithRespo
 		if authErr != nil {
 			panic(authErr)
 		}
-		myclient, err := NewClientWithResponses(notifierCfg.NotifierURL, WithRequestEditorFn(authProvider.Intercept), WithTlSConfig(notifierCfg.NotifierInsecureSkipVerify))
+		myclient, err := NewClientWithResponses(notifierCfg.NotifierURL, WithRequestEditorFn(authProvider.Intercept), WithTlSConfig(notifierCfg.NotifierInsecureSkipVerify, notifierCfg.NotifierProxyURL, timeout))
 		if err != nil {
 			return nil, err
 		}
@@ -128,29 +132,53 @@ func NewNotificationClient(notifierCfg *config.NotifierConfig) (*ClientWithRespo
 }
 
 // WithTlSConfig prepares TSLConfig
-func WithTlSConfig(insecureSkipVerify bool) ClientOption {
+func WithTlSConfig(insecureSkipVerify bool, proxyURL string, timeout time.Duration) ClientOption {
 
 	return func(c *Client) error {
+		url, err := url.Parse(proxyURL)
+		if err != nil {
+			log.Errorf("Error parsing proxyURL from config (connector.proxyUrl); creating a non-proxy client: %s", err.Error())
+		}
 		//just set a pre-configured client if certificate validation should be skipped
 		if insecureSkipVerify {
 			transCfg := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // ignore expired SSL certificates
+				Proxy:           util.GetProxyURL(url),
 			}
 			c.Client = &http.Client{
 				Transport: transCfg,
+				Timeout:   timeout,
 			}
 			log.Warn("Skipping validation of TLS-Certificates of Notifier API Endpoint.")
 		} else {
 
 			transCfg := &http.Transport{
 				TLSClientConfig: &tls.Config{},
+				Proxy:           util.GetProxyURL(url),
 			}
 			c.Client = &http.Client{
 				Transport: transCfg,
+				Timeout:   timeout,
 			}
 		}
 		return nil
 	}
+}
+
+// borrowed from Axway/agent-sdk api/client.go
+func getTimeoutFromEnvironment() time.Duration {
+	defaultTimeout := time.Second * 60
+
+	cfgHTTPClientTimeout := os.Getenv("HTTP_CLIENT_TIMEOUT")
+	if cfgHTTPClientTimeout == "" {
+		return defaultTimeout
+	}
+	timeout, err := time.ParseDuration(cfgHTTPClientTimeout)
+	if err != nil {
+		log.Tracef("Unable to parse the HTTP_CLIENT_TIMEOUT value, using the default http client timeout")
+		return defaultTimeout
+	}
+	return timeout
 }
 
 // GetNotifierClient - connector as admin

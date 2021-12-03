@@ -27,6 +27,7 @@ type ConnectorConfig struct {
 	corecfg.IConfigValidator
 	corecfg.IResourceConfigCallback
 	ConnectorURL                string `config:"url"`
+	ConnectorProxyURL           string `config:"proxyUrl"`
 	ConnectorAdminUser          string `config:"adminUser"`
 	ConnectorAdminPassword      string `config:"adminPassword"`
 	ConnectorOrgUser            string `config:"orgUser"`
@@ -43,6 +44,7 @@ type NotifierConfig struct {
 	NotifierEnabled            bool   `config:"enabled"`
 	NotifierHealthMessage      string `config:"healthmessage"`
 	NotifierURL                string `config:"url"`
+	NotifierProxyURL           string `config:"proxyUrl"`
 	NotifierAPIConsumerKey     string `config:"apiConsumerKey"`
 	NotifierAPIConsumerSecret  string `config:"apiConsumerSecret"`
 	NotifierAAPIAuthType       string `config:"apiAuthType"`

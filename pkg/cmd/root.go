@@ -214,6 +214,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	// Parse the config from bound properties and setup middleware config
 	connectorConfig = &config.ConnectorConfig{
 		ConnectorURL:                rootProps.StringPropertyValue("connector.url"),
+		ConnectorProxyURL:           rootProps.StringPropertyValue("connector.proxyUrl"),
 		ConnectorAdminUser:          rootProps.StringPropertyValue("connector.adminUser"),
 		ConnectorAdminPassword:      rootProps.StringPropertyValue("connector.adminPassword"),
 		ConnectorOrgUser:            rootProps.StringPropertyValue("connector.orgUser"),
@@ -227,6 +228,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		NotifierEnabled:            rootProps.BoolPropertyValue("notifier.enabled"),
 		NotifierHealthMessage:      rootProps.StringPropertyValue("notifier.healthmessage"),
 		NotifierURL:                rootProps.StringPropertyValue("notifier.url"),
+		NotifierProxyURL:           rootProps.StringPropertyValue("notifier.proxyUrl"),
 		NotifierAPIConsumerKey:     rootProps.StringPropertyValue("notifier.apiConsumerKey"),
 		NotifierAPIConsumerSecret:  rootProps.StringPropertyValue("notifier.apiConsumerSecret"),
 		NotifierAAPIAuthType:       rootProps.StringPropertyValue("notifier.apiAuthType"),

@@ -40,3 +40,5 @@ pkg/config/path
 /solace-axway-agent
 /tmp/
 /.python-version
+/testing/.env.local.agent.integrationtest
+/testing/local.agent.integrationtest

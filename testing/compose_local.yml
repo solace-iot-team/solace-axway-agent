@@ -48,7 +48,7 @@ services:
       - MONITOR_SLACK_SUCCESS=${MONITOR_SLACK_SUCCESS}
       - MONITOR_SLACK_FAULT=${MONITOR_SLACK_FAULT}
     ports:
-      - 8080:8080
+      - 8090:8080
 networks:
   default:
     external: false

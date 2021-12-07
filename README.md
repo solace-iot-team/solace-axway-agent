@@ -114,3 +114,5 @@ Sample of an agent running on localhost:
 ### Docker Container
 The Solace-Axway-Agent Docker Container is described in this [Dockerfile](Dockerfile).
 
+* Solace-Axway-Agent is executed as user `AGENT` (uid=9999,gid=9999)
+* Path `/opt/agent` is read and writeable for user AGENT

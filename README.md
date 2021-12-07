@@ -122,6 +122,10 @@ The Solace-Axway-Agent Docker Container is described in this [Dockerfile](Docker
     * `CENTRAL_AUTH_PRIVATEKEY_DATA` and `CENTRAL_AUTH_PUBLIC_DATA` **must not** be set
   * Option b)  share key-pair as environment variable
     * `CENTRAL_AUTH_PRIVATEKEY=/path/to/private_key.pem` and `CENTRAL_AUTH_PRIVATEKEY=/path/to/public_key.pem` must point to read-and-write file location
-      * as SOLACE-AXWAY-AGENT is not executed as ROOT the mount-path must be writeable for NON-ROOT user (uid=9999, gid=9999) 
+      * `/opt/agent` is writeable for SOLACE-AXWAY-AGENT
+        * pointing to `/opt/agent` as key-location could be a security risk as private-key data is written to this mount-point. 
+        * `CENTRAL_AUTH_PRIVATEKEY=/opt/agent/private_key.pem`
+        * `CENTRAL_AUTH_PUBLICKEY=/opt/agent/public_key.pem`
+      *  as SOLACE-AXWAY-AGENT is not executed as ROOT the mount-path must be writeable for NON-ROOT user (uid=9999, gid=9999) 
     * `CENTRAL_AUTH_PRIVATEKEY_DATA` and `CENTRAL_AUTH_PUBLIC_DATA` must contain key data as one-liner 
        *  To convert PEM files into environment variable format use `awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem` to transform it to a one-liner

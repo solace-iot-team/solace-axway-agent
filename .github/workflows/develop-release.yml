@@ -45,7 +45,7 @@ jobs:
           script:  |
             const s = require('shelljs');
             const { VERSION, IMAGE_NAME } = process.env;
-            const dhid = "ghcr.io"+"/"+IMAGE_NAME+":"+ VERSION
+            const dhid = "ghcr.io"+"/"+IMAGE_NAME+":"+"dev-"+VERSION
             console.log('Looking up Docker Hub for:'+dhid);
             let code = s.exec('docker manifest inspect '+dhid).code;
             if(code===0) {
@@ -60,5 +60,5 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{env.IMAGE_NAME}}:alpha
-            ghcr.io/${{env.IMAGE_NAME}}:${{env.VERSION}}
+            ghcr.io/${{env.IMAGE_NAME}}:dev-latest
+            ghcr.io/${{env.IMAGE_NAME}}:dev-${{env.VERSION}}

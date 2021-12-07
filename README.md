@@ -10,6 +10,8 @@ Axway Agent for provisioning AsyncAPIs into Solace Brokers.
 * Solace-Axway-Agent registers a `Subscription Schema` for Webhooks in Axway Central
 * Solace-Axway-Agent polls Axway Central for Axway Catalog Items that are marked as `Webhook Enabled` and assigns the `Subscription Schema`
 
+### Axway Central - Solace-Connector 
+
 ### Subscribing AsyncAPIs in Axway
 
 For each `subscribing` subscription Solace-Axway-Agents deploys in Solace-Connector:
@@ -109,4 +111,6 @@ Sample of an agent running on localhost:
 * `curl http://localhost:8989/status/central`
 * `curl http://localhost:8989/status/solace`
 
+### Docker Container
+The Solace-Axway-Agent Docker Container is described in this [Dockerfile](Dockerfile).
 

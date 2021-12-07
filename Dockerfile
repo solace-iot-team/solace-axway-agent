@@ -25,7 +25,7 @@ RUN apk --no-cache add ca-certificates
 
 RUN mkdir /opt/agent
 
-RUN addgroup -S agent && adduser -S agent -G agent
+RUN addgroup --gid 9999 -S agent  && adduser --uid 9999 -S agent -G agent
 
 WORKDIR /opt/agent
 

@@ -763,7 +763,7 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 	for i := range apiNames {
 		commonNames[i] = CommonName(apiNames[i])
 	}
-	commonNamesEnvironments := make([]CommonName, len(apiNames))
+	commonNamesEnvironments := make([]CommonName, len(environments))
 	for i := range environments {
 		commonNamesEnvironments[i] = CommonName(environments[i])
 	}

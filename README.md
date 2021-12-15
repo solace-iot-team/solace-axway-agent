@@ -10,6 +10,8 @@ Axway Agent for provisioning AsyncAPIs into Solace Brokers.
 * Solace-Axway-Agent registers a `Subscription Schema` for Webhooks in Axway Central
 * Solace-Axway-Agent polls Axway Central for Axway Catalog Items that are marked as `Webhook Enabled` and assigns the `Subscription Schema`
 
+### Axway Central - Solace-Connector 
+
 ### Subscribing AsyncAPIs in Axway
 
 For each `subscribing` subscription Solace-Axway-Agents deploys in Solace-Connector:
@@ -109,4 +111,21 @@ Sample of an agent running on localhost:
 * `curl http://localhost:8989/status/central`
 * `curl http://localhost:8989/status/solace`
 
+### Docker Container
+The Solace-Axway-Agent Docker Container is described in this [Dockerfile](Dockerfile).
 
+* Solace-Axway-Agent is executed as user `AGENT` (uid=9999,gid=9999)
+* Path `/opt/agent` is read and writeable for user AGENT
+* **Providing key-pair for Axway Central** 
+  * Option a) make key-pair accessible through file-mount and point Solace-Axway-Agent to this mount point
+    * `CENTRAL_AUTH_PRIVATEKEY=/path/to/private_key.pem` and `CENTRAL_AUTH_PRIVATEKEY=/path/to/public_key.pem`
+    * `CENTRAL_AUTH_PRIVATEKEY_DATA` and `CENTRAL_AUTH_PUBLIC_DATA` **must not** be set
+  * Option b)  share key-pair as environment variable
+    * `CENTRAL_AUTH_PRIVATEKEY=/path/to/private_key.pem` and `CENTRAL_AUTH_PRIVATEKEY=/path/to/public_key.pem` must point to read-and-write file location
+      * `/opt/agent` is writeable for SOLACE-AXWAY-AGENT
+        * pointing to `/opt/agent` as key-location could be a security risk as private-key data is written to this mount-point. 
+        * `CENTRAL_AUTH_PRIVATEKEY=/opt/agent/private_key.pem`
+        * `CENTRAL_AUTH_PUBLICKEY=/opt/agent/public_key.pem`
+      *  as SOLACE-AXWAY-AGENT is not executed as ROOT the mount-path must be writeable for NON-ROOT user (uid=9999, gid=9999) 
+    * `CENTRAL_AUTH_PRIVATEKEY_DATA` and `CENTRAL_AUTH_PUBLIC_DATA` must contain key data as one-liner 
+       *  To convert PEM files into environment variable format use `awk 'NF {sub(/\r/, ""); printf "%s\\n",$0;}' cert-name.pem` to transform it to a one-liner

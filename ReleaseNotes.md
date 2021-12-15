@@ -1,5 +1,12 @@
 # Release Notes
 
+## Version 0.0.14
+
+### Features
+* **Release**
+  - Default Dockerfile adds agent user to root group
+
+
 ## Version 0.0.13
 
 ### Features

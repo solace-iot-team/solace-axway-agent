@@ -19,8 +19,8 @@ replace (
 	//github.com/Axway/agent-sdk v1.1.7 => ../agent-sdk
 
 	// Option B:
-	//github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk SOL-6
-	github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211215165233-9cd954335171
+	//github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk SOL-8
+	github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk SOL-8
 	//
 	// go mod tidy (will do the magic)
 

@@ -20,7 +20,7 @@ replace (
 
 	// Option B:
 	//github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk SOL-6
-	github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211215131107-b907667c5541
+	github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211215153028-3508c7964c46
 	//
 	// go mod tidy (will do the magic)
 

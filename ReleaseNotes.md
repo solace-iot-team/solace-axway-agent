@@ -1,5 +1,11 @@
 # Release Notes
 
+## Version 0.0.15
+
+### Features
+* **Debugging Information Public-/Private-Key Configuration**
+  - Logging (Trace/Error) more detailed information about Pubic/-Private-Key Configuration and internal validation results
+
 ## Version 0.0.14
 
 ### Features

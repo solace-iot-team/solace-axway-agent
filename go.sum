@@ -504,8 +504,8 @@ github.com/smartystreets/goconvey v1.6.4/go.mod h1:syvi0/a8iFYH4r/RixwvyeAJjdLS9
 github.com/snowzach/rotatefilehook v0.0.0-20180327172521-2f64f265f58c h1:iUEy7/LRto3JqR/GLXDTEFP+s+qIjWw4pM8yzMfXC9A=
 github.com/snowzach/rotatefilehook v0.0.0-20180327172521-2f64f265f58c/go.mod h1:ZLVe3VfhAuMYLYWliGEydMBoRnfib8EFSqkBYu1ck9E=
 github.com/soheilhy/cmux v0.1.4/go.mod h1:IM3LyeVVIOuxMH7sFAkER9+bJ4dT7Ms6E4xg4kGIyLM=
-github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211130093916-bd677c207f11 h1:/vX+TF5XNIdy5gd+V/xyfPnGoeG7V5ZGxplvZd+/ZOM=
-github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211130093916-bd677c207f11/go.mod h1:KY4NBY8ZkVPcB+WYZFBvHcNoSy+gNQjPZSa1S9kW4T8=
+github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211215131107-b907667c5541 h1:3VEi/uvEQgdxDaoiYwl2bR+zJjWAbqd8AyUNd3IxVmY=
+github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20211215131107-b907667c5541/go.mod h1:KY4NBY8ZkVPcB+WYZFBvHcNoSy+gNQjPZSa1S9kW4T8=
 github.com/spaolacci/murmur3 v0.0.0-20180118202830-f09979ecbc72/go.mod h1:JwIasOWyU6f++ZhiEuf87xNszmSA2myDM2Kzu9HwQUA=
 github.com/spf13/afero v1.1.2/go.mod h1:j4pytiNVoe2o6bmDsKpLACNPDBIoEAkihy7loJ1B0CQ=
 github.com/spf13/afero v1.2.2 h1:5jhuqJyZCZf2JRofRvN/nIFgIWNzPa3/Vz8mYylgbWc=

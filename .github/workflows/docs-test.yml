@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------------------------
+# MIT License
+# Copyright (c) 2022, Solace Corporation, Ricardo Gomez-Ulmke (ricardo.gomez-ulmke@solace.com)
+# ---------------------------------------------------------------------------------------------
+
+name: docs-test
+on:
+  # testing
+  workflow_dispatch:
+  # production
+  pull_request:
+    branches:
+      - main
+jobs:
+  docs_test:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        python-version: [ '3.8' ]
+    steps:
+      - name: Check Auth
+        if: github.event_name == 'workflow_dispatch' && github.actor != 'ricardojosegomezulmke'
+        run: |
+          echo "not authorized"
+          echo '::set-output name=IS_AUTHORIZED::false'
+        id: auth
+      - name: Cancel Workflow
+        if: ${{ always() && steps.auth.outputs.IS_AUTHORIZED == 'false' }}
+        uses: andymckay/cancel-action@0.2
+
+      - name: Checkout Current Branch
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+
+      - name: setup python matrix version
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install docs make dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/devel/docs.requirements.txt
+
+      - name: Make docs
+        run: |
+          cd docs
+          ./make.sh
+
+###
+# The End.

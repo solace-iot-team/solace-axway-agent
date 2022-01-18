@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'Solace Async API-M Connector'
+project = 'Solace Axway Agent for Async API-M'
 copyright = '2022, Solace Corporation, Jochen Traunecker, <jochen.traunecker@solace.com>'
 author = 'Jochen Traunecker'
 

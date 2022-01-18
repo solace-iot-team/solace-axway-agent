@@ -1,0 +1,76 @@
+
+name: release-docs
+on:
+  # for testing
+  workflow_dispatch:
+
+  # for production
+  release:
+    types: [created]
+
+env:
+  DEBUG_FLAG: ${{ true }}
+  # DEBUG_FLAG: ${{ false }}
+  RELEASE_PLATFORM_DIR: "release"
+  RELEASE_RUNNER_OUTPUT_DIR: "release/tmp"
+  RELEASE_OUTPUT_NAME: "platform-api-release"
+
+jobs:
+  release_docs:
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Check Auth
+        if: github.event_name == 'workflow_dispatch' && github.actor != 'ricardojosegomezulmke' && github.actor != 'mynecker'
+        run: |
+          echo "not authorized"
+          echo '::set-output name=IS_AUTHORIZED::false'
+        id: auth
+      - name: Cancel Workflow
+        if: ${{ always() && steps.auth.outputs.IS_AUTHORIZED == 'false' }}
+        uses: andymckay/cancel-action@0.2
+
+      - name: Checkout Current Branch
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}
+
+      - name: env before install
+        if: env.DEBUG_FLAG == 'true'
+        run: |
+          echo "bash --version: "; bash --version
+          echo "node --version: "; node --version
+          echo "npm --version: "; npm --version
+          echo ">>> environment: RELEASE_* "
+          env | grep RELEASE
+
+      - name: "docs:setup python"
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: "docs:install dependencies"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r docs/devel/docs.requirements.txt
+
+      - name: "docs:make"
+        run: |
+          cd docs
+          ./make.sh
+
+      - name: "docs: publish to gh-pages"
+        run: |
+          git fetch origin gh-pages
+          git worktree add gh-pages gh-pages
+          date > generated.txt
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          rsync -av ./docs/build/html/ gh-pages/
+          cd gh-pages
+          git add -A
+          git commit --allow-empty -F ../generated.txt
+          # git push -f -u origin gh-pages
+          git push -u origin gh-pages
+
+###
+# The End.

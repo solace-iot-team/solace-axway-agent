@@ -76,10 +76,15 @@ Solace-Connector and Notifier HTTP-Clients are generated. Detailed information i
 * Create Public/Private Key Pair as `PEM`-files
 `openssl genpkey -algorithm RSA -out private_key.pem -pkeyopt rsa_keygen_bits:2048`
   
-* Create Axway Central Service Account
-   * Amplify Central `https://central.eu-fr.axway.com` Section `Access`
-   * Register Service Account `Add Service Account`
-     * Upload / Copy public key PEM 
+* Create Amplify Service Account
+	* Sign in to the [Amplify Platform](https://platform.axway.com/).
+	* Click on the `User & Org` menu and select `Organization`.
+	* Click the `Service Accounts` tab from the left navigation.
+	* Click the  `+`  `Service Account` button in the upper-right corner.
+	* Enter the service account name and optionally add a description. 
+	* In the Authentication section, select `Client Certificate` to authenticate the service account.
+		* Select `Provide public key` to upload your public key for your certificate created in the previous step.
+	* Click  `Save`.
    
 ### Solace Environment
 * Solace Connector [solace-iot-team/platform-api](https://github.com/solace-iot-team/platform-api)

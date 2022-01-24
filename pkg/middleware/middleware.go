@@ -569,9 +569,24 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 	permissions := sm.AxSub.GetServiceAttributes()
 	for _, endpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
 
+		// get first connector environment with same host as axway environment host
 		idx := sort.Search(len(connectorEnvs), func(i int) bool {
 			return endpoint.Host == connectorEnvs[i].Host
 		})
+		if idx < len(connectorEnvs) && connectorEnvs[idx].Host == endpoint.Host {
+			envNames = append(envNames, connectorEnvs[idx].Name)
+
+			// add all protocols and their version to connector product - ignoring axway defined protocol
+			for protocol, version := range connectorEnvs[idx].ProtocolVersion {
+				ver := connector.CommonVersion(version)
+				protocols = append(protocols, connector.Protocol{
+					Name:    connector.ProtocolName(protocol),
+					Version: &ver})
+			}
+		} else {
+			return errors.New("Environment not found")
+		}
+		/**
 		if idx < len(connectorEnvs) && connectorEnvs[idx].Host == endpoint.Host {
 			envNames = append(envNames, connectorEnvs[idx].Name)
 			protocolVersion, found := connectorEnvs[idx].ProtocolVersion[endpoint.Protocol]
@@ -586,6 +601,7 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 		} else {
 			return errors.New("Environment not found")
 		}
+		*/
 	}
 
 	return connector.GetOrgConnector().PublishAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), []string{sm.AxSub.GetRevisionName()}, envNames, protocols, permissions)

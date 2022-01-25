@@ -53,6 +53,7 @@ func ExecuteIntegrationTestMiddleware() error {
 
 	container := TestSubscriptionContainer{
 		valid:                         true,
+		revisionId:                    "int-test-prod-id-1",
 		revisionName:                  "int-test-prod-2",
 		subscriptionMetadataScopeName: iCfg.OrgEnvName,
 		externalAPIName:               "int-test-mw-1",
@@ -114,6 +115,7 @@ func ExecuteIntegrationTestMiddleware() error {
 // TestSubscriptionContainer - mocks Axway Subscription Data
 type TestSubscriptionContainer struct {
 	valid                            bool
+	revisionId                       string
 	revisionName                     string
 	serviceInstanceMetadataScopeName string
 	externalAPIID                    string
@@ -175,6 +177,10 @@ func (c *TestSubscriptionContainer) GetSubscriberEmailAddress() string {
 // GetSubscriberUserName - Returns Username
 func (c *TestSubscriptionContainer) GetSubscriberUserName() string {
 	return c.subscriberUserName
+}
+
+func (c *TestSubscriptionContainer) GetRevisionId() string {
+	return c.revisionId
 }
 
 // GetRevisionName - Facade to retrieve RevisionName

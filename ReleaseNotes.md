@@ -1,5 +1,13 @@
 # Release Notes
 
+## Version 0.0.16
+
+### Features
+* **changed API-Mapping to Axway Revision.ID (instead of Revision.Name)**
+  - Assigning ApiServiceRevision.Metadata.Id to Solace-Connector API-Name and API-Product-Name
+* **Removed strict mapping check of Solace-Connector environment protocols**
+  - Mapping of Axway Endpoint to Solace-Connector environment based on hostname 
+
 ## Version 0.0.15
 
 ### Features

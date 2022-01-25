@@ -590,7 +590,7 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 					Version: &ver})
 			}
 		} else {
-			return errors.New("Environment not found")
+			return errors.New("Environment not found in Solace-Connector for Host:" + endpoint.Host)
 		}
 		// TODO introduce configuration option to enable strict environment protocol check
 		/**

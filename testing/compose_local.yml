@@ -10,7 +10,7 @@ services:
     container_name: apim-connector
     links:
       - mongodb
-    image: solaceiotteam/apim-connector-server:0.3.0
+    image: solaceiotteam/apim-connector-server:0.3.3
     volumes:
       - ${PLATFORM_DATA_MOUNT_PATH}:/data
     environment:

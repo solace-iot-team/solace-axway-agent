@@ -329,7 +329,7 @@ func (sm *SubscriptionMiddleware) ProcessUnsubscribeSubscription() error {
 
 // ProcessSubscription  - Orchestrates entire subscription steps
 func (sm *SubscriptionMiddleware) ProcessSubscription() error {
-	log.Infof("Provisioning Subscription triggered [Environment:%s] [Revision/API:%s][", sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName())
+	log.Infof("Provisioning Subscription triggered [Environment:%s] [Revision/API:%s] [RevisionId:%s]", sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), sm.AxSub.GetRevisionId())
 	provisionedAPI := false
 	provisionedAPIProduct := false
 	provisionedTeam := false
@@ -438,9 +438,9 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 	}
 
 	dto := notification.SubscribeMetaDataDto{
-		API:             sm.AxSub.GetRevisionName(),
+		API:             sm.AxSub.GetRevisionName() + " (" + sm.AxSub.GetRevisionId() + ")",
 		Team:            sm.AxSub.GetSubscriptionOwningTeamID(),
-		Product:         sm.AxSub.GetRevisionName(),
+		Product:         sm.AxSub.GetRevisionName() + " (" + sm.AxSub.GetRevisionId() + ")",
 		Application:     sm.AxSub.GetSubscriptionID(),
 		Environment:     sm.AxSub.GetEnvironmentName(),
 		Subscription:    sm.AxSub.GetSubscriptionName(),
@@ -457,7 +457,7 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 			log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [Notification] [Notification was not sent successfully]")
 		}
 	}
-	log.Infof("Successfully provisioned Subscription [Environment:%s] [Revision/API:%s][", sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName())
+	log.Infof("Successfully provisioned Subscription [Environment:%s] [Revision/API:%s [RevisionId:%s][", sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), sm.AxSub.GetRevisionId())
 	return nil
 
 }
@@ -468,9 +468,9 @@ func (sm *SubscriptionMiddleware) NotifySuccess(trigger string, message string, 
 	username := sm.AxSub.GetSubscriberUserName()
 
 	dto := notification.MonitorDataDto{
-		API:             sm.AxSub.GetRevisionName(),
+		API:             sm.AxSub.GetRevisionName() + " (" + sm.AxSub.GetRevisionId() + ")",
 		Team:            sm.AxSub.GetSubscriptionOwningTeamID(),
-		Product:         sm.AxSub.GetRevisionName(),
+		Product:         sm.AxSub.GetRevisionName() + " (" + sm.AxSub.GetRevisionId() + ")",
 		Application:     sm.AxSub.GetSubscriptionID(),
 		Environment:     sm.AxSub.GetEnvironmentName(),
 		Subscription:    sm.AxSub.GetSubscriptionName(),
@@ -500,9 +500,9 @@ func (sm *SubscriptionMiddleware) NotifyFailure(trigger string, message string, 
 	username := sm.AxSub.GetSubscriberUserName()
 
 	dto := notification.MonitorDataDto{
-		API:             sm.AxSub.GetRevisionName(),
+		API:             sm.AxSub.GetRevisionName() + " (" + sm.AxSub.GetRevisionId() + ")",
 		Team:            sm.AxSub.GetSubscriptionOwningTeamID(),
-		Product:         sm.AxSub.GetRevisionName(),
+		Product:         sm.AxSub.GetRevisionName() + " (" + sm.AxSub.GetRevisionId() + ")",
 		Application:     sm.AxSub.GetSubscriptionID(),
 		Environment:     sm.AxSub.GetEnvironmentName(),
 		Subscription:    sm.AxSub.GetSubscriptionName(),
@@ -541,13 +541,13 @@ func (sm *SubscriptionMiddleware) IsEnvironmentAsOrgAvailable() (bool, error) {
 
 //IsConnectorAPIAvailable - Facade to check via Connector if API already exists
 func (sm *SubscriptionMiddleware) IsConnectorAPIAvailable() (bool, error) {
-	return connector.GetOrgConnector().IsAPIAvailable(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName())
+	return connector.GetOrgConnector().IsAPIAvailable(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId())
 }
 
 //IsAPIProductAvailable - Facade to check via Connector if API-Product exists
 func (sm *SubscriptionMiddleware) IsAPIProductAvailable() (bool, error) {
 	//by convention api and product have same name: revisionName
-	return connector.GetOrgConnector().IsAPIProductAvailable(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName())
+	return connector.GetOrgConnector().IsAPIProductAvailable(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId())
 }
 
 //IsConnectorTeamAvailable - Facade to check via Connector if Team exists
@@ -611,17 +611,17 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 		*/
 	}
 
-	return connector.GetOrgConnector().PublishAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), []string{sm.AxSub.GetRevisionName()}, envNames, protocols, permissions)
+	return connector.GetOrgConnector().PublishAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), []string{sm.AxSub.GetRevisionId()}, envNames, protocols, permissions)
 }
 
 //RemoveAPI - Facade to remove via connector an API
 func (sm *SubscriptionMiddleware) RemoveAPI(ignoreConflict bool) error {
-	return connector.GetOrgConnector().RemoveAPI(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), ignoreConflict)
+	return connector.GetOrgConnector().RemoveAPI(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), ignoreConflict)
 }
 
 //RemoveAPIProduct - Facade to remove via Connector an API Product
 func (sm *SubscriptionMiddleware) RemoveAPIProduct(ignoreConflict bool) error {
-	return connector.GetOrgConnector().RemoveAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), ignoreConflict)
+	return connector.GetOrgConnector().RemoveAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), ignoreConflict)
 }
 
 //GetTeamApp - Facade to retrieve App AxSub generic JSON
@@ -651,14 +651,14 @@ func (sm *SubscriptionMiddleware) GetAppApis() ([]*map[string]interface{}, error
 //RemoveTeamApp - Facade to remove via Connector a Team Application
 func (sm *SubscriptionMiddleware) RemoveTeamApp() error {
 	apiProducts := make([]string, 0)
-	apiProducts = append(apiProducts, sm.AxSub.GetRevisionName())
+	apiProducts = append(apiProducts, sm.AxSub.GetRevisionId())
 	return connector.GetOrgConnector().RemoveTeamApp(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
 }
 
 //PublishTeamApp - Facade to publish via Connector a Team Application
 func (sm *SubscriptionMiddleware) PublishTeamApp() (*connector.Credentials, error) {
 	apiProducts := make([]string, 0)
-	apiProducts = append(apiProducts, sm.AxSub.GetRevisionName())
+	apiProducts = append(apiProducts, sm.AxSub.GetRevisionId())
 	trustedCNSList := make([]string, 0)
 	var webHooks *connector.SolaceWebhook = nil
 	if len(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceHTTPMethod)) > 0 {

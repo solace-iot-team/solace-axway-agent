@@ -27,6 +27,7 @@ type AxwaySubscription interface {
 	GetSubscriberEmailAddress() string
 	GetSubscriberUserName() string
 	GetRevisionName() string
+	GetRevisionId() string
 	IsEnvironmentDefined() bool
 	GetEnvironmentName() string
 	IsExternalAPIIDDefined() bool
@@ -167,6 +168,11 @@ func (c *SubscriptionContainer) GetSubscriberUserName() string {
 // GetRevisionName - Facade to retrieve RevisionName
 func (c *SubscriptionContainer) GetRevisionName() string {
 	return c.serviceRevision.GetName()
+}
+
+// GetRevisionId - Facade to retrieve RevisionId (metadata.id)
+func (c *SubscriptionContainer) GetRevisionId() string {
+	return c.serviceRevision.Metadata.ID
 }
 
 // IsEnvironmentDefined - Facade to check if environment is set in Service Instance
@@ -586,6 +592,7 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 		} else {
 			return errors.New("Environment not found")
 		}
+		// TODO introduce configuration option to enable strict environment protocol check
 		/**
 		if idx < len(connectorEnvs) && connectorEnvs[idx].Host == endpoint.Host {
 			envNames = append(envNames, connectorEnvs[idx].Name)
@@ -678,7 +685,7 @@ func (sm *SubscriptionMiddleware) PublishAPI() error {
 	if err != nil {
 		return err
 	}
-	return connector.GetOrgConnector().PublishAPI(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), decodedAPISpec)
+	return connector.GetOrgConnector().PublishAPI(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), decodedAPISpec)
 }
 
 //PublishTeam - Facade to publish via Connector a Team

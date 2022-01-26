@@ -1,5 +1,15 @@
 # Release Notes
 
+## Version 0.0.17
+
+### Features
+* no new features
+
+### Fixes
+* **Axway Environment filter**
+  * Fixed Axway Environment as configured in Solace-Axway-Agent was not taken into account, all subscriptions within an Axway organization got processed
+
+
 ## Version 0.0.16
 
 ### Features

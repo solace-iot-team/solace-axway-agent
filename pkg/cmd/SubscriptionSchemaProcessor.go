@@ -73,6 +73,10 @@ func (j *SubscriptionSchemaPublisherJob) Execute() error {
 			SetName(solace.SolaceAuthenticationSecret).
 			IsString().
 			SetDescription("Authentication Password or Header Value")).
+		AddProperty(apic.NewSubscriptionSchemaPropertyBuilder().
+			SetName(solace.SolaceClientOrigin).
+			IsString().
+			SetDescription("Client Origin (IP, ...) ")).
 		Update(true).
 		Register()
 }

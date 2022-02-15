@@ -78,6 +78,26 @@ func registerSchemaProcessors() {
 			log.Infof("Registered Subscription Schema Processor")
 		}
 	}
+
+	if bootstrappingConifg.PublishSubscriptionSchema {
+		theJob := SubscriptionSchemaPublisherClientOriginJob{}
+		_, err := jobs.RegisterRetryJob(&theJob, 3)
+		if err != nil {
+			log.Errorf("Could not register Schema Publisher ClientOrigin job", err)
+		} else {
+			log.Infof("Registered Subscription Schema ClientOrigin Publisher")
+		}
+	}
+
+	if bootstrappingConifg.ProcessSubscriptionSchema {
+		theJob2 := SubscriptionSchemaProcessorClientOriginJob{}
+		_, err := jobs.RegisterIntervalJob(&theJob2, 60*time.Second)
+		if err != nil {
+			log.Errorf("Could not register Subscription Schema ClientOrigin Processor job", err)
+		} else {
+			log.Infof("Registered Subscription Schema ClientOrigin Processor")
+		}
+	}
 }
 
 func handleUnsubscribeSubscription(subscription apic.Subscription) {

@@ -660,6 +660,7 @@ func (sm *SubscriptionMiddleware) PublishTeamApp() (*connector.Credentials, erro
 	apiProducts := make([]string, 0)
 	apiProducts = append(apiProducts, sm.AxSub.GetRevisionId())
 	trustedCNSList := make([]string, 0)
+	appAttributes := make(map[string]string)
 	var webHooks *connector.SolaceWebhook = nil
 	if len(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceHTTPMethod)) > 0 {
 		trustedCNS := strings.TrimSpace(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceCallbackTrustedCNS))
@@ -676,7 +677,10 @@ func (sm *SubscriptionMiddleware) PublishTeamApp() (*connector.Credentials, erro
 			TrusedCNs:                trustedCNSList,
 		}
 	}
-	return connector.GetOrgConnector().PublishTeamApp(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID(), "Created by Axway-Agent", apiProducts, webHooks)
+	if len(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceClientOrigin)) > 0 {
+		appAttributes[solace.SolaceClientOrigin] = sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceClientOrigin)
+	}
+	return connector.GetOrgConnector().PublishTeamApp(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID(), "Created by Axway-Agent", apiProducts, webHooks, appAttributes)
 }
 
 //PublishAPI - Facade to publish via Connector an API

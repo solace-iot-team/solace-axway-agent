@@ -44,3 +44,4 @@ pkg/config/path
 /testing/local.agent.integrationtest
 
 gh-pages
+/docs/.python-version

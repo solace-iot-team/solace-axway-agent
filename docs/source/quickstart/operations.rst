@@ -1,5 +1,6 @@
-Setup
-=====
+Operations
+==========
 
 .. warning::
   UNDER CONSTRUCTION
+

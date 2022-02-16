@@ -6,5 +6,6 @@ Quickstart
 .. toctree::
   :maxdepth: 1
 
+  prerequisites
   installation
-  setup
+  operations

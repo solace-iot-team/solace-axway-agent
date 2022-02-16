@@ -3,7 +3,9 @@ package solace
 //Solace Callback Constants
 const (
 	SolaceCallbackSubscriptionSchema                   = "sol-schema-webhook-1"
+	SolaceClientOriginSubscriptionSchema               = "sol-schema-clientorigin-1"
 	SolaceCallbackEnabledAttributeQuery                = "attributes.solace-webhook-enabled==true"
+	SolaceClientOriginEnabledAttributeQuery            = "attributes.solace-clientorigin-enabled==true"
 	SolaceCallback                                     = "Callback"
 	SolaceCallbackTrustedCNS                           = "TrustedCnames"
 	SolaceHTTPMethod                                   = "Method"
@@ -18,4 +20,6 @@ const (
 	SolaceAuthenticationMethodHTTPHeaderAuthentication = "HttpHeader"
 	SolaceAuthenticationIdentifier                     = "AuthenticationIdentifier"
 	SolaceAuthenticationSecret                         = "AuthenticationSecret"
+
+	SolaceClientOrigin = "ClientOrigin"
 )

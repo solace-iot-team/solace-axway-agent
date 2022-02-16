@@ -605,13 +605,21 @@ func (c *Access) RemoveTeamApp(orgName string, teamName string, appName string) 
 }
 
 // PublishTeamApp - publishes TeamApp
-func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string, solaceWebhook *SolaceWebhook) (*Credentials, error) {
+func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string, solaceWebhook *SolaceWebhook, appAttributes map[string]string) (*Credentials, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	credentials := Credentials{
 		ExpiresAt: -1,
 		IssuedAt:  nil,
 		Secret:    nil,
+	}
+
+	connectorAppAttributes := Attributes{}
+	for k, v := range appAttributes {
+		connectorAppAttributes = append(connectorAppAttributes, struct {
+			Name  string `json:"name"`
+			Value string `json:"value"`
+		}{Name: k, Value: v})
 	}
 
 	commonNames := make([]CommonName, len(apiProducts))
@@ -642,6 +650,7 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 			ApiProducts: commonNames,
 			Credentials: credentials,
 			WebHooks:    &webhooks,
+			Attributes:  &connectorAppAttributes,
 		}
 	} else {
 		payload = CreateTeamAppJSONRequestBody{
@@ -649,6 +658,7 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 			DisplayName: (*CommonDisplayName)(&displayName),
 			ApiProducts: commonNames,
 			Credentials: credentials,
+			Attributes:  &connectorAppAttributes,
 		}
 	}
 

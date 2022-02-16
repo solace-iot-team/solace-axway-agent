@@ -1,5 +1,27 @@
 # Release Notes
 
+## Version 0.0.18
+
+### Features
+
+* **ClientOrigin**
+  * 'ClientOrigin' can get provided as Attribute for Axway Subscriptions
+    * annotating an Axway Central API-Service with `solace-webhook-enabled=true` as attribute triggers assignment of corresponding subscription schema 
+    * annotating an Axway Central API-Service with `solace-clientorigin-enabled=true` as attribute triggers assignment of corresponding subscription schema
+    * during subscribing to such an API the subscriber can add `ClientOrigin` like an IP-Address
+    * `ClientOrigin` will get added as `Solace-Connector Application Attribute` for further processing
+   ```
+     Solace-Conenctor App 
+     ...
+     "attributes": [
+     {
+       "name": "ClientOrigin",
+       "value": "some.dns.name or 123.123.123.123"
+     }]
+  ```
+### Fixes
+* no bug fixes
+
 ## Version 0.0.17
 
 ### Features

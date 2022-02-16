@@ -20,8 +20,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Setup" href="setup.html" />
-    <link rel="prev" title="Quickstart" href="index.html" /> 
+    <link rel="next" title="Operations" href="operations.html" />
+    <link rel="prev" title="Prerequisites" href="prerequisites.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -42,8 +42,12 @@
               <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">Quickstart</a><ul class="current">
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="setup.html">Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prerequisites.html">Prerequisites</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-of-solace-axway-agent-docker-container">Configuration of <cite>solace-axway-agent</cite> Docker container</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="operations.html">Operations</a></li>
 </ul>
 </li>
 </ul>
@@ -79,21 +83,79 @@
 <p class="admonition-title">Warning</p>
 <p>UNDER CONSTRUCTION</p>
 </div>
+<p><em>Solace Axway Agent for Async API-Management</em> is typically executed as Docker container.</p>
+<p>Releases of the agent are published to Docker Hub and are located at <a class="reference external" href="https://hub.docker.com/repository/docker/solaceiotteam/solace-axway-agent">solaceiotteam/solace-axway-agent</a> .</p>
+<section id="configuration-of-solace-axway-agent-docker-container">
+<h2>Configuration of <cite>solace-axway-agent</cite> Docker container<a class="headerlink" href="#configuration-of-solace-axway-agent-docker-container" title="Permalink to this headline"></a></h2>
+<p>The agent is getting configured by providing environment variables.</p>
+<p>A documented sample of all environment variables is located at <a class="reference external" href="https://github.com/solace-iot-team/solace-axway-agent/tree/main/sample">.env.sample</a></p>
+<ul class="simple">
+<li><p>Solace-Axway-Agent is executed as user <cite>AGENT</cite> (uid=9999,gid=9999)</p></li>
+<li><p>Path <cite>/opt/agent</cite> is read and writeable for user AGENT</p></li>
+</ul>
+<p>Two options are available to provide the key-pair (private_key.pem and public_key.pem) for Amplify:</p>
+<ul>
+<li><p><strong>Option a) make key-pair accessible through file-mount and point Solace-Axway-Agent to this mount point</strong></p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>CENTRAL_AUTH_PRIVATEKEY=/path/to/private_key.pem</cite> and <cite>CENTRAL_AUTH_PRIVATEKEY=/path/to/public_key.pem</cite></p></li>
+<li><p><cite>CENTRAL_AUTH_PRIVATEKEY_DATA</cite> and <cite>CENTRAL_AUTH_PUBLIC_DATA</cite> <strong>must not</strong> be set</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p><strong>Option b) share key-pair as environment variable</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Path and Filename of Axway Central Service Account private key as PEM</span>
+<span class="n">CENTRAL_AUTH_PRIVATEKEY</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">private_key</span><span class="o">.</span><span class="n">pem</span>
+<span class="c1"># Optional - PEM content as one line PEM</span>
+<span class="n">CENTRAL_AUTH_PRIVATEKEY_DATA</span><span class="o">=</span><span class="s2">&quot;-----BEGIN PRIVATE KEY-----</span><span class="se">\n</span><span class="s2"> ... </span><span class="se">\n</span><span class="s2">-----END PRIVATE KEY-----</span><span class="se">\n</span><span class="s2">&quot;</span>
+<span class="c1">#publickey within Axway Central</span>
+<span class="c1"># Path and Filename of Axway Central Service Account public key as PEM</span>
+<span class="n">CENTRAL_AUTH_PUBLICKEY</span><span class="o">=/</span><span class="n">path</span><span class="o">/</span><span class="n">to</span><span class="o">/</span><span class="n">public_key</span><span class="o">.</span><span class="n">pem</span>
+<span class="c1"># Optional - PEM content as one line PEM</span>
+<span class="n">CENTRAL_AUTH_PUBLICKEY_DATA</span><span class="o">=</span><span class="s2">&quot;-----BEGIN PUBLIC KEY-----</span><span class="se">\n</span><span class="s2"> ... </span><span class="se">\n</span><span class="s2">-----END PUBLIC KEY-----</span><span class="se">\n</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<p>The agent first checks, if there are already key-files located at <cite>CENTRAL_AUTH_PRIVATEKEY</cite> or <cite>CENTRAL_AUTH_PUBLICKEY</cite> file location. If there are no keys at these
+locations the agent looks up if there are environment variables defined <cite>CENTRAL_AUTH_PRIVATEKEY_DATA</cite> or <cite>CENTRAL_AUTH_PUBLICKEY_DATA</cite> with the actual key-data.
+The agent writes a copy of the key-data to the key-files locations and continues by using the keys written to the files.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>/opt/agent</cite> within the Docker container is writeable for SOLACE-AXWAY-AGENT</p></li>
+<li><p>as SOLACE-AXWAY-AGENT is not executed as ROOT the mount-paths for public-key and private-key must be writeable for NON-ROOT user (uid=9999, gid=9999)</p></li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li><p>it could be a security risk to mount a file system and let the agent write the public-key into this file mount.</p></li>
+</ul>
+</div></blockquote>
+</div></blockquote>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<dl>
+<dt>To convert PEM files into environment variable format you can use the following command:</dt><dd><div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">awk</span> <span class="s1">&#39;NF {sub(/</span><span class="se">\r</span><span class="s1">/, &quot;&quot;); printf &quot;</span><span class="si">%s</span><span class="se">\\</span><span class="s1">n&quot;,$0;}&#39;</span> <span class="n">cert</span><span class="o">-</span><span class="n">name</span><span class="o">.</span><span class="n">pem</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</div>
+</section>
 </section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="index.html" class="btn btn-neutral float-left" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="setup.html" class="btn btn-neutral float-right" title="Setup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="prerequisites.html" class="btn btn-neutral float-left" title="Prerequisites" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="operations.html" class="btn btn-neutral float-right" title="Operations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, Solace Corporation, Jochen Traunecker, &lt;jochen.traunecker@solace.com&gt;.
-      <span class="lastupdated">Last updated on 26 Jan 2022 at 16:31.
+      <span class="lastupdated">Last updated on 16 Feb 2022 at 15:32.
       </span></p>
   </div>
 

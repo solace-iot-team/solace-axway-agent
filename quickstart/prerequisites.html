@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prerequisites &mdash; Solace Axway Agent for Async API-M r0.0.2 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/contentui.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/contentui.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Installation" href="installation.html" />
+    <link rel="prev" title="Quickstart" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> Solace Axway Agent for Async API-M
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Guides</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Quickstart</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Prerequisites</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#amplify-platform">Amplify Platform</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#create-public-private-key-pair-as-pem-files">Create Public/Private Key Pair as <cite>PEM</cite>-files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#create-amplify-service-account">Create Amplify Service Account</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#solace-environment">Solace Environment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="operations.html">Operations</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Solace Axway Agent for Async API-M</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Quickstart</a> &raquo;</li>
+      <li>Prerequisites</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/quickstart/prerequisites.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="prerequisites">
+<h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline"></a></h1>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>UNDER CONSTRUCTION</p>
+</div>
+<section id="amplify-platform">
+<h2>Amplify Platform<a class="headerlink" href="#amplify-platform" title="Permalink to this headline"></a></h2>
+<section id="create-public-private-key-pair-as-pem-files">
+<h3>Create Public/Private Key Pair as <cite>PEM</cite>-files<a class="headerlink" href="#create-public-private-key-pair-as-pem-files" title="Permalink to this headline"></a></h3>
+<p><em>Solace Axway Agent for Async API-Management</em> authenticates itself against <em>Amplify API server</em> by a certificate.</p>
+<p>A certificate can get created by Amplify platform during registration of a Amplify Service Account or by utilizing 3rd party tooling:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">openssl</span> <span class="n">genpkey</span> <span class="o">-</span><span class="n">algorithm</span> <span class="n">RSA</span> <span class="o">-</span><span class="n">out</span> <span class="n">private_key</span><span class="o">.</span><span class="n">pem</span> <span class="o">-</span><span class="n">pkeyopt</span> <span class="n">rsa_keygen_bits</span><span class="p">:</span><span class="mi">2048</span>
+</pre></div>
+</div>
+</section>
+<section id="create-amplify-service-account">
+<h3>Create Amplify Service Account<a class="headerlink" href="#create-amplify-service-account" title="Permalink to this headline"></a></h3>
+<ul class="simple">
+<li><p>Sign in to the <a class="reference external" href="https://platform.axway.com">Amplify Platform</a>.</p></li>
+<li><p>Click on the <cite>User &amp; Org</cite> menu and select <cite>Organization</cite>.</p></li>
+<li><p>Click the <cite>Service Accounts</cite> tab from the left navigation.</p></li>
+<li><p>Click the  <cite>+</cite>  <cite>Service Account</cite> button in the upper-right corner.</p></li>
+<li><p>Enter the service account name and optionally add a description.</p></li>
+<li><p>In the Authentication section, select <cite>Client Certificate</cite> to authenticate the service account.</p>
+<ul>
+<li><p>Select <cite>Provide public key</cite> to upload your public key for your certificate created in the previous step.</p></li>
+<li><p>Or let Amplify create one and download both keys</p></li>
+</ul>
+</li>
+<li><p>Click  <cite>Save</cite>.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Besides public and private keys the <em>`Client ID`</em> of the service account must get noted and provided during installation.
+<cite>Client ID</cite> is created by Amplify while adding a service account.</p>
+</div>
+</section>
+</section>
+<section id="solace-environment">
+<h2>Solace Environment<a class="headerlink" href="#solace-environment" title="Permalink to this headline"></a></h2>
+<p><em>Solace Axway Agent for Async API-Management</em> communicates with Solace Platform via <cite>Solace Platform API</cite>.
+More details about <cite>Soalce Platform API</cite> are described at GitHub <cite>solace-iot-team/platform-api &lt;https://github.com/solace-iot-team/platform-api&gt;</cite></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>These details must get provided during installation:</p>
+<ul class="simple">
+<li><p>URL of <cite>Solace Platform API</cite></p></li>
+<li><p><cite>admin</cite> user and password</p></li>
+<li><p><cite>Org-Admin</cite> user and password</p></li>
+</ul>
+</div>
+<p>By convention there must be a an <em>Organization</em> provisioned within <cite>Solace Platform API</cite> service with the same name as the Amplify <cite>environment</cite> that will get managed by <em>Solace Axway Agent for Async API-Management</em></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="installation.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Solace Corporation, Jochen Traunecker, &lt;jochen.traunecker@solace.com&gt;.
+      <span class="lastupdated">Last updated on 16 Feb 2022 at 15:32.
+      </span></p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

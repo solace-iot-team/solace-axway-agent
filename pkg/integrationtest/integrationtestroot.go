@@ -369,6 +369,8 @@ func executeTestCRUDTeamApp(addWebhook bool, addTrustedCNs bool) error {
 
 	listProducts := make([]string, 0)
 	listProducts = append(listProducts, iCfg.APIProductName)
+	appAttributes := make(map[string]string)
+	appAttributes[solace.SolaceClientOrigin] = "www.sample.com"
 	var webHooks *connector.SolaceWebhook = nil
 	if addWebhook {
 		if addTrustedCNs {
@@ -394,7 +396,7 @@ func executeTestCRUDTeamApp(addWebhook bool, addTrustedCNs bool) error {
 			}
 		}
 	}
-	credentials, err := connector.GetOrgConnector().PublishTeamApp(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName, iCfg.TeamAppName, listProducts, webHooks)
+	credentials, err := connector.GetOrgConnector().PublishTeamApp(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName, iCfg.TeamAppName, listProducts, webHooks, appAttributes)
 	if credentials == nil {
 		log.Tracef("Credentials as result are missing")
 		return errors.New("Credentials as result are missing")

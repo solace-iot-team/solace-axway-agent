@@ -30,7 +30,7 @@ RUN addgroup --gid 1000 -S agent  && adduser -S agent --uid 1000 --ingroup agent
 WORKDIR /opt/agent
 
 COPY --from=build /build/bin/solace-axway-agent solace-axway-agent
-COPY sample/sample_min_solace_axway_agent.yml solace_axway_agent.yml
+COPY sample/sample_empty_solace_axway_agent.yml solace_axway_agent.yml
 
 RUN chown -R agent /opt/agent
 

@@ -77,8 +77,8 @@ func ExecuteIntegrationTestMiddleware() error {
 		serviceInstanceSpecEndpoints: []middleware.AxwayEndpoint{
 			{
 				Host:     "mr1i5g7tif6z9h.messaging.solace.cloud",
-				Port:     1883,
-				Protocol: "mqtt",
+				Port:     55555,
+				Protocol: "smf",
 			},
 		},
 	}
@@ -465,11 +465,16 @@ func executeTestCRUDEnvironment() error {
 		log.Trace("Deleted Environment: %s", iCfg.OrgEnvName)
 	}
 	protocolVersions := make([]map[string]string, 0)
-	protocolVersion := map[string]string{
+	protocolVersionMqtt := map[string]string{
 		"name":    "mqtt",
 		"version": "3.1.1",
 	}
-	protocolVersions = append(protocolVersions, protocolVersion)
+	protocolVersionSmf := map[string]string{
+		"name":    "smf",
+		"version": "smf",
+	}
+	protocolVersions = append(protocolVersions, protocolVersionMqtt)
+	protocolVersions = append(protocolVersions, protocolVersionSmf)
 	log.Tracef("connector.GetOrgConnector().CreateEnvironment /%s/%s", iCfg.Org, iCfg.OrgEnvName)
 	err = connector.GetOrgConnector().CreateEnvironment(iCfg.Org, iCfg.OrgEnvName, "Integration Test Environment", iCfg.ServiceID, protocolVersions)
 	if err != nil {

@@ -35,6 +35,7 @@ type ConnectorConfig struct {
 	ConnectorInsecureSkipVerify bool   `config:"acceptInsecureCertificates"`
 	ConnectorLogBody            bool   `config:"logBody"`
 	ConnectorLogHeader          bool   `config:"logHeader"`
+	ConnectorOrgMapping         string `config:"orgMapping"`
 }
 
 // NotifierConfig - represents the config for Notifier

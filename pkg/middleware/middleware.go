@@ -11,6 +11,7 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
+	"net/url"
 	"sort"
 	"strings"
 )
@@ -563,6 +564,7 @@ func (sm *SubscriptionMiddleware) IsTeamAppAvailable() (bool, error) {
 //PublishAPIProduct - Facade to publish via Connector an API Product (idempotent)
 func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 	//todo cross-check all environments will share same protocols
+	agent.GetCentralConfig().GetEnvironmentName()
 	connectorEnvs, err := connector.GetOrgConnector().GetListEnvironments(sm.AxSub.GetEnvironmentName())
 	if err != nil {
 		return err
@@ -576,41 +578,36 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 	for _, endpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
 
 		// get first connector environment with same host as axway environment host
+
 		idx := sort.Search(len(connectorEnvs), func(i int) bool {
+
 			return endpoint.Host == connectorEnvs[i].Host
 		})
 		if idx < len(connectorEnvs) && connectorEnvs[idx].Host == endpoint.Host {
-			envNames = append(envNames, connectorEnvs[idx].Name)
+			// envNames = append(envNames, connectorEnvs[idx].Name)
 
-			// add all protocols and their version to connector product - ignoring axway defined protocol
-			for protocol, version := range connectorEnvs[idx].ProtocolVersion {
-				ver := connector.CommonVersion(version)
-				protocols = append(protocols, connector.Protocol{
-					Name:    connector.ProtocolName(protocol),
-					Version: &ver})
+			envEndpoints, err := connector.GetOrgConnector().GetEnvironmentEndpoints(sm.AxSub.GetEnvironmentName(), connectorEnvs[idx].Name)
+			if err != nil {
+				log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [could not retrieve endpoints of the environment] [Org:%s] [Env:%s]", sm.AxSub.GetEnvironmentName(), connectorEnvs[idx].Name)
+				return err
+			}
+			for _, envEndpoint := range envEndpoints {
+				envUrl, err := url.Parse(envEndpoint.Uri)
+				if err != nil {
+					log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [could not parse URL of environment] [Org:%s] [Env:%s] [Url:%s]", sm.AxSub.GetEnvironmentName(), connectorEnvs[idx].Name, envEndpoint.Uri)
+					return err
+				}
+				if endpoint.Host == envUrl.Hostname() && fmt.Sprint(endpoint.Port) == envUrl.Port() {
+					ver := connector.CommonVersion(envEndpoint.ProtocolVersion)
+					protocols = append(protocols, connector.Protocol{
+						Name:    connector.ProtocolName(envEndpoint.ProtocolName),
+						Version: &ver})
+				}
 			}
 		} else {
 			return errors.New("Environment not found in Solace-Connector for Host:" + endpoint.Host)
 		}
-		// TODO introduce configuration option to enable strict environment protocol check
-		/**
-		if idx < len(connectorEnvs) && connectorEnvs[idx].Host == endpoint.Host {
-			envNames = append(envNames, connectorEnvs[idx].Name)
-			protocolVersion, found := connectorEnvs[idx].ProtocolVersion[endpoint.Protocol]
-			if found {
-				ver := connector.CommonVersion(protocolVersion)
-				protocols = append(protocols, connector.Protocol{
-					Name:    connector.ProtocolName(endpoint.Protocol),
-					Version: &ver})
-			} else {
-				return errors.New(fmt.Sprintf("Protocol/Version not in Environment [Host:%s] [Port:%d] [Protocol:%s]", endpoint.Host, endpoint.Port, endpoint.Protocol))
-			}
-		} else {
-			return errors.New("Environment not found")
-		}
-		*/
 	}
-
 	return connector.GetOrgConnector().PublishAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), []string{sm.AxSub.GetRevisionId()}, envNames, protocols, permissions)
 }
 

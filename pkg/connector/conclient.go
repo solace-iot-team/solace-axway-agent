@@ -42,6 +42,16 @@ func (c *ConclientHTTPError) Error() string {
 	return fmt.Sprintf("Call [%s] was not successfull. [Http-Status:%d] [Response:%s]", c.ClientFunction, c.HTTPStatusCode, c.Response)
 }
 
+// SolaceEnvironmentEndpoint Holds details of messaging protocol in an solace environment
+type SolaceEnvironmentEndpoint struct {
+	ProtocolName    string
+	ProtocolVersion string
+	Compressed      string
+	Secure          string
+	Transport       string
+	Uri             string
+}
+
 // SolaceEnvironment Holds connection details for Solacce VPN Environment
 type SolaceEnvironment struct {
 	Name            string
@@ -478,6 +488,33 @@ func (c *Access) GetListEnvironments(orgName string) ([]SolaceEnvironment, error
 			ProtocolVersion: extractProtocolVersionMap(env)})
 	}
 	return solaceEnvs, nil
+}
+
+// GetEnvironmentEndpoints - provides a list of all endpoints of an environment
+func (c *Access) GetEnvironmentEndpoints(orgName string, envName string) ([]SolaceEnvironmentEndpoint, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+
+	solaceEnvMps := make([]SolaceEnvironmentEndpoint, 0)
+	envResponse, err := c.Client.GetEnvironmentWithResponse(ctx, Orgparameter(orgName), EnvName(envName))
+	if err != nil {
+		log.Tracef("[CONCLIENT] [GetEnvironment] [err:%s]", err)
+		return nil, err
+	}
+	if envResponse.StatusCode() != http.StatusOK {
+		return nil, errors.New("Solace-Connector did not return HTTP-200 for GetEnvironmentWithResponse")
+	}
+	for _, ep := range *envResponse.JSON200.MessagingProtocols {
+		solaceEnvMps = append(solaceEnvMps, SolaceEnvironmentEndpoint{
+			ProtocolName:    fmt.Sprint(ep.Protocol.Name),
+			ProtocolVersion: fmt.Sprint(ep.Protocol.Version),
+			Compressed:      fmt.Sprint(ep.Compressed),
+			Secure:          fmt.Sprint(ep.Secure),
+			Transport:       DerefString(ep.Transport),
+			Uri:             DerefString(ep.Uri),
+		})
+	}
+	return solaceEnvMps, nil
 }
 
 func extractProtocolVersionMap(env EnvironmentListItem) map[string]string {

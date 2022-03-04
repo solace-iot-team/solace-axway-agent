@@ -46,7 +46,9 @@ func init() {
 func listenToSubscriptions() error {
 	registerSchemaProcessors()
 	//log.Info(agent.GetCentralClient().DumpToken())
+
 	log.Infof("======   Configured Solace-Connector URL:%s Axway-Environment:%s", connectorConfig.ConnectorURL, agent.GetCentralConfig().GetEnvironmentName())
+
 	subMan := agent.GetCentralClient().GetSubscriptionManager()
 	subMan.RegisterProcessor(apic.SubscriptionApproved, handleApprovedSubscription)
 	subMan.RegisterProcessor(apic.SubscriptionUnsubscribeInitiated, handleUnsubscribeSubscription)
@@ -242,6 +244,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		ConnectorInsecureSkipVerify: rootProps.BoolPropertyValue("connector.acceptInsecureCertificates"),
 		ConnectorLogBody:            rootProps.BoolPropertyValue("connector.logBody"),
 		ConnectorLogHeader:          rootProps.BoolPropertyValue("connector.logHeader"),
+		ConnectorOrgMapping:         rootProps.StringPropertyValue("connector.orgMapping"),
 	}
 
 	notifierConfig = &config.NotifierConfig{

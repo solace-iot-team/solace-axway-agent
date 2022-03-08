@@ -58,6 +58,22 @@ type SolaceEnvironment struct {
 	ServiceID       string
 	Host            string
 	ProtocolVersion map[string]string
+	Endpoints       []SolaceEnvironmentEndpoint
+}
+
+func (e *SolaceEnvironment) FindEnvProtocolVersion(checkUri url.URL, checkSolaceProtocol string) (bool, string, error) {
+	for _, envMessagingProtocol := range e.Endpoints {
+		envMessagingProtocolUrl, err := url.Parse(envMessagingProtocol.Uri)
+		if err != nil {
+			return false, "undefined", err
+		}
+		if envMessagingProtocolUrl.Hostname() == checkUri.Hostname() && envMessagingProtocolUrl.Port() == checkUri.Port() {
+			if protocolVersion, found := e.ProtocolVersion[checkSolaceProtocol]; found {
+				return true, protocolVersion, nil
+			}
+		}
+	}
+	return false, "undefined", nil
 }
 
 // SolaceCredentialsDto - Credentials of App
@@ -478,20 +494,23 @@ func (c *Access) GetListEnvironments(orgName string) ([]SolaceEnvironment, error
 	log.Tracef("[CONCLIENT] [GetListEnvironments] %s", c.logTextHTTPResponse(listEnvironments.Body, listEnvironments.HTTPResponse))
 	solaceEnvs := make([]SolaceEnvironment, 0)
 	for _, env := range *listEnvironments.JSON200 {
-		host, _ := deriveHostFromProtocols(env)
-		//todo log error for debugging / follow up in logs
+		//first entry of messagingProtocols will be used to derive host name
+		host, _ := deriveHostFromProtocols(&env)
+		//todo log error for  debugging / follow up in logs
 
 		solaceEnvs = append(solaceEnvs, SolaceEnvironment{
 			Name:            DerefString((*string)(env.Name)),
 			ServiceID:       DerefString(env.ServiceId),
 			Host:            host,
-			ProtocolVersion: extractProtocolVersionMap(env)})
+			ProtocolVersion: extractProtocolVersionMap(&env),
+			Endpoints:       extractEnvironmentEndpoints(&env),
+		})
 	}
 	return solaceEnvs, nil
 }
 
-// GetEnvironmentEndpoints - provides a list of all endpoints of an environment
-func (c *Access) GetEnvironmentEndpoints(orgName string, envName string) ([]SolaceEnvironmentEndpoint, error) {
+// GetEnvironmentMessagingProtocols - provides a list of all supported messaging protocols of an environment regardless which protocols are exposed
+func (c *Access) GetEnvironmentMessagingProtocols(orgName string, envName string) ([]SolaceEnvironmentEndpoint, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 
@@ -517,14 +536,29 @@ func (c *Access) GetEnvironmentEndpoints(orgName string, envName string) ([]Sola
 	return solaceEnvMps, nil
 }
 
-func extractProtocolVersionMap(env EnvironmentListItem) map[string]string {
+func extractEnvironmentEndpoints(env *EnvironmentListItem) []SolaceEnvironmentEndpoint {
+	envEndpoints := make([]SolaceEnvironmentEndpoint, 0)
+	for _, ep := range *env.MessagingProtocols {
+		envEndpoints = append(envEndpoints, SolaceEnvironmentEndpoint{
+			ProtocolName:    fmt.Sprint(ep.Protocol.Name),
+			ProtocolVersion: fmt.Sprint(ep.Protocol.Version),
+			Compressed:      fmt.Sprint(ep.Compressed),
+			Secure:          fmt.Sprint(ep.Secure),
+			Transport:       DerefString(ep.Transport),
+			Uri:             DerefString(ep.Uri),
+		})
+	}
+	return envEndpoints
+}
+
+func extractProtocolVersionMap(env *EnvironmentListItem) map[string]string {
 	protocolVersionMap := make(map[string]string)
 	for _, endpoint := range *env.ExposedProtocols {
 		protocolVersionMap[string(endpoint.Name)] = string(*endpoint.Version)
 	}
 	return protocolVersionMap
 }
-func deriveHostFromProtocols(env EnvironmentListItem) (string, error) {
+func deriveHostFromProtocols(env *EnvironmentListItem) (string, error) {
 	for _, endpoint := range *env.MessagingProtocols {
 		if endpoint.Uri != nil {
 			url, err := url2.Parse(*endpoint.Uri)
@@ -812,7 +846,7 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 	}
 	commonNamesEnvironments := make([]CommonName, len(environments))
 	for i := range environments {
-		commonNamesEnvironments[i] = CommonName(environments[i])
+		commonNamesEnvironments[i] = CommonName(fmt.Sprint(environments[i]))
 	}
 	desc := CommonDescription(d)
 	payload := CreateApiProductJSONRequestBody{
@@ -827,7 +861,7 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 		SubResources: make([]CommonTopic, 0),
 		Attributes:   attributes,
 	}
-	result, err := c.Client.CreateApiProductWithResponse(ctx, Orgparameter(orgName), CreateApiProductJSONRequestBody(payload))
+	result, err := c.Client.CreateApiProductWithResponse(ctx, Orgparameter(orgName), payload)
 	if err != nil {
 		log.Tracef("[CONCLIENT] [PublishAPIProduct] [err:%s]", err)
 		return err

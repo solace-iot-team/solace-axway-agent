@@ -12,7 +12,6 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
 	"net/url"
-	"sort"
 	"strings"
 )
 
@@ -563,52 +562,69 @@ func (sm *SubscriptionMiddleware) IsTeamAppAvailable() (bool, error) {
 
 //PublishAPIProduct - Facade to publish via Connector an API Product (idempotent)
 func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
-	//todo cross-check all environments will share same protocols
 	agent.GetCentralConfig().GetEnvironmentName()
 	connectorEnvs, err := connector.GetOrgConnector().GetListEnvironments(sm.AxSub.GetEnvironmentName())
 	if err != nil {
 		return err
 	}
 	if len(connectorEnvs) == 0 {
-		log.Warnf("[PublishAPIProduct] [MIDDLEWARE] [There are no Environments provisioned in Connector for the organization] [Org:%s]", sm.AxSub.GetEnvironmentName())
+		log.Warnf("[PublishAPIProduct] [MIDDLEWARE] [There are no Solace Connector Environments provisioned in Connector for Solace Connector Organization] [Org:%s]", sm.AxSub.GetEnvironmentName())
+		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [There are no Solace Connector Environments provisioned ]")
 	}
-	envNames := make([]string, 0)
+	if len(connectorEnvs) > 1 {
+		log.Warnf("[PublishAPIProduct] [MIDDLEWARE] [There are more than one Solace Connector Environment provisioned in Connector for Solace Connector Organization] [Org:%s]. Multiple Solace Environments are not supported. ", sm.AxSub.GetEnvironmentName())
+		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [There are more than one Solace Connector Environment provisioned which is not supported. ]")
+	}
+
 	protocols := make([]connector.Protocol, 0)
+	lookupProtocolNames := make(map[string]bool)
 	permissions := sm.AxSub.GetServiceAttributes()
-	for _, endpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
-
-		// get first connector environment with same host as axway environment host
-
-		idx := sort.Search(len(connectorEnvs), func(i int) bool {
-
-			return endpoint.Host == connectorEnvs[i].Host
-		})
-		if idx < len(connectorEnvs) && connectorEnvs[idx].Host == endpoint.Host {
-			// envNames = append(envNames, connectorEnvs[idx].Name)
-
-			envEndpoints, err := connector.GetOrgConnector().GetEnvironmentEndpoints(sm.AxSub.GetEnvironmentName(), connectorEnvs[idx].Name)
+	//must be exactly one env
+	connectorEnv := connectorEnvs[0]
+	for _, axwayEndpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
+		if connectorEnv.Host == axwayEndpoint.Host {
+			// all protocols, uri and ports of a Solace Message Broker - regardless of the subset defined in Solace Connector Environment
+			envMessagingProtocols, err := connector.GetOrgConnector().GetEnvironmentMessagingProtocols(sm.AxSub.GetEnvironmentName(), connectorEnv.Name)
 			if err != nil {
-				log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [could not retrieve endpoints of the environment] [Org:%s] [Env:%s]", sm.AxSub.GetEnvironmentName(), connectorEnvs[idx].Name)
+				log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [could not retrieve endpoints of the environment] [Org:%s] [Env:%s]", sm.AxSub.GetEnvironmentName(), connectorEnv.Name)
 				return err
 			}
-			for _, envEndpoint := range envEndpoints {
-				envUrl, err := url.Parse(envEndpoint.Uri)
+			for _, envMessagingProtocol := range envMessagingProtocols {
+				envMessagingProtocolUrl, err := url.Parse(envMessagingProtocol.Uri)
 				if err != nil {
-					log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [could not parse URL of environment] [Org:%s] [Env:%s] [Url:%s]", sm.AxSub.GetEnvironmentName(), connectorEnvs[idx].Name, envEndpoint.Uri)
+					log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [could not parse URL of environment] [Org:%s] [Env:%s] [Url:%s]", sm.AxSub.GetEnvironmentName(), connectorEnv.Name, envMessagingProtocol.Uri)
 					return err
 				}
-				if endpoint.Host == envUrl.Hostname() && fmt.Sprint(endpoint.Port) == envUrl.Port() {
-					ver := connector.CommonVersion(envEndpoint.ProtocolVersion)
-					protocols = append(protocols, connector.Protocol{
-						Name:    connector.ProtocolName(envEndpoint.ProtocolName),
-						Version: &ver})
+				if axwayEndpoint.Host == envMessagingProtocolUrl.Hostname() && fmt.Sprint(axwayEndpoint.Port) == envMessagingProtocolUrl.Port() {
+					if protocolVersion, found := connectorEnv.ProtocolVersion[axwayEndpoint.Protocol]; found {
+						if !lookupProtocolNames[axwayEndpoint.Protocol] {
+							lookupProtocolNames[axwayEndpoint.Protocol] = true
+							ver := connector.CommonVersion(protocolVersion)
+							protocols = append(protocols, connector.Protocol{
+								Name:    connector.ProtocolName(axwayEndpoint.Protocol),
+								Version: &ver})
+						}
+					}
 				}
 			}
-		} else {
-			return errors.New("Environment not found in Solace-Connector for Host:" + endpoint.Host)
 		}
 	}
+
+	if len(protocols) == 0 {
+		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [No fitting exposed Solace Connector Environment Protocols found for Axway Endpoints]")
+	}
+	envNames := make([]string, 0)
+	envNames = append(envNames, connectorEnv.Name)
 	return connector.GetOrgConnector().PublishAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), []string{sm.AxSub.GetRevisionId()}, envNames, protocols, permissions)
+}
+
+func containsString(s []string, item string) bool {
+	for _, a := range s {
+		if a == item {
+			return true
+		}
+	}
+	return false
 }
 
 //RemoveAPI - Facade to remove via connector an API

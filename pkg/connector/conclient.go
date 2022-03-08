@@ -61,13 +61,14 @@ type SolaceEnvironment struct {
 	Endpoints       []SolaceEnvironmentEndpoint
 }
 
-func (e *SolaceEnvironment) FindEnvProtocolVersion(checkUri url.URL, checkSolaceProtocol string) (bool, string, error) {
+func (e *SolaceEnvironment) FindEnvProtocolVersion(checkHost string, checkPort string, checkSolaceProtocol string) (bool, string, error) {
 	for _, envMessagingProtocol := range e.Endpoints {
 		envMessagingProtocolUrl, err := url.Parse(envMessagingProtocol.Uri)
 		if err != nil {
 			return false, "undefined", err
 		}
-		if envMessagingProtocolUrl.Hostname() == checkUri.Hostname() && envMessagingProtocolUrl.Port() == checkUri.Port() {
+		if envMessagingProtocolUrl.Hostname() == checkHost && envMessagingProtocolUrl.Port() == checkPort {
+
 			if protocolVersion, found := e.ProtocolVersion[checkSolaceProtocol]; found {
 				return true, protocolVersion, nil
 			}

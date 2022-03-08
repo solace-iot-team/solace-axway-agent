@@ -11,7 +11,6 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
-	"net/url"
 	"strings"
 )
 
@@ -571,50 +570,43 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 		log.Warnf("[PublishAPIProduct] [MIDDLEWARE] [There are no Solace Connector Environments provisioned in Connector for Solace Connector Organization] [Org:%s]", sm.AxSub.GetEnvironmentName())
 		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [There are no Solace Connector Environments provisioned ]")
 	}
-	if len(connectorEnvs) > 1 {
-		log.Warnf("[PublishAPIProduct] [MIDDLEWARE] [There are more than one Solace Connector Environment provisioned in Connector for Solace Connector Organization] [Org:%s]. Multiple Solace Environments are not supported. ", sm.AxSub.GetEnvironmentName())
-		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [There are more than one Solace Connector Environment provisioned which is not supported. ]")
-	}
 
 	protocols := make([]connector.Protocol, 0)
 	lookupProtocolNames := make(map[string]bool)
-	permissions := sm.AxSub.GetServiceAttributes()
-	//must be exactly one env
-	connectorEnv := connectorEnvs[0]
-	for _, axwayEndpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
-		if connectorEnv.Host == axwayEndpoint.Host {
-			// all protocols, uri and ports of a Solace Message Broker - regardless of the subset defined in Solace Connector Environment
-			envMessagingProtocols, err := connector.GetOrgConnector().GetEnvironmentMessagingProtocols(sm.AxSub.GetEnvironmentName(), connectorEnv.Name)
+	envNames := make([]string, 0)
+
+	for _, connectorEnv := range connectorEnvs {
+		countEndpointsFound := 0
+		for _, axwayEndpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
+			protocols = make([]connector.Protocol, 0)
+
+			found, protocolVersion, err := connectorEnv.FindEnvProtocolVersion(axwayEndpoint.Host, fmt.Sprint(axwayEndpoint.Port), axwayEndpoint.Protocol)
 			if err != nil {
-				log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [could not retrieve endpoints of the environment] [Org:%s] [Env:%s]", sm.AxSub.GetEnvironmentName(), connectorEnv.Name)
+				log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [error looking up protocol version in Connector Env] [Org:%s] [Env:%s]", sm.AxSub.GetEnvironmentName(), connectorEnv.Name)
 				return err
 			}
-			for _, envMessagingProtocol := range envMessagingProtocols {
-				envMessagingProtocolUrl, err := url.Parse(envMessagingProtocol.Uri)
-				if err != nil {
-					log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [could not parse URL of environment] [Org:%s] [Env:%s] [Url:%s]", sm.AxSub.GetEnvironmentName(), connectorEnv.Name, envMessagingProtocol.Uri)
-					return err
-				}
-				if axwayEndpoint.Host == envMessagingProtocolUrl.Hostname() && fmt.Sprint(axwayEndpoint.Port) == envMessagingProtocolUrl.Port() {
-					if protocolVersion, found := connectorEnv.ProtocolVersion[axwayEndpoint.Protocol]; found {
-						if !lookupProtocolNames[axwayEndpoint.Protocol] {
-							lookupProtocolNames[axwayEndpoint.Protocol] = true
-							ver := connector.CommonVersion(protocolVersion)
-							protocols = append(protocols, connector.Protocol{
-								Name:    connector.ProtocolName(axwayEndpoint.Protocol),
-								Version: &ver})
-						}
-					}
+			if found {
+				countEndpointsFound++
+				if !lookupProtocolNames[axwayEndpoint.Protocol] {
+
+					lookupProtocolNames[axwayEndpoint.Protocol] = true
+					ver := connector.CommonVersion(protocolVersion)
+					protocols = append(protocols, connector.Protocol{
+						Name:    connector.ProtocolName(axwayEndpoint.Protocol),
+						Version: &ver})
 				}
 			}
 		}
+		//an environment must support all axwayEndpoints
+		if countEndpointsFound == len(sm.AxSub.GetServiceInstanceSpecEndpoints()) {
+			envNames = append(envNames, connectorEnv.Name)
+		}
 	}
-
 	if len(protocols) == 0 {
 		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [No fitting exposed Solace Connector Environment Protocols found for Axway Endpoints]")
 	}
-	envNames := make([]string, 0)
-	envNames = append(envNames, connectorEnv.Name)
+
+	permissions := sm.AxSub.GetServiceAttributes()
 	return connector.GetOrgConnector().PublishAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), []string{sm.AxSub.GetRevisionId()}, envNames, protocols, permissions)
 }
 

@@ -36,4 +36,6 @@ var AxwaySolaceProtocolMapping = map[string]string{
 	"solace-compressed": "compressed-smf",
 	"ws":                "ws-mqtt",
 	"wss":               "wss-mqtt",
+	"http":              "http",
+	"https":             "https",
 }

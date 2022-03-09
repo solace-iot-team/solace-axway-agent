@@ -82,6 +82,10 @@ connector:
   # Proxy for Solace Connector endpoint
   # proxyUrl: http://abc:123
 
+  # Optional name of Connector Org instead of default convention AXWAY-ENVIRONMENT-NAME = CONNECTOR-ORG_NAME
+  # If variable is not defined, fallback to default convention
+  # orgMapping: some-connector-org-name
+
   # Solace Connector admin user
   adminUser: admin
   # Solace Connector admin password

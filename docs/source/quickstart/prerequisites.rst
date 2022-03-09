@@ -2,9 +2,6 @@ Prerequisites
 =============
 
 
-.. warning::
-  UNDER CONSTRUCTION
-
 Amplify Platform
 ----------------
 
@@ -60,4 +57,10 @@ More details about `Soalce Platform API` are described at GitHub `solace-iot-tea
 
   * `Org-Admin` user and password
 
-By convention there must be a an *Organization* provisioned within `Solace Platform API` service with the same name as the Amplify `environment` that will get managed by *Solace Axway Agent for Async API-Management*
+
+An *Organization* within `Solace Platform API` service with at least one *Solace-Environment* must be provisioned:
+
+  * Option a: the name of the *Organization* is the same as Amplify `Environment`
+  * Option b: arbitrary name of the *Organization* and configured `orgMapping` (see `CONNECTOR_ORGMAPPING` environment variable in sample) with the name of the *Organization*
+  * The *Organization* must have at least one *Solace-Environment* and assigned `Protocols` (e.g. `mqtt` or `smf`) that will later get used in Amplify as `Endpoint`.
+

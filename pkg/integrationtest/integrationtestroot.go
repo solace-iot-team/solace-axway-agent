@@ -78,7 +78,7 @@ func ExecuteIntegrationTestMiddleware() error {
 			{
 				Host:     "mr1i5g7tif6z9h.messaging.solace.cloud",
 				Port:     55555,
-				Protocol: "smf",
+				Protocol: "solace",
 			},
 		},
 	}
@@ -698,19 +698,20 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	}
 
 	iCfg = &TestConfig{
-		Org:            rootProps.StringPropertyValue("integrationtest.org"),
-		OrgEnvName:     rootProps.StringPropertyValue("integrationtest.orgEnvName"),
-		OrgToken:       rootProps.StringPropertyValue("integrationtest.orgToken"),
-		ServiceID:      rootProps.StringPropertyValue("integrationtest.serviceId"),
-		TeamName:       rootProps.StringPropertyValue("integrationtest.teamName"),
-		APIName:        rootProps.StringPropertyValue("integrationtest.apiName"),
-		APISpec:        rootProps.StringPropertyValue("integrationtest.apiSpec"),
-		APIProductName: rootProps.StringPropertyValue("integrationtest.apiProductName"),
-		TeamAppName:    rootProps.StringPropertyValue("integrationtest.teamAppName"),
-		Cleanup:        rootProps.BoolPropertyValue("integrationtest.cleanup"),
+		Org:                 rootProps.StringPropertyValue("integrationtest.org"),
+		OrgEnvName:          rootProps.StringPropertyValue("integrationtest.orgEnvName"),
+		OrgToken:            rootProps.StringPropertyValue("integrationtest.orgToken"),
+		ServiceID:           rootProps.StringPropertyValue("integrationtest.serviceId"),
+		TeamName:            rootProps.StringPropertyValue("integrationtest.teamName"),
+		APIName:             rootProps.StringPropertyValue("integrationtest.apiName"),
+		APISpec:             rootProps.StringPropertyValue("integrationtest.apiSpec"),
+		APIProductName:      rootProps.StringPropertyValue("integrationtest.apiProductName"),
+		TeamAppName:         rootProps.StringPropertyValue("integrationtest.teamAppName"),
+		Cleanup:             rootProps.BoolPropertyValue("integrationtest.cleanup"),
+		ConnectorOrgMapping: rootProps.StringPropertyValue("integrationtest.orgMapping"),
 	}
 
-	log.Tracef("Org:%s OrgEnvName:%s  ServiceID:%s", iCfg.Org, iCfg.OrgEnvName, iCfg.ServiceID)
+	log.Tracef("Org:%s OrgEnvName:%s  ServiceID:%s ConnectorOrgMapping:%s", iCfg.Org, iCfg.OrgEnvName, iCfg.ServiceID, iCfg.ConnectorOrgMapping)
 
 	// initialize solace-connector
 	err := connector.Initialize(connectorConfig)

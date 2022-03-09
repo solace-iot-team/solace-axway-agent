@@ -23,3 +23,17 @@ const (
 
 	SolaceClientOrigin = "ClientOrigin"
 )
+
+var AxwaySolaceProtocolMapping = map[string]string{
+	"amqp":              "amqp",
+	"amqps":             "amqps",
+	"jms":               "jms",
+	"jms-secure":        "secure-jms",
+	"mqtt":              "mqtt",
+	"secure-mqtt":       "secure-mqtt",
+	"solace":            "smf",
+	"solace-secure":     "smfs",
+	"solace-compressed": "compressed-smf",
+	"ws":                "ws-mqtt",
+	"wss":               "wss-mqtt",
+}

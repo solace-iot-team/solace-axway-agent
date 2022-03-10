@@ -586,10 +586,12 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 	protocols := make([]connector.Protocol, 0)
 	lookupProtocolNames := make(map[string]bool)
 	envNames := make([]string, 0)
+	mappedAxwayEndpoints := make(map[string]bool)
 
 	for _, connectorEnv := range connectorEnvs {
 		countEndpointsFound := 0
 		for _, axwayEndpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
+
 			solaceProtocolName, found := solace.AxwaySolaceProtocolMapping[axwayEndpoint.Protocol]
 			if !found {
 				log.Warn("[PublishAPIProduct] [MIDDLEWARE] [Unmapped Axway protocol name:%s]", axwayEndpoint.Protocol)
@@ -602,6 +604,9 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 			}
 			if found {
 				countEndpointsFound++
+				if !mappedAxwayEndpoints[axwayEndpoint.Host+"-"+fmt.Sprint(axwayEndpoint.Port)+"-"+axwayEndpoint.Protocol] {
+					mappedAxwayEndpoints[axwayEndpoint.Host+"-"+fmt.Sprint(axwayEndpoint.Port)+"-"+axwayEndpoint.Protocol] = true
+				}
 				if !lookupProtocolNames[solaceProtocolName] {
 					lookupProtocolNames[solaceProtocolName] = true
 					ver := connector.CommonVersion(protocolVersion)
@@ -611,11 +616,12 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 				}
 			}
 		}
-		//an environment must support all axwayEndpoints
-		if countEndpointsFound == len(sm.AxSub.GetServiceInstanceSpecEndpoints()) {
+		//an environment must support at least one endpoint
+		if countEndpointsFound > 0 {
 			envNames = append(envNames, connectorEnv.Name)
 		}
 	}
+
 	if len(envNames) == 0 {
 		endpointInfo := make(map[string]string)
 		for _, axwayEndpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
@@ -632,8 +638,8 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 		for host, protocols := range endpointInfo {
 			debugText = fmt.Sprintf("%s[ %s - %s] ", debugText, host, protocols)
 		}
-		log.Warnf("[PublishAPIProduct] []MIDDLEWARE] [No fitting exposed Solace Connector Environment Protocols found for Axway Endpoints] [Org:%s] [%s]", sm.GetOrg(), debugText)
-		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [No fitting exposed Solace Connector Environment Protocols found for Axway Endpoints]")
+		log.Warnf("[PublishAPIProduct] []MIDDLEWARE] [No fitting exposed Solace Connector Environment found for Axway Endpoints] [Org:%s] [%s]", sm.GetOrg(), debugText)
+		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [No fitting exposed Solace Connector Environment found for Axway Endpoints]")
 	}
 
 	permissions := sm.AxSub.GetServiceAttributes()

@@ -8,4 +8,3 @@ Quickstart
 
   prerequisites
   installation
-  operations

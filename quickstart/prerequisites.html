@@ -52,7 +52,6 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html">Installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="operations.html">Operations</a></li>
 </ul>
 </li>
 </ul>
@@ -84,10 +83,6 @@
              
   <section id="prerequisites">
 <h1>Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline"></a></h1>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>UNDER CONSTRUCTION</p>
-</div>
 <section id="amplify-platform">
 <h2>Amplify Platform<a class="headerlink" href="#amplify-platform" title="Permalink to this headline"></a></h2>
 <section id="create-public-private-key-pair-as-pem-files">
@@ -134,7 +129,14 @@ More details about <cite>Soalce Platform API</cite> are described at GitHub <cit
 <li><p><cite>Org-Admin</cite> user and password</p></li>
 </ul>
 </div>
-<p>By convention there must be a an <em>Organization</em> provisioned within <cite>Solace Platform API</cite> service with the same name as the Amplify <cite>environment</cite> that will get managed by <em>Solace Axway Agent for Async API-Management</em></p>
+<p>An <em>Organization</em> within <cite>Solace Platform API</cite> service with at least one <em>Solace-Environment</em> must be provisioned:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Option a: the name of the <em>Organization</em> is the same as Amplify <cite>Environment</cite></p></li>
+<li><p>Option b: arbitrary name of the <em>Organization</em> and configured <cite>orgMapping</cite> (see <cite>CONNECTOR_ORGMAPPING</cite> environment variable in sample) with the name of the <em>Organization</em></p></li>
+<li><p>The <em>Organization</em> must have at least one <em>Solace-Environment</em> and assigned <cite>Protocols</cite> (e.g. <cite>mqtt</cite> or <cite>smf</cite>) that will later get used in Amplify as <cite>Endpoint</cite>.</p></li>
+</ul>
+</div></blockquote>
 </section>
 </section>
 
@@ -150,7 +152,7 @@ More details about <cite>Soalce Platform API</cite> are described at GitHub <cit
 
   <div role="contentinfo">
     <p>&#169; Copyright 2022, Solace Corporation, Jochen Traunecker, &lt;jochen.traunecker@solace.com&gt;.
-      <span class="lastupdated">Last updated on 16 Feb 2022 at 15:32.
+      <span class="lastupdated">Last updated on 16 Mar 2022 at 07:34.
       </span></p>
   </div>
 

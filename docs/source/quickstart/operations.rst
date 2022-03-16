@@ -1,6 +1,0 @@
-Operations
-==========
-
-.. warning::
-  UNDER CONSTRUCTION
-

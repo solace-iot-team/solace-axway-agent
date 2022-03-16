@@ -11,7 +11,6 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
-	"sort"
 	"strings"
 )
 
@@ -60,6 +59,7 @@ type SubscriptionContainer struct {
 	// ServiceRevision.Name - APIProduct (Name)
 	// Subscription.Id - Application (Name)
 	// ServiceRevision.Name - API (Name)
+	connectorOrg                string
 	valid                       bool
 	sub                         apic.Subscription
 	service                     *v1alpha1.APIService
@@ -76,12 +76,13 @@ type SubscriptionContainer struct {
 
 // SubscriptionMiddleware holds AxwaySubscription and exposes functionality
 type SubscriptionMiddleware struct {
-	valid bool
-	AxSub AxwaySubscription
+	valid        bool
+	connectorOrg string
+	AxSub        AxwaySubscription
 }
 
 // NewSubscriptionMiddleware - creates new SubscriptionContainer
-func NewSubscriptionMiddleware(subscription apic.Subscription) (*SubscriptionMiddleware, error) {
+func NewSubscriptionMiddleware(subscription apic.Subscription, connectorOrg string) (*SubscriptionMiddleware, error) {
 	service, err := agent.GetCentralClient().GetAPIServiceByName(subscription.GetAPIServiceName())
 	if err != nil {
 		return nil, err
@@ -119,15 +120,25 @@ func NewSubscriptionMiddleware(subscription apic.Subscription) (*SubscriptionMid
 		container.valid = true
 	}
 	middleware := SubscriptionMiddleware{
-		AxSub: &container,
-		valid: false,
+		AxSub:        &container,
+		valid:        false,
+		connectorOrg: connectorOrg,
 	}
 	return &middleware, nil
 }
 
+func (c *SubscriptionMiddleware) GetOrg() string {
+	if c.connectorOrg == "" {
+		//default Axway Environment Name = Solace Connector Org Name
+		return c.AxSub.GetEnvironmentName()
+	} else {
+		return c.connectorOrg
+	}
+}
+
 // LogText - Extracts Logging Details
 func (c *SubscriptionContainer) LogText() string {
-	return fmt.Sprintf("[Environment/Org:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s]", c.GetEnvironmentName(), c.GetSubscriptionOwningTeamID(), c.GetRevisionName(), c.GetSubscriptionID(), c.GetRevisionName())
+	return fmt.Sprintf("[Axway Environment:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s]", c.GetEnvironmentName(), c.GetSubscriptionOwningTeamID(), c.GetRevisionName(), c.GetSubscriptionID(), c.GetRevisionName())
 }
 
 // GetSolaceAsyncAPIAppInternalID - getter
@@ -266,14 +277,14 @@ func (c *SubscriptionContainer) GetServiceInstanceSpecEndpoints() []AxwayEndpoin
 // ProcessUnsubscribeSubscription - Orchestrates entire unsubscription steps
 func (sm *SubscriptionMiddleware) ProcessUnsubscribeSubscription() error {
 	log.Infof("Deprovisioning Subscription triggered %s", sm.AxSub.LogText())
-	check, err := sm.IsEnvironmentAsOrgAvailable()
+	check, err := sm.IsOrgAvailable()
 	if err != nil {
 		log.Error("[ERROR] [MIDDLEWARE] [UNSUBSCRIBE] [IsEnvironmentAsOrgAvailable] ", err)
 		return err
 	}
 	if !check {
-		log.Warn("[ABORTING PROCESSING] [MIDDLEWARE] [UNSUBSCRIBE] [IsEnvironmentAsOrgAvailable] [Organization missing in Connector]", sm.AxSub.GetEnvironmentName())
-		return errors.New("Organization missing in Connector:" + sm.AxSub.GetEnvironmentName())
+		log.Warn("[ABORTING PROCESSING] [MIDDLEWARE] [UNSUBSCRIBE] [IsEnvironmentAsOrgAvailable] [Organization missing in Connector]", sm.GetOrg())
+		return errors.New("Organization missing in Connector:" + sm.GetOrg())
 	}
 
 	err = sm.RemoveTeamApp()
@@ -329,20 +340,20 @@ func (sm *SubscriptionMiddleware) ProcessUnsubscribeSubscription() error {
 
 // ProcessSubscription  - Orchestrates entire subscription steps
 func (sm *SubscriptionMiddleware) ProcessSubscription() error {
-	log.Infof("Provisioning Subscription triggered [Environment:%s] [Revision/API:%s] [RevisionId:%s]", sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), sm.AxSub.GetRevisionId())
+	log.Infof("Provisioning Subscription triggered [Axway Environment:%s] [Connector Org:%s] [Revision/API:%s] [RevisionId:%s]", sm.AxSub.GetEnvironmentName(), sm.GetOrg(), sm.AxSub.GetRevisionName(), sm.AxSub.GetRevisionId())
 	provisionedAPI := false
 	provisionedAPIProduct := false
 	provisionedTeam := false
 	provisionedTeamApp := false
 
-	check, err := sm.IsEnvironmentAsOrgAvailable()
+	check, err := sm.IsOrgAvailable()
 	if err != nil {
-		log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [IsEnvironmentAsOrgAvailable] ", err)
+		log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [IsOrgAvailable] ", err)
 		return err
 	}
 	if !check {
-		log.Warn("[ABORTING PROCESSING] [MIDDLEWARE] [SUBSCRIBE] [IsEnvironmentAsOrgAvailable] [Organization missing in Connector]", sm.AxSub.GetEnvironmentName())
-		return errors.New("Organization missing in Connector:" + sm.AxSub.GetEnvironmentName())
+		log.Warn("[ABORTING PROCESSING] [MIDDLEWARE] [SUBSCRIBE] [IsOrgAvailable] [Organization missing in Connector]", sm.GetOrg())
+		return errors.New("Organization missing in Connector:" + sm.GetOrg())
 	}
 	//Environment / Organization exist in Connector
 	check, err = sm.IsConnectorAPIAvailable()
@@ -411,7 +422,7 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 		log.Tracef("[SUCCESS] [MIDDLEWARE] [SUBSCRIBE] [MIDDLEWARE.ProcessSubscription] [API-Provisioned:%t] [API-Product-Provisioned:%t] [API-Provisioned:%t] [Team-Provisioned:%t] [Team-App-Provisioned:%t] [Environment:%s] [Revision/API:%s] [Team:%s] [TeamApp:%s]", provisionedAPI, provisionedAPIProduct, provisionedTeam, provisionedTeamApp, sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
 
 	} else {
-		log.Tracef("[NO CHANGE] [MIDDLEWARE] [SUBSCRIBE] [API, API-Prodcut, Team, Team0-App already existed.] [Environment:%s] [Revision/API:%s] [Team:%s] [Team-App:%s]", sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
+		log.Tracef("[NO CHANGE] [MIDDLEWARE] [SUBSCRIBE] [API, API-Prodcut, Team, Team-App already existed.] [Axway Environment:%s] [Connector Org:%s] [Revision/API:%s] [Team:%s] [Team-App:%s]", sm.AxSub.GetEnvironmentName(), sm.GetOrg(), sm.AxSub.GetRevisionName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
 	}
 
 	userEmail := sm.AxSub.GetSubscriberEmailAddress()
@@ -457,7 +468,7 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 			log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [Notification] [Notification was not sent successfully]")
 		}
 	}
-	log.Infof("Successfully provisioned Subscription [Environment:%s] [Revision/API:%s [RevisionId:%s][", sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionName(), sm.AxSub.GetRevisionId())
+	log.Infof("Successfully provisioned Subscription [Environment:%s] [Connector Org:%s] [Revision/API:%s [RevisionId:%s][", sm.AxSub.GetEnvironmentName(), sm.GetOrg(), sm.AxSub.GetRevisionName(), sm.AxSub.GetRevisionId())
 	return nil
 
 }
@@ -531,107 +542,137 @@ func (sm *SubscriptionMiddleware) GetDummySuccessOrFault(success bool) (bool, er
 	return success, nil
 }
 
-//IsEnvironmentAsOrgAvailable - Facade to check in Connector if an organization exists that has the same name AxSub Axway Environment of the subscription
-func (sm *SubscriptionMiddleware) IsEnvironmentAsOrgAvailable() (bool, error) {
-	if sm.AxSub.GetEnvironmentName() == "" {
+//IsOrgAvailable - Facade to check in Connector if an organization exists that has the same name AxSub Axway Environment of the subscription
+func (sm *SubscriptionMiddleware) IsOrgAvailable() (bool, error) {
+	if sm.GetOrg() == "" {
 		return false, nil
 	}
-	return connector.GetAdminConnector().IsOrgRegistered(sm.AxSub.GetEnvironmentName())
+	return connector.GetAdminConnector().IsOrgRegistered(sm.GetOrg())
 }
 
 //IsConnectorAPIAvailable - Facade to check via Connector if API already exists
 func (sm *SubscriptionMiddleware) IsConnectorAPIAvailable() (bool, error) {
-	return connector.GetOrgConnector().IsAPIAvailable(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId())
+	return connector.GetOrgConnector().IsAPIAvailable(sm.GetOrg(), sm.AxSub.GetRevisionId())
 }
 
 //IsAPIProductAvailable - Facade to check via Connector if API-Product exists
 func (sm *SubscriptionMiddleware) IsAPIProductAvailable() (bool, error) {
 	//by convention api and product have same name: revisionName
-	return connector.GetOrgConnector().IsAPIProductAvailable(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId())
+	return connector.GetOrgConnector().IsAPIProductAvailable(sm.GetOrg(), sm.AxSub.GetRevisionId())
 }
 
 //IsConnectorTeamAvailable - Facade to check via Connector if Team exists
 func (sm *SubscriptionMiddleware) IsConnectorTeamAvailable() (bool, error) {
-	return connector.GetOrgConnector().IsTeamAvailable(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID())
+	return connector.GetOrgConnector().IsTeamAvailable(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID())
 }
 
 //IsTeamAppAvailable - Facade to check via Connector if Team Application exists
 func (sm *SubscriptionMiddleware) IsTeamAppAvailable() (bool, error) {
-	return connector.GetOrgConnector().IsTeamAppAvailable(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
+	return connector.GetOrgConnector().IsTeamAppAvailable(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
 }
 
 //PublishAPIProduct - Facade to publish via Connector an API Product (idempotent)
 func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
-	//todo cross-check all environments will share same protocols
-	connectorEnvs, err := connector.GetOrgConnector().GetListEnvironments(sm.AxSub.GetEnvironmentName())
+	agent.GetCentralConfig().GetEnvironmentName()
+	connectorEnvs, err := connector.GetOrgConnector().GetListEnvironments(sm.GetOrg())
 	if err != nil {
 		return err
 	}
 	if len(connectorEnvs) == 0 {
-		log.Warnf("[PublishAPIProduct] [MIDDLEWARE] [There are no Environments provisioned in Connector for the organization] [Org:%s]", sm.AxSub.GetEnvironmentName())
+		log.Warnf("[PublishAPIProduct] [MIDDLEWARE] [There are no Solace Connector Environments provisioned in Connector for Solace Connector Organization] [Org:%s]", sm.GetOrg())
+		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [There are no Solace Connector Environments provisioned ]")
 	}
-	envNames := make([]string, 0)
+
 	protocols := make([]connector.Protocol, 0)
-	permissions := sm.AxSub.GetServiceAttributes()
-	for _, endpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
+	lookupProtocolNames := make(map[string]bool)
+	envNames := make([]string, 0)
+	mappedAxwayEndpoints := make(map[string]bool)
 
-		// get first connector environment with same host as axway environment host
-		idx := sort.Search(len(connectorEnvs), func(i int) bool {
-			return endpoint.Host == connectorEnvs[i].Host
-		})
-		if idx < len(connectorEnvs) && connectorEnvs[idx].Host == endpoint.Host {
-			envNames = append(envNames, connectorEnvs[idx].Name)
+	for _, connectorEnv := range connectorEnvs {
+		countEndpointsFound := 0
+		for _, axwayEndpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
 
-			// add all protocols and their version to connector product - ignoring axway defined protocol
-			for protocol, version := range connectorEnvs[idx].ProtocolVersion {
-				ver := connector.CommonVersion(version)
-				protocols = append(protocols, connector.Protocol{
-					Name:    connector.ProtocolName(protocol),
-					Version: &ver})
+			solaceProtocolName, found := solace.AxwaySolaceProtocolMapping[axwayEndpoint.Protocol]
+			if !found {
+				log.Warn("[PublishAPIProduct] [MIDDLEWARE] [Unmapped Axway protocol name:%s]", axwayEndpoint.Protocol)
+				return errors.New("[PublishAPIProduct] []MIDDLEWARE] [Unknown Axway Protocol Name]")
 			}
-		} else {
-			return errors.New("Environment not found in Solace-Connector for Host:" + endpoint.Host)
-		}
-		// TODO introduce configuration option to enable strict environment protocol check
-		/**
-		if idx < len(connectorEnvs) && connectorEnvs[idx].Host == endpoint.Host {
-			envNames = append(envNames, connectorEnvs[idx].Name)
-			protocolVersion, found := connectorEnvs[idx].ProtocolVersion[endpoint.Protocol]
+			found, protocolVersion, err := connectorEnv.FindEnvProtocolVersion(axwayEndpoint.Host, fmt.Sprint(axwayEndpoint.Port), solaceProtocolName)
+			if err != nil {
+				log.Tracef("[PublishAPIProduct] [MIDDLEWARE] [error looking up protocol version in Connector Env] [Org:%s] [Env:%s]", sm.GetOrg(), connectorEnv.Name)
+				return err
+			}
 			if found {
-				ver := connector.CommonVersion(protocolVersion)
-				protocols = append(protocols, connector.Protocol{
-					Name:    connector.ProtocolName(endpoint.Protocol),
-					Version: &ver})
-			} else {
-				return errors.New(fmt.Sprintf("Protocol/Version not in Environment [Host:%s] [Port:%d] [Protocol:%s]", endpoint.Host, endpoint.Port, endpoint.Protocol))
+				countEndpointsFound++
+				if !mappedAxwayEndpoints[axwayEndpoint.Host+"-"+fmt.Sprint(axwayEndpoint.Port)+"-"+axwayEndpoint.Protocol] {
+					mappedAxwayEndpoints[axwayEndpoint.Host+"-"+fmt.Sprint(axwayEndpoint.Port)+"-"+axwayEndpoint.Protocol] = true
+				}
+				if !lookupProtocolNames[solaceProtocolName] {
+					lookupProtocolNames[solaceProtocolName] = true
+					ver := connector.CommonVersion(protocolVersion)
+					protocols = append(protocols, connector.Protocol{
+						Name:    connector.ProtocolName(solaceProtocolName),
+						Version: &ver})
+				}
 			}
-		} else {
-			return errors.New("Environment not found")
 		}
-		*/
+		//an environment must support at least one endpoint
+		if countEndpointsFound > 0 {
+			envNames = append(envNames, connectorEnv.Name)
+		}
 	}
 
-	return connector.GetOrgConnector().PublishAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), []string{sm.AxSub.GetRevisionId()}, envNames, protocols, permissions)
+	if len(envNames) == 0 {
+		endpointInfo := make(map[string]string)
+		for _, axwayEndpoint := range sm.AxSub.GetServiceInstanceSpecEndpoints() {
+			endpointText, found := endpointInfo[axwayEndpoint.Host]
+			if found {
+				text := endpointText + ", Port:" + fmt.Sprint(axwayEndpoint.Port) + " Axway-Protocol:" + axwayEndpoint.Protocol
+				endpointInfo[axwayEndpoint.Host] = text
+			} else {
+				text := "Port:" + fmt.Sprint(axwayEndpoint.Port) + " Axway-Protocol:" + axwayEndpoint.Protocol
+				endpointInfo[axwayEndpoint.Host] = text
+			}
+		}
+		debugText := ""
+		for host, protocols := range endpointInfo {
+			debugText = fmt.Sprintf("%s[ %s - %s] ", debugText, host, protocols)
+		}
+		log.Warnf("[PublishAPIProduct] []MIDDLEWARE] [No fitting exposed Solace Connector Environment found for Axway Endpoints] [Org:%s] [%s]", sm.GetOrg(), debugText)
+		return errors.New("[PublishAPIProduct] []MIDDLEWARE] [No fitting exposed Solace Connector Environment found for Axway Endpoints]")
+	}
+
+	permissions := sm.AxSub.GetServiceAttributes()
+	return connector.GetOrgConnector().PublishAPIProduct(sm.GetOrg(), sm.AxSub.GetRevisionId(), []string{sm.AxSub.GetRevisionId()}, envNames, protocols, permissions)
+}
+
+func containsString(s []string, item string) bool {
+	for _, a := range s {
+		if a == item {
+			return true
+		}
+	}
+	return false
 }
 
 //RemoveAPI - Facade to remove via connector an API
 func (sm *SubscriptionMiddleware) RemoveAPI(ignoreConflict bool) error {
-	return connector.GetOrgConnector().RemoveAPI(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), ignoreConflict)
+	return connector.GetOrgConnector().RemoveAPI(sm.GetOrg(), sm.AxSub.GetRevisionId(), ignoreConflict)
 }
 
 //RemoveAPIProduct - Facade to remove via Connector an API Product
 func (sm *SubscriptionMiddleware) RemoveAPIProduct(ignoreConflict bool) error {
-	return connector.GetOrgConnector().RemoveAPIProduct(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), ignoreConflict)
+	return connector.GetOrgConnector().RemoveAPIProduct(sm.GetOrg(), sm.AxSub.GetRevisionId(), ignoreConflict)
 }
 
 //GetTeamApp - Facade to retrieve App AxSub generic JSON
 func (sm *SubscriptionMiddleware) GetTeamApp() (*connector.SolaceCredentialsDto, map[string]interface{}, error) {
-	return connector.GetOrgConnector().GetTeamApp(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
+	return connector.GetOrgConnector().GetTeamApp(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
 }
 
 //GetAppApis - Facade to retrieve all AsyncApi specs of an app
 func (sm *SubscriptionMiddleware) GetAppApis() ([]*map[string]interface{}, error) {
-	apiNames, error := connector.GetOrgConnector().GetAppAPINames(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionID())
+	apiNames, error := connector.GetOrgConnector().GetAppAPINames(sm.GetOrg(), sm.AxSub.GetSubscriptionID())
 	if error != nil {
 		return nil, error
 	}
@@ -639,7 +680,7 @@ func (sm *SubscriptionMiddleware) GetAppApis() ([]*map[string]interface{}, error
 	apiSpecs := make([]*map[string]interface{}, 0)
 
 	for _, apiName := range *apiNames {
-		apiSpec, errorSpec := connector.GetOrgConnector().GetAppAPISpecification(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionID(), apiName)
+		apiSpec, errorSpec := connector.GetOrgConnector().GetAppAPISpecification(sm.GetOrg(), sm.AxSub.GetSubscriptionID(), apiName)
 		if errorSpec != nil {
 			return nil, errorSpec
 		}
@@ -652,7 +693,7 @@ func (sm *SubscriptionMiddleware) GetAppApis() ([]*map[string]interface{}, error
 func (sm *SubscriptionMiddleware) RemoveTeamApp() error {
 	apiProducts := make([]string, 0)
 	apiProducts = append(apiProducts, sm.AxSub.GetRevisionId())
-	return connector.GetOrgConnector().RemoveTeamApp(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
+	return connector.GetOrgConnector().RemoveTeamApp(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
 }
 
 //PublishTeamApp - Facade to publish via Connector a Team Application
@@ -680,7 +721,7 @@ func (sm *SubscriptionMiddleware) PublishTeamApp() (*connector.Credentials, erro
 	if len(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceClientOrigin)) > 0 {
 		appAttributes[solace.SolaceClientOrigin] = sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceClientOrigin)
 	}
-	return connector.GetOrgConnector().PublishTeamApp(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID(), "Created by Axway-Agent", apiProducts, webHooks, appAttributes)
+	return connector.GetOrgConnector().PublishTeamApp(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID(), "Created by Axway-Agent", apiProducts, webHooks, appAttributes)
 }
 
 //PublishAPI - Facade to publish via Connector an API
@@ -689,10 +730,10 @@ func (sm *SubscriptionMiddleware) PublishAPI() error {
 	if err != nil {
 		return err
 	}
-	return connector.GetOrgConnector().PublishAPI(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetRevisionId(), decodedAPISpec)
+	return connector.GetOrgConnector().PublishAPI(sm.GetOrg(), sm.AxSub.GetRevisionId(), decodedAPISpec)
 }
 
 //PublishTeam - Facade to publish via Connector a Team
 func (sm *SubscriptionMiddleware) PublishTeam() error {
-	return connector.GetOrgConnector().PublishTeam(sm.AxSub.GetEnvironmentName(), sm.AxSub.GetSubscriptionOwningTeamID())
+	return connector.GetOrgConnector().PublishTeam(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID())
 }

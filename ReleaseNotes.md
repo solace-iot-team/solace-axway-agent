@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 0.0.19
+
+### Features
+
+* **Connector Organization Mapping**
+  * 'connector.orgMapping' introduced as optional configuration to define Solace-Connector organization name instead of sticking to default convention with Axway-Environment-Name = Connector-Org-Name  
+
+* **Solace SMF Protocol Support**
+  * Solace SMF, Secure SMF and Compressed SMF protocols can get used as Axway Endpoint Protocols and will get provisioned into Solace-Connector
+  
+
 ## Version 0.0.18
 
 ### Features

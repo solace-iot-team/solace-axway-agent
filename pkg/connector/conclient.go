@@ -42,12 +42,39 @@ func (c *ConclientHTTPError) Error() string {
 	return fmt.Sprintf("Call [%s] was not successfull. [Http-Status:%d] [Response:%s]", c.ClientFunction, c.HTTPStatusCode, c.Response)
 }
 
+// SolaceEnvironmentEndpoint Holds details of messaging protocol in an solace environment
+type SolaceEnvironmentEndpoint struct {
+	ProtocolName    string
+	ProtocolVersion string
+	Compressed      string
+	Secure          string
+	Transport       string
+	Uri             string
+}
+
 // SolaceEnvironment Holds connection details for Solacce VPN Environment
 type SolaceEnvironment struct {
 	Name            string
 	ServiceID       string
 	Host            string
 	ProtocolVersion map[string]string
+	Endpoints       []SolaceEnvironmentEndpoint
+}
+
+func (e *SolaceEnvironment) FindEnvProtocolVersion(checkHost string, checkPort string, checkSolaceProtocol string) (bool, string, error) {
+	for _, envMessagingProtocol := range e.Endpoints {
+		envMessagingProtocolUrl, err := url.Parse(envMessagingProtocol.Uri)
+		if err != nil {
+			return false, "undefined", err
+		}
+		if envMessagingProtocolUrl.Hostname() == checkHost && envMessagingProtocolUrl.Port() == checkPort {
+
+			if protocolVersion, found := e.ProtocolVersion[checkSolaceProtocol]; found {
+				return true, protocolVersion, nil
+			}
+		}
+	}
+	return false, "undefined", nil
 }
 
 // SolaceCredentialsDto - Credentials of App
@@ -468,26 +495,71 @@ func (c *Access) GetListEnvironments(orgName string) ([]SolaceEnvironment, error
 	log.Tracef("[CONCLIENT] [GetListEnvironments] %s", c.logTextHTTPResponse(listEnvironments.Body, listEnvironments.HTTPResponse))
 	solaceEnvs := make([]SolaceEnvironment, 0)
 	for _, env := range *listEnvironments.JSON200 {
-		host, _ := deriveHostFromProtocols(env)
-		//todo log error for debugging / follow up in logs
+		//first entry of messagingProtocols will be used to derive host name
+		host, _ := deriveHostFromProtocols(&env)
+		//todo log error for  debugging / follow up in logs
 
 		solaceEnvs = append(solaceEnvs, SolaceEnvironment{
 			Name:            DerefString((*string)(env.Name)),
 			ServiceID:       DerefString(env.ServiceId),
 			Host:            host,
-			ProtocolVersion: extractProtocolVersionMap(env)})
+			ProtocolVersion: extractProtocolVersionMap(&env),
+			Endpoints:       extractEnvironmentEndpoints(&env),
+		})
 	}
 	return solaceEnvs, nil
 }
 
-func extractProtocolVersionMap(env EnvironmentListItem) map[string]string {
+// GetEnvironmentMessagingProtocols - provides a list of all supported messaging protocols of an environment regardless which protocols are exposed
+func (c *Access) GetEnvironmentMessagingProtocols(orgName string, envName string) ([]SolaceEnvironmentEndpoint, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+
+	solaceEnvMps := make([]SolaceEnvironmentEndpoint, 0)
+	envResponse, err := c.Client.GetEnvironmentWithResponse(ctx, Orgparameter(orgName), EnvName(envName))
+	if err != nil {
+		log.Tracef("[CONCLIENT] [GetEnvironment] [err:%s]", err)
+		return nil, err
+	}
+	if envResponse.StatusCode() != http.StatusOK {
+		return nil, errors.New("Solace-Connector did not return HTTP-200 for GetEnvironmentWithResponse")
+	}
+	for _, ep := range *envResponse.JSON200.MessagingProtocols {
+		solaceEnvMps = append(solaceEnvMps, SolaceEnvironmentEndpoint{
+			ProtocolName:    fmt.Sprint(ep.Protocol.Name),
+			ProtocolVersion: fmt.Sprint(ep.Protocol.Version),
+			Compressed:      fmt.Sprint(ep.Compressed),
+			Secure:          fmt.Sprint(ep.Secure),
+			Transport:       DerefString(ep.Transport),
+			Uri:             DerefString(ep.Uri),
+		})
+	}
+	return solaceEnvMps, nil
+}
+
+func extractEnvironmentEndpoints(env *EnvironmentListItem) []SolaceEnvironmentEndpoint {
+	envEndpoints := make([]SolaceEnvironmentEndpoint, 0)
+	for _, ep := range *env.MessagingProtocols {
+		envEndpoints = append(envEndpoints, SolaceEnvironmentEndpoint{
+			ProtocolName:    fmt.Sprint(ep.Protocol.Name),
+			ProtocolVersion: fmt.Sprint(ep.Protocol.Version),
+			Compressed:      fmt.Sprint(ep.Compressed),
+			Secure:          fmt.Sprint(ep.Secure),
+			Transport:       DerefString(ep.Transport),
+			Uri:             DerefString(ep.Uri),
+		})
+	}
+	return envEndpoints
+}
+
+func extractProtocolVersionMap(env *EnvironmentListItem) map[string]string {
 	protocolVersionMap := make(map[string]string)
 	for _, endpoint := range *env.ExposedProtocols {
 		protocolVersionMap[string(endpoint.Name)] = string(*endpoint.Version)
 	}
 	return protocolVersionMap
 }
-func deriveHostFromProtocols(env EnvironmentListItem) (string, error) {
+func deriveHostFromProtocols(env *EnvironmentListItem) (string, error) {
 	for _, endpoint := range *env.MessagingProtocols {
 		if endpoint.Uri != nil {
 			url, err := url2.Parse(*endpoint.Uri)
@@ -775,7 +847,7 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 	}
 	commonNamesEnvironments := make([]CommonName, len(environments))
 	for i := range environments {
-		commonNamesEnvironments[i] = CommonName(environments[i])
+		commonNamesEnvironments[i] = CommonName(fmt.Sprint(environments[i]))
 	}
 	desc := CommonDescription(d)
 	payload := CreateApiProductJSONRequestBody{
@@ -790,7 +862,7 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 		SubResources: make([]CommonTopic, 0),
 		Attributes:   attributes,
 	}
-	result, err := c.Client.CreateApiProductWithResponse(ctx, Orgparameter(orgName), CreateApiProductJSONRequestBody(payload))
+	result, err := c.Client.CreateApiProductWithResponse(ctx, Orgparameter(orgName), payload)
 	if err != nil {
 		log.Tracef("[CONCLIENT] [PublishAPIProduct] [err:%s]", err)
 		return err

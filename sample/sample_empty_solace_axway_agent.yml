@@ -1,0 +1,4 @@
+# Minimum config file as it is mandatory for the agent to read some configuration file
+# DO NOT MODIFY AS IT WILL GET COPIED AS STATIC CONFIG FILE INTO DOCKER IMAGE (see Dockerfile)
+log:
+  level: trace

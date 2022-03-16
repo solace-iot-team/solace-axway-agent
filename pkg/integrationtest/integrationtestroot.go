@@ -77,8 +77,8 @@ func ExecuteIntegrationTestMiddleware() error {
 		serviceInstanceSpecEndpoints: []middleware.AxwayEndpoint{
 			{
 				Host:     "mr1i5g7tif6z9h.messaging.solace.cloud",
-				Port:     1883,
-				Protocol: "mqtt",
+				Port:     55555,
+				Protocol: "solace",
 			},
 		},
 	}
@@ -465,11 +465,16 @@ func executeTestCRUDEnvironment() error {
 		log.Trace("Deleted Environment: %s", iCfg.OrgEnvName)
 	}
 	protocolVersions := make([]map[string]string, 0)
-	protocolVersion := map[string]string{
+	protocolVersionMqtt := map[string]string{
 		"name":    "mqtt",
 		"version": "3.1.1",
 	}
-	protocolVersions = append(protocolVersions, protocolVersion)
+	protocolVersionSmf := map[string]string{
+		"name":    "smf",
+		"version": "smf",
+	}
+	protocolVersions = append(protocolVersions, protocolVersionMqtt)
+	protocolVersions = append(protocolVersions, protocolVersionSmf)
 	log.Tracef("connector.GetOrgConnector().CreateEnvironment /%s/%s", iCfg.Org, iCfg.OrgEnvName)
 	err = connector.GetOrgConnector().CreateEnvironment(iCfg.Org, iCfg.OrgEnvName, "Integration Test Environment", iCfg.ServiceID, protocolVersions)
 	if err != nil {
@@ -693,19 +698,20 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 	}
 
 	iCfg = &TestConfig{
-		Org:            rootProps.StringPropertyValue("integrationtest.org"),
-		OrgEnvName:     rootProps.StringPropertyValue("integrationtest.orgEnvName"),
-		OrgToken:       rootProps.StringPropertyValue("integrationtest.orgToken"),
-		ServiceID:      rootProps.StringPropertyValue("integrationtest.serviceId"),
-		TeamName:       rootProps.StringPropertyValue("integrationtest.teamName"),
-		APIName:        rootProps.StringPropertyValue("integrationtest.apiName"),
-		APISpec:        rootProps.StringPropertyValue("integrationtest.apiSpec"),
-		APIProductName: rootProps.StringPropertyValue("integrationtest.apiProductName"),
-		TeamAppName:    rootProps.StringPropertyValue("integrationtest.teamAppName"),
-		Cleanup:        rootProps.BoolPropertyValue("integrationtest.cleanup"),
+		Org:                 rootProps.StringPropertyValue("integrationtest.org"),
+		OrgEnvName:          rootProps.StringPropertyValue("integrationtest.orgEnvName"),
+		OrgToken:            rootProps.StringPropertyValue("integrationtest.orgToken"),
+		ServiceID:           rootProps.StringPropertyValue("integrationtest.serviceId"),
+		TeamName:            rootProps.StringPropertyValue("integrationtest.teamName"),
+		APIName:             rootProps.StringPropertyValue("integrationtest.apiName"),
+		APISpec:             rootProps.StringPropertyValue("integrationtest.apiSpec"),
+		APIProductName:      rootProps.StringPropertyValue("integrationtest.apiProductName"),
+		TeamAppName:         rootProps.StringPropertyValue("integrationtest.teamAppName"),
+		Cleanup:             rootProps.BoolPropertyValue("integrationtest.cleanup"),
+		ConnectorOrgMapping: rootProps.StringPropertyValue("integrationtest.orgMapping"),
 	}
 
-	log.Tracef("Org:%s OrgEnvName:%s  ServiceID:%s", iCfg.Org, iCfg.OrgEnvName, iCfg.ServiceID)
+	log.Tracef("Org:%s OrgEnvName:%s  ServiceID:%s ConnectorOrgMapping:%s", iCfg.Org, iCfg.OrgEnvName, iCfg.ServiceID, iCfg.ConnectorOrgMapping)
 
 	// initialize solace-connector
 	err := connector.Initialize(connectorConfig)

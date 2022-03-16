@@ -2,9 +2,6 @@ Installation
 ============
 
 
-.. warning::
-  UNDER CONSTRUCTION
-
 *Solace Axway Agent for Async API-Management* is typically executed as Docker container.
 
 Releases of the agent are published to Docker Hub and are located at `solaceiotteam/solace-axway-agent <https://hub.docker.com/repository/docker/solaceiotteam/solace-axway-agent>`_ .

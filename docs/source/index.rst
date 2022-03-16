@@ -3,9 +3,6 @@ Solace Axway Agent for Async API Management
 ===========================================
 
 
-.. warning::
-  UNDER CONSTRUCTION
-
 .. toctree::
   :maxdepth: 1
   :caption: Guides

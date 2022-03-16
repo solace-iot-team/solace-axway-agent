@@ -46,7 +46,12 @@ func init() {
 func listenToSubscriptions() error {
 	registerSchemaProcessors()
 	//log.Info(agent.GetCentralClient().DumpToken())
-	log.Infof("======   Configured Solace-Connector URL:%s Axway-Environment:%s", connectorConfig.ConnectorURL, agent.GetCentralConfig().GetEnvironmentName())
+	connectorOrgName := connectorConfig.ConnectorOrgMapping
+	if connectorOrgName == "" {
+		connectorOrgName = "Convention-Axway-Environment-Name"
+	}
+	log.Infof("======   Configured Solace-Connector-Url:%s Solace-Connector-Org:%s Axway-Environment:%s", connectorConfig.ConnectorURL, connectorOrgName, agent.GetCentralConfig().GetEnvironmentName())
+
 	subMan := agent.GetCentralClient().GetSubscriptionManager()
 	subMan.RegisterProcessor(apic.SubscriptionApproved, handleApprovedSubscription)
 	subMan.RegisterProcessor(apic.SubscriptionUnsubscribeInitiated, handleUnsubscribeSubscription)
@@ -102,7 +107,7 @@ func registerSchemaProcessors() {
 
 func handleUnsubscribeSubscription(subscription apic.Subscription) {
 	log.Tracef(" Handling unsubscribe for [Subscription:%s] ", subscription.GetName())
-	container, err := middleware.NewSubscriptionMiddleware(subscription)
+	container, err := middleware.NewSubscriptionMiddleware(subscription, connectorConfig.ConnectorOrgMapping)
 	if err != nil {
 		log.Errorf("Handling Unsubscribe for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return
@@ -134,7 +139,7 @@ func handleUnsubscribeSubscription(subscription apic.Subscription) {
 
 func handleApprovedSubscription(subscription apic.Subscription) {
 	log.Tracef(" Handling subscribe for [Subscription:%s] ", subscription.GetName())
-	container, err := middleware.NewSubscriptionMiddleware(subscription)
+	container, err := middleware.NewSubscriptionMiddleware(subscription, connectorConfig.ConnectorOrgMapping)
 	if err != nil {
 		log.Errorf("Handling subscribe for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return
@@ -242,6 +247,7 @@ func initConfig(centralConfig corecfg.CentralConfig) (interface{}, error) {
 		ConnectorInsecureSkipVerify: rootProps.BoolPropertyValue("connector.acceptInsecureCertificates"),
 		ConnectorLogBody:            rootProps.BoolPropertyValue("connector.logBody"),
 		ConnectorLogHeader:          rootProps.BoolPropertyValue("connector.logHeader"),
+		ConnectorOrgMapping:         rootProps.StringPropertyValue("connector.orgMapping"),
 	}
 
 	notifierConfig = &config.NotifierConfig{

@@ -139,7 +139,7 @@ func (j *SubscriptionSchemaProcessorJob) Execute() error {
 // validateSolaceCallbackSubscription - validates Solace Callback attributes in subscription schema
 func validateSolaceCallbackSubscription(subscription apic.Subscription) (bool, string) {
 	log.Tracef(" Handling validateSubscription for [Subscription:%s] ", subscription.GetName())
-	_, err := middleware.NewSubscriptionMiddleware(subscription)
+	_, err := middleware.NewSubscriptionMiddleware(subscription, connectorConfig.ConnectorOrgMapping)
 	if err != nil {
 		log.Errorf("Handling validateSubscription for [Subscription:%s] was not successful. [%s]", subscription.GetName(), err.Error())
 		return false, "Subscription could not get validated."

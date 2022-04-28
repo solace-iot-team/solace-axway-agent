@@ -11,6 +11,7 @@ import (
 	"github.com/solace-iot-team/solace-axway-agent/pkg/connector"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/notification"
 	"github.com/solace-iot-team/solace-axway-agent/pkg/solace"
+	"strconv"
 	"strings"
 )
 
@@ -18,6 +19,7 @@ import (
 type AxwaySubscription interface {
 	LogText() string
 	GetServiceAttributes() map[string]string
+	GetServiceResourceMetaAttributes() map[string]string
 	GetSolaceAsyncAPIAppInternalID() string
 	GetCatalogItemName() string
 	SetSolaceAsyncAPIAppInternalID(id string)
@@ -224,6 +226,11 @@ func (c *SubscriptionContainer) GetAPISpec() string {
 // GetServiceAttributes getter
 func (c *SubscriptionContainer) GetServiceAttributes() map[string]string {
 	return c.service.Attributes
+}
+
+// GetServiceResourceMetaAttributes getter
+func (c *SubscriptionContainer) GetServiceResourceMetaAttributes() map[string]string {
+	return c.service.ResourceMeta.GetAttributes()
 }
 
 // GetSubscriptionName getter
@@ -643,7 +650,61 @@ func (sm *SubscriptionMiddleware) PublishAPIProduct() error {
 	}
 
 	permissions := sm.AxSub.GetServiceAttributes()
-	return connector.GetOrgConnector().PublishAPIProduct(sm.GetOrg(), sm.AxSub.GetRevisionId(), []string{sm.AxSub.GetRevisionId()}, envNames, protocols, permissions)
+	serviceAttributes := sm.AxSub.GetServiceResourceMetaAttributes()
+	clientOptions, err := extractSolaceClientOptions(serviceAttributes)
+	if err != nil {
+		return err
+	}
+	return connector.GetOrgConnector().PublishAPIProduct(sm.GetOrg(), sm.AxSub.GetRevisionId(), []string{sm.AxSub.GetRevisionId()}, envNames, protocols, permissions, clientOptions)
+}
+
+// extracts SolaceClientOptions out of attributes
+func extractSolaceClientOptions(attributes map[string]string) (*connector.SolaceClientOptions, error) {
+	if val, ok := attributes[solace.SolaceQueueRequire]; ok {
+		if strings.ToLower(val) == "true" {
+			clientOptions := connector.SolaceClientOptions{
+				RequireQueue:     true,
+				AccessType:       "",
+				MaxTtl:           0,
+				MaxMsgSpoolUsage: 0,
+			}
+
+			if valMaxTtlTxt, okMaxTtl := attributes[solace.SolaceQueueMaxTtl]; okMaxTtl {
+				if valMaxTtl, err := strconv.Atoi(valMaxTtlTxt); err == nil {
+					clientOptions.MaxTtl = valMaxTtl
+				} else {
+					return nil, errors.New(fmt.Sprintf("%s attribute is not a number (%s)", solace.SolaceQueueMaxTtl, valMaxTtlTxt))
+				}
+			} else {
+				return nil, errors.New(fmt.Sprintf("%s missing as attribute", solace.SolaceQueueMaxTtl))
+			}
+
+			if valMaxSpoolTtlTxt, okMaxSpool := attributes[solace.SolaceQueueMaxSpoolUsage]; okMaxSpool {
+				if valMaxSpoolTtl, err := strconv.Atoi(valMaxSpoolTtlTxt); err == nil {
+					clientOptions.MaxMsgSpoolUsage = valMaxSpoolTtl
+				} else {
+					return nil, errors.New(fmt.Sprintf("%s attribute is not a number (%s)", solace.SolaceQueueMaxSpoolUsage, valMaxSpoolTtlTxt))
+				}
+			} else {
+				return nil, errors.New(fmt.Sprintf("%s missing as attribute", solace.SolaceQueueMaxSpoolUsage))
+			}
+
+			if valQueueAccessTypeTxt, okQueueAccessType := attributes[solace.SolaceQueueAccessType]; okQueueAccessType {
+				if strings.ToLower(valQueueAccessTypeTxt) == solace.SolaceQueueAccessTypeExclusive {
+					clientOptions.AccessType = solace.SolaceQueueAccessTypeExclusive
+				} else if strings.ToLower(valQueueAccessTypeTxt) == solace.SolaceQueueAccessTypeNonExclusive {
+					clientOptions.AccessType = solace.SolaceQueueAccessTypeNonExclusive
+				} else {
+					return nil, errors.New(fmt.Sprintf("%s attribute not supported value", solace.SolaceQueueAccessType, valQueueAccessTypeTxt))
+				}
+			} else {
+				return nil, errors.New(fmt.Sprintf("%s missing as attribute", solace.SolaceQueueAccessType))
+			}
+
+			return &clientOptions, nil
+		}
+	}
+	return nil, nil
 }
 
 func containsString(s []string, item string) bool {

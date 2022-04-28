@@ -61,6 +61,13 @@ type SolaceEnvironment struct {
 	Endpoints       []SolaceEnvironmentEndpoint
 }
 
+type SolaceClientOptions struct {
+	RequireQueue     bool
+	AccessType       string
+	MaxTtl           int
+	MaxMsgSpoolUsage int
+}
+
 func (e *SolaceEnvironment) FindEnvProtocolVersion(checkHost string, checkPort string, checkSolaceProtocol string) (bool, string, error) {
 	for _, envMessagingProtocol := range e.Endpoints {
 		envMessagingProtocolUrl, err := url.Parse(envMessagingProtocol.Uri)
@@ -829,7 +836,7 @@ func (c *Access) RemoveAPIProduct(orgName string, productName string, ignoreConf
 }
 
 // PublishAPIProduct - publishes API-Product
-func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames []string, environments []string, protocols []Protocol, permissions map[string]string) error {
+func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames []string, environments []string, protocols []Protocol, permissions map[string]string, solaceClientOptions *SolaceClientOptions) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	a := APIProductApprovalTypeAuto
@@ -861,6 +868,22 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 		PubResources: make([]CommonTopic, 0),
 		SubResources: make([]CommonTopic, 0),
 		Attributes:   attributes,
+	}
+	if solaceClientOptions != nil {
+		clientOptionsGuaranteedMessagingAccessType := ClientOptionsGuaranteedMessagingAccessType(solaceClientOptions.AccessType)
+		maxSpoolUsage := int64(solaceClientOptions.MaxMsgSpoolUsage)
+		maxTtl := int64(solaceClientOptions.MaxTtl)
+		requireQueue := bool(solaceClientOptions.RequireQueue)
+		guaranteedMessaging := ClientOptionsGuaranteedMessaging{
+			AccessType:       &clientOptionsGuaranteedMessagingAccessType,
+			MaxMsgSpoolUsage: &maxSpoolUsage,
+			MaxTtl:           &maxTtl,
+			RequireQueue:     &requireQueue,
+		}
+		clientOptions := ClientOptions{
+			GuaranteedMessaging: &guaranteedMessaging,
+		}
+		payload.ClientOptions = &clientOptions
 	}
 	result, err := c.Client.CreateApiProductWithResponse(ctx, Orgparameter(orgName), payload)
 	if err != nil {

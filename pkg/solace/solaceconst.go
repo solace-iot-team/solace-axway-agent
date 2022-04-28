@@ -22,6 +22,13 @@ const (
 	SolaceAuthenticationSecret                         = "AuthenticationSecret"
 
 	SolaceClientOrigin = "ClientOrigin"
+
+	SolaceQueueRequire                = "solace-queue-require"
+	SolaceQueueMaxTtl                 = "solace-queue-maxttl"
+	SolaceQueueMaxSpoolUsage          = "solace-queue-maxspoolusage"
+	SolaceQueueAccessType             = "solace-queue-accesstype"
+	SolaceQueueAccessTypeExclusive    = "exclusive"
+	SolaceQueueAccessTypeNonExclusive = "non-exclusive"
 )
 
 var AxwaySolaceProtocolMapping = map[string]string{

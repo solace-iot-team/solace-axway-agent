@@ -81,6 +81,12 @@ func ExecuteIntegrationTestMiddleware() error {
 				Protocol: "solace",
 			},
 		},
+		serviceResourceMetaAttributes: map[string]string{
+			solace.SolaceQueueRequire:       "true",
+			solace.SolaceQueueAccessType:    solace.SolaceQueueAccessTypeExclusive,
+			solace.SolaceQueueMaxTtl:        "5000",
+			solace.SolaceQueueMaxSpoolUsage: "500",
+		},
 	}
 
 	middleware := middleware.SubscriptionMiddleware{
@@ -122,6 +128,7 @@ type TestSubscriptionContainer struct {
 	externalAPIName                  string
 	apiSpec                          string
 	serviceAttributes                map[string]string
+	serviceResourceMetaAttributes    map[string]string
 	subscriptionName                 string
 	subscriptionAPIServiceName       string
 	subscriptionID                   string
@@ -137,6 +144,11 @@ type TestSubscriptionContainer struct {
 	subscriptionCredentials     *connector.SolaceCredentialsDto
 	solaceCallbackAPI           bool
 	solaceAsyncAPIAppInternalID string
+}
+
+// GetServiceResourceMetaAttributes - provides service attributes
+func (c *TestSubscriptionContainer) GetServiceResourceMetaAttributes() map[string]string {
+	return c.serviceResourceMetaAttributes
 }
 
 // LogText - Extracts Logging Details
@@ -517,8 +529,14 @@ func executeTestCRUDAPIProduct() error {
 		Name:    "mqtt",
 		Version: &version,
 	})
+	clientOptions := connector.SolaceClientOptions{
+		RequireQueue:     true,
+		AccessType:       solace.SolaceQueueAccessTypeExclusive,
+		MaxTtl:           5000,
+		MaxMsgSpoolUsage: 500,
+	}
 	log.Tracef("connector.GetOrgConnector().PublishAPIProduct /%s/%s", iCfg.Org, iCfg.APIProductName)
-	err = connector.GetOrgConnector().PublishAPIProduct(iCfg.Org, iCfg.APIProductName, apiNames, envNames, protocols, permissions)
+	err = connector.GetOrgConnector().PublishAPIProduct(iCfg.Org, iCfg.APIProductName, apiNames, envNames, protocols, permissions, &clientOptions)
 	if err != nil {
 		log.Tracef("Could not create APIProduct")
 		return err

@@ -579,15 +579,15 @@ func deriveHostFromProtocols(env *EnvironmentListItem) (string, error) {
 	return "", errors.New("Could not derive a Host out of Environment Protocol List")
 }
 
-// GetTeamApp - retrieves App as generic JSON
-func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*SolaceCredentialsDto, map[string]interface{}, error) {
+// GetTeamApp - retrieves App
+func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*AppResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	params := GetTeamAppParams{}
 	result, err := c.Client.GetTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), AppName(appName), &params)
 	if err != nil {
 		log.Tracef("[CONCLIENT] [GetTeamApp] [err:%s]", err)
-		return nil, nil, err
+		return nil, err
 	}
 	log.Tracef("[CONCLIENT] [GetTeamApp] %s", c.logTextHTTPResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
@@ -597,6 +597,29 @@ func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*S
 			Response:       "n/a",
 		}
 		log.Tracef("[FAULT] [CONCLIENT] [GetTeamApp] [GetTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [%s]", orgName, teamName, appName, returnError.Error())
+		return nil, returnError
+	}
+	return result.JSON200, nil
+}
+
+// GetTeamAppJson - retrieves App as generic JSON
+func (c *Access) GetTeamAppJson(orgName string, teamName string, appName string) (*SolaceCredentialsDto, map[string]interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+	params := GetTeamAppParams{}
+	result, err := c.Client.GetTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), AppName(appName), &params)
+	if err != nil {
+		log.Tracef("[CONCLIENT] [GetTeamAppJson] [err:%s]", err)
+		return nil, nil, err
+	}
+	log.Tracef("[CONCLIENT] [GetTeamAppJson] %s", c.logTextHTTPResponse(result.Body, result.HTTPResponse))
+	if result.StatusCode() >= 300 {
+		returnError := &ConclientHTTPError{
+			ClientFunction: "GetTeamAppWithResponse",
+			HTTPStatusCode: int(result.StatusCode()),
+			Response:       "n/a",
+		}
+		log.Tracef("[FAULT] [CONCLIENT] [GetTeamAppJson] [GetTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [%s]", orgName, teamName, appName, returnError.Error())
 		return nil, nil, returnError
 	}
 
@@ -684,7 +707,7 @@ func (c *Access) RemoveTeamApp(orgName string, teamName string, appName string) 
 }
 
 // PublishTeamApp - publishes TeamApp
-func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string, solaceWebhook *SolaceWebhook, appAttributes map[string]string) (*Credentials, error) {
+func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string, solaceWebhook *SolaceWebhook, appAttributes map[string]string) (*AppResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	credentials := Credentials{
@@ -756,7 +779,7 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 
 		return nil, returnError
 	}
-	return &result.JSON201.Credentials, nil
+	return result.JSON201, nil
 }
 
 // DeleteTeam - deletes a team

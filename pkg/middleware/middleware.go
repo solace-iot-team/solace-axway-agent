@@ -21,8 +21,10 @@ type AxwaySubscription interface {
 	GetServiceAttributes() map[string]string
 	GetServiceResourceMetaAttributes() map[string]string
 	GetSolaceAsyncAPIAppInternalID() string
+	GetSolaceAsyncAPIHint() string
 	GetCatalogItemName() string
 	SetSolaceAsyncAPIAppInternalID(id string)
+	SetSolaceAsyncAPIHint(hint string)
 	SetSubscriptionCredentials(credentials *connector.SolaceCredentialsDto)
 	GetSubscriptionCredentials() *connector.SolaceCredentialsDto
 	GetSubscriberEmailAddress() string
@@ -74,6 +76,7 @@ type SubscriptionContainer struct {
 	subscriptionCredentials     *connector.SolaceCredentialsDto
 	solaceCallbackAPI           bool
 	solaceAsyncAPIAppInternalID string
+	solaceAsyncAPIHint          string
 }
 
 // SubscriptionMiddleware holds AxwaySubscription and exposes functionality
@@ -143,6 +146,11 @@ func (c *SubscriptionContainer) LogText() string {
 	return fmt.Sprintf("[Axway Environment:%s] [Team:%s] [API-Product:%s] [Application:%s] [API:%s]", c.GetEnvironmentName(), c.GetSubscriptionOwningTeamID(), c.GetRevisionName(), c.GetSubscriptionID(), c.GetRevisionName())
 }
 
+// GetSolaceAsyncAPIHint - getter
+func (c *SubscriptionContainer) GetSolaceAsyncAPIHint() string {
+	return c.solaceAsyncAPIHint
+}
+
 // GetSolaceAsyncAPIAppInternalID - getter
 func (c *SubscriptionContainer) GetSolaceAsyncAPIAppInternalID() string {
 	return c.solaceAsyncAPIAppInternalID
@@ -151,6 +159,11 @@ func (c *SubscriptionContainer) GetSolaceAsyncAPIAppInternalID() string {
 // GetCatalogItemName - getter
 func (c *SubscriptionContainer) GetCatalogItemName() string {
 	return c.catalogItemName
+}
+
+// SetSolaceAsyncAPIHint - setter
+func (c *SubscriptionContainer) SetSolaceAsyncAPIHint(hint string) {
+	c.solaceAsyncAPIHint = hint
 }
 
 // SetSolaceAsyncAPIAppInternalID - setter
@@ -434,10 +447,10 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 
 	userEmail := sm.AxSub.GetSubscriberEmailAddress()
 	username := sm.AxSub.GetSubscriberUserName()
-	subscriptionCredentials, applicationData, errAppData := sm.GetTeamApp()
+	subscriptionCredentials, applicationData, errAppData := sm.GetTeamAppJson()
 
 	if errAppData != nil {
-		log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [GetTeamApp] [TeamApp Details could not get retrieved]", err)
+		log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [GetTeamAppJson] [TeamApp Details could not get retrieved]", err)
 		return errAppData
 	}
 
@@ -447,6 +460,31 @@ func (sm *SubscriptionMiddleware) ProcessSubscription() error {
 		sm.AxSub.SetSolaceAsyncAPIAppInternalID(fmt.Sprintf("%v", v))
 	} else {
 		sm.AxSub.SetSolaceAsyncAPIAppInternalID("unknown internal id")
+	}
+
+	// redundant call to Solace connector - can get optimized
+	solaceApp, errSolaceApp := sm.GetTeamApp()
+	if errSolaceApp != nil {
+		log.Error("[ERROR] [MIDDLEWARE] [SUBSCRIBE] [GetTeamApp] [TeamApp Details could not get retrieved]", err)
+		return errSolaceApp
+	}
+
+	hintSet := false
+	if solaceApp.ClientInformation != nil {
+		if len(*solaceApp.ClientInformation) > 0 {
+			listClientInformation := *solaceApp.ClientInformation
+			clientInfo := listClientInformation[0]
+			if clientInfo.GuaranteedMessaging != nil {
+				guaranteedMessagingInfo := *clientInfo.GuaranteedMessaging
+				if guaranteedMessagingInfo.Name != nil {
+					sm.AxSub.SetSolaceAsyncAPIHint(fmt.Sprintf("Queue-Name: %s", *guaranteedMessagingInfo.Name))
+					hintSet = true
+				}
+			}
+		}
+	}
+	if !hintSet {
+		sm.AxSub.SetSolaceAsyncAPIHint("This subscription is without a dedicated queue.")
 	}
 
 	apiSpecs, errAPISpecs := sm.GetAppApis()
@@ -726,9 +764,14 @@ func (sm *SubscriptionMiddleware) RemoveAPIProduct(ignoreConflict bool) error {
 	return connector.GetOrgConnector().RemoveAPIProduct(sm.GetOrg(), sm.AxSub.GetRevisionId(), ignoreConflict)
 }
 
-//GetTeamApp - Facade to retrieve App AxSub generic JSON
-func (sm *SubscriptionMiddleware) GetTeamApp() (*connector.SolaceCredentialsDto, map[string]interface{}, error) {
+//GetTeamApp - Facade to retrieve App AxSub
+func (sm *SubscriptionMiddleware) GetTeamApp() (*connector.AppResponse, error) {
 	return connector.GetOrgConnector().GetTeamApp(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
+}
+
+//GetTeamAppJson - Facade to retrieve App AxSub generic JSON
+func (sm *SubscriptionMiddleware) GetTeamAppJson() (*connector.SolaceCredentialsDto, map[string]interface{}, error) {
+	return connector.GetOrgConnector().GetTeamAppJson(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID())
 }
 
 //GetAppApis - Facade to retrieve all AsyncApi specs of an app
@@ -782,7 +825,11 @@ func (sm *SubscriptionMiddleware) PublishTeamApp() (*connector.Credentials, erro
 	if len(sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceClientOrigin)) > 0 {
 		appAttributes[solace.SolaceClientOrigin] = sm.AxSub.GetSubscriptionPropertyValue(solace.SolaceClientOrigin)
 	}
-	return connector.GetOrgConnector().PublishTeamApp(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID(), "Created by Axway-Agent", apiProducts, webHooks, appAttributes)
+	teamApp, err := connector.GetOrgConnector().PublishTeamApp(sm.GetOrg(), sm.AxSub.GetSubscriptionOwningTeamID(), sm.AxSub.GetSubscriptionID(), "Created by Axway-Agent", apiProducts, webHooks, appAttributes)
+	if err != nil {
+		return nil, err
+	}
+	return &teamApp.Credentials, nil
 }
 
 //PublishAPI - Facade to publish via Connector an API

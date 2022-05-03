@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 0.0.20
+
+### Features
+
+* **Provioning of Queues**
+  * Queues will get provisioned per subscriber if `solace-queue-require` attribute and further attribtes got defined for an AsyncAPI service
+
+### Fixes
+
+* no bug fixes
+
 ## Version 0.0.19
 
 ### Features

@@ -56,7 +56,7 @@ central:
         subscribe:
           # go-template for subscribe emails
           body: >
-            <p>A Subscription just got created for AsyncAPI {{.CatalogItemName}}.</p>Detailed description of the AsyncAPI can get found at: <a href={{.CatalogItemURL}}">Axway Central {{.CatalogItemName}} </a> <p></p><p>The subscribed AsyncAPI is secured with <ul><li>Username: <b> {{.ClientID}} </b></li><li>Password: <b> {{.ClientSecret}} </b></li></ul></p><p>AsyncAPI runtime internal AppId: {{.APIManagerID}} </p>
+            <p>A Subscription just got created for AsyncAPI {{.CatalogItemName}}.</p>Detailed description of the AsyncAPI can get found at: <a href={{.CatalogItemURL}}">Axway Central {{.CatalogItemName}} </a> <p></p><p>The subscribed AsyncAPI is secured with <ul><li>Username: <b> {{.ClientID}} </b></li><li>Password: <b> {{.ClientSecret}} </b></li></ul></p><p>AsyncAPI runtime internal AppId: {{.APIManagerID}} </p><p> {{.APIManagerUsageHint}} </p>
           # go-template for rendering credentials in subscribe emails
           oauth: "</br></a>Your API is secured using Username: <b> {{.ClientID}} </b> and Password=<b> {{.ClientSecret}} </b>"
         unsubscribe:

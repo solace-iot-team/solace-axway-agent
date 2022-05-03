@@ -8,6 +8,7 @@ Solace Axway Agent for Async API Management
   :caption: Guides
 
   quickstart/index.rst
+  usage/configuration.rst
 
 Repos & Links
 -------------

@@ -21,7 +21,7 @@ replace (
 	// Option B:
 	//github.com/Axway/agent-sdk v1.1.7 => github.com/solace-iot-team/agent-sdk SOL-8
 	// go mod tidy (will do the magic)
-	github.com/Axway/agent-sdk v1.1.13 => github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20220126135150-1f9ff2b37488
+	github.com/Axway/agent-sdk v1.1.13 => github.com/solace-iot-team/agent-sdk v1.0.20210617-0.20220429202008-a5f08e7648d9
 	//github.com/Axway/agent-sdk v1.1.13 => ../agent-sdk
 
 	github.com/Shopify/sarama => github.com/elastic/sarama v0.0.0-20191122160421-355d120d0970

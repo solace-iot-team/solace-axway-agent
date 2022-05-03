@@ -58,6 +58,7 @@ func ExecuteIntegrationTestMiddleware() error {
 		subscriptionMetadataScopeName: iCfg.OrgEnvName,
 		externalAPIName:               "int-test-mw-1",
 		externalAPIID:                 "int-test-mw-1",
+		asyncAPIHint:                  "queue-id-1",
 		apiSpec:                       string(apiSpec),
 		//permissions map[string]int{"foo": 1, "bar": 2}
 		serviceAttributes:         map[string]string{"att1": "value1,value2", "att2": "value3"},
@@ -80,6 +81,12 @@ func ExecuteIntegrationTestMiddleware() error {
 				Port:     55555,
 				Protocol: "solace",
 			},
+		},
+		serviceResourceMetaAttributes: map[string]string{
+			solace.SolaceQueueRequire:       "true",
+			solace.SolaceQueueAccessType:    solace.SolaceQueueAccessTypeExclusive,
+			solace.SolaceQueueMaxTtl:        "5000",
+			solace.SolaceQueueMaxSpoolUsage: "500",
 		},
 	}
 
@@ -120,8 +127,10 @@ type TestSubscriptionContainer struct {
 	serviceInstanceMetadataScopeName string
 	externalAPIID                    string
 	externalAPIName                  string
+	asyncAPIHint                     string
 	apiSpec                          string
 	serviceAttributes                map[string]string
+	serviceResourceMetaAttributes    map[string]string
 	subscriptionName                 string
 	subscriptionAPIServiceName       string
 	subscriptionID                   string
@@ -137,6 +146,21 @@ type TestSubscriptionContainer struct {
 	subscriptionCredentials     *connector.SolaceCredentialsDto
 	solaceCallbackAPI           bool
 	solaceAsyncAPIAppInternalID string
+}
+
+// GetSolaceAsyncAPIHint - provides AsyncAPIHint
+func (c *TestSubscriptionContainer) GetSolaceAsyncAPIHint() string {
+	return c.asyncAPIHint
+}
+
+// SetSolaceAsyncAPIHint - sets AsyncAPIHint
+func (c *TestSubscriptionContainer) SetSolaceAsyncAPIHint(hint string) {
+	c.asyncAPIHint = hint
+}
+
+// GetServiceResourceMetaAttributes - provides service attributes
+func (c *TestSubscriptionContainer) GetServiceResourceMetaAttributes() map[string]string {
+	return c.serviceResourceMetaAttributes
 }
 
 // LogText - Extracts Logging Details
@@ -396,11 +420,13 @@ func executeTestCRUDTeamApp(addWebhook bool, addTrustedCNs bool) error {
 			}
 		}
 	}
-	credentials, err := connector.GetOrgConnector().PublishTeamApp(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName, iCfg.TeamAppName, listProducts, webHooks, appAttributes)
-	if credentials == nil {
-		log.Tracef("Credentials as result are missing")
-		return errors.New("Credentials as result are missing")
+	appResponse, err := connector.GetOrgConnector().PublishTeamApp(iCfg.Org, iCfg.TeamName, iCfg.TeamAppName, iCfg.TeamAppName, listProducts, webHooks, appAttributes)
+	if appResponse == nil {
+		log.Tracef("AppResponse as result is missing")
+		return errors.New("AppResponse (Credentials) as result are missing")
 	}
+	credentials := appResponse.Credentials
+
 	if credentials.Secret == nil {
 		log.Tracef("Credentials.Secret as result are missing")
 		return errors.New("Credentials.Secret as result are missing")
@@ -517,8 +543,14 @@ func executeTestCRUDAPIProduct() error {
 		Name:    "mqtt",
 		Version: &version,
 	})
+	clientOptions := connector.SolaceClientOptions{
+		RequireQueue:     true,
+		AccessType:       solace.SolaceQueueAccessTypeExclusive,
+		MaxTtl:           5000,
+		MaxMsgSpoolUsage: 500,
+	}
 	log.Tracef("connector.GetOrgConnector().PublishAPIProduct /%s/%s", iCfg.Org, iCfg.APIProductName)
-	err = connector.GetOrgConnector().PublishAPIProduct(iCfg.Org, iCfg.APIProductName, apiNames, envNames, protocols, permissions)
+	err = connector.GetOrgConnector().PublishAPIProduct(iCfg.Org, iCfg.APIProductName, apiNames, envNames, protocols, permissions, &clientOptions)
 	if err != nil {
 		log.Tracef("Could not create APIProduct")
 		return err

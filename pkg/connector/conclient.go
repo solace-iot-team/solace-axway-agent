@@ -61,6 +61,13 @@ type SolaceEnvironment struct {
 	Endpoints       []SolaceEnvironmentEndpoint
 }
 
+type SolaceClientOptions struct {
+	RequireQueue     bool
+	AccessType       string
+	MaxTtl           int
+	MaxMsgSpoolUsage int
+}
+
 func (e *SolaceEnvironment) FindEnvProtocolVersion(checkHost string, checkPort string, checkSolaceProtocol string) (bool, string, error) {
 	for _, envMessagingProtocol := range e.Endpoints {
 		envMessagingProtocolUrl, err := url.Parse(envMessagingProtocol.Uri)
@@ -572,15 +579,15 @@ func deriveHostFromProtocols(env *EnvironmentListItem) (string, error) {
 	return "", errors.New("Could not derive a Host out of Environment Protocol List")
 }
 
-// GetTeamApp - retrieves App as generic JSON
-func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*SolaceCredentialsDto, map[string]interface{}, error) {
+// GetTeamApp - retrieves App
+func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*AppResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	params := GetTeamAppParams{}
 	result, err := c.Client.GetTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), AppName(appName), &params)
 	if err != nil {
 		log.Tracef("[CONCLIENT] [GetTeamApp] [err:%s]", err)
-		return nil, nil, err
+		return nil, err
 	}
 	log.Tracef("[CONCLIENT] [GetTeamApp] %s", c.logTextHTTPResponse(result.Body, result.HTTPResponse))
 	if result.StatusCode() >= 300 {
@@ -590,6 +597,29 @@ func (c *Access) GetTeamApp(orgName string, teamName string, appName string) (*S
 			Response:       "n/a",
 		}
 		log.Tracef("[FAULT] [CONCLIENT] [GetTeamApp] [GetTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [%s]", orgName, teamName, appName, returnError.Error())
+		return nil, returnError
+	}
+	return result.JSON200, nil
+}
+
+// GetTeamAppJson - retrieves App as generic JSON
+func (c *Access) GetTeamAppJson(orgName string, teamName string, appName string) (*SolaceCredentialsDto, map[string]interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
+	defer cancel()
+	params := GetTeamAppParams{}
+	result, err := c.Client.GetTeamAppWithResponse(ctx, Orgparameter(orgName), TeamName(teamName), AppName(appName), &params)
+	if err != nil {
+		log.Tracef("[CONCLIENT] [GetTeamAppJson] [err:%s]", err)
+		return nil, nil, err
+	}
+	log.Tracef("[CONCLIENT] [GetTeamAppJson] %s", c.logTextHTTPResponse(result.Body, result.HTTPResponse))
+	if result.StatusCode() >= 300 {
+		returnError := &ConclientHTTPError{
+			ClientFunction: "GetTeamAppWithResponse",
+			HTTPStatusCode: int(result.StatusCode()),
+			Response:       "n/a",
+		}
+		log.Tracef("[FAULT] [CONCLIENT] [GetTeamAppJson] [GetTeamAppWithResponse] [orgName:%s] [teamName:%s] [appName:%s] [%s]", orgName, teamName, appName, returnError.Error())
 		return nil, nil, returnError
 	}
 
@@ -677,7 +707,7 @@ func (c *Access) RemoveTeamApp(orgName string, teamName string, appName string) 
 }
 
 // PublishTeamApp - publishes TeamApp
-func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string, solaceWebhook *SolaceWebhook, appAttributes map[string]string) (*Credentials, error) {
+func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string, solaceWebhook *SolaceWebhook, appAttributes map[string]string) (*AppResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	credentials := Credentials{
@@ -749,7 +779,7 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 
 		return nil, returnError
 	}
-	return &result.JSON201.Credentials, nil
+	return result.JSON201, nil
 }
 
 // DeleteTeam - deletes a team
@@ -829,7 +859,7 @@ func (c *Access) RemoveAPIProduct(orgName string, productName string, ignoreConf
 }
 
 // PublishAPIProduct - publishes API-Product
-func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames []string, environments []string, protocols []Protocol, permissions map[string]string) error {
+func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames []string, environments []string, protocols []Protocol, permissions map[string]string, solaceClientOptions *SolaceClientOptions) error {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
 	a := APIProductApprovalTypeAuto
@@ -861,6 +891,22 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 		PubResources: make([]CommonTopic, 0),
 		SubResources: make([]CommonTopic, 0),
 		Attributes:   attributes,
+	}
+	if solaceClientOptions != nil {
+		clientOptionsGuaranteedMessagingAccessType := ClientOptionsGuaranteedMessagingAccessType(solaceClientOptions.AccessType)
+		maxSpoolUsage := int64(solaceClientOptions.MaxMsgSpoolUsage)
+		maxTtl := int64(solaceClientOptions.MaxTtl)
+		requireQueue := bool(solaceClientOptions.RequireQueue)
+		guaranteedMessaging := ClientOptionsGuaranteedMessaging{
+			AccessType:       &clientOptionsGuaranteedMessagingAccessType,
+			MaxMsgSpoolUsage: &maxSpoolUsage,
+			MaxTtl:           &maxTtl,
+			RequireQueue:     &requireQueue,
+		}
+		clientOptions := ClientOptions{
+			GuaranteedMessaging: &guaranteedMessaging,
+		}
+		payload.ClientOptions = &clientOptions
 	}
 	result, err := c.Client.CreateApiProductWithResponse(ctx, Orgparameter(orgName), payload)
 	if err != nil {

@@ -632,7 +632,7 @@ func (c *Access) GetTeamAppJson(orgName string, teamName string, appName string)
 		ConsumerKey:    result.JSON200.Credentials.Secret.ConsumerKey,
 		ConsumerSecret: result.JSON200.Credentials.Secret.ConsumerSecret,
 		IssuedAt:       (*int64)(result.JSON200.Credentials.IssuedAt),
-		ExpiresAt:      &result.JSON200.Credentials.ExpiresAt,
+		ExpiresAt:      result.JSON200.Credentials.ExpiresAt,
 	}
 	return &credentialsDto, jsonMap, nil
 }
@@ -656,7 +656,14 @@ func (c *Access) GetAppAPINames(orgName string, appName string) (*[]string, erro
 		}
 		return nil, returnError
 	}
-	return result.JSON200, nil
+	if result.JSON200 == nil {
+		return nil, nil
+	}
+	apiNames := make([]string, len(*result.JSON200))
+	for _, cn := range *result.JSON200 {
+		apiNames = append(apiNames, string(cn))
+	}
+	return &apiNames, nil
 }
 
 // GetAppAPISpecification - Queries Application API Specification as raw JSON
@@ -710,8 +717,9 @@ func (c *Access) RemoveTeamApp(orgName string, teamName string, appName string) 
 func (c *Access) PublishTeamApp(orgName string, teamName string, appName string, displayName string, apiProducts []string, solaceWebhook *SolaceWebhook, appAttributes map[string]string) (*AppResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout())
 	defer cancel()
+	ea := int64(-1)
 	credentials := Credentials{
-		ExpiresAt: -1,
+		ExpiresAt: &ea,
 		IssuedAt:  nil,
 		Secret:    nil,
 	}
@@ -724,9 +732,9 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 		}{Name: k, Value: v})
 	}
 
-	commonNames := make([]CommonName, len(apiProducts))
+	appApiAproducts := make([]interface{}, len(apiProducts))
 	for i := range apiProducts {
-		commonNames[i] = CommonName(apiProducts[i])
+		appApiAproducts[i] = CommonName(apiProducts[i])
 	}
 	var webhooks []WebHook = nil
 	var payload CreateTeamAppJSONRequestBody
@@ -749,7 +757,7 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 		payload = CreateTeamAppJSONRequestBody{
 			Name:        CommonName(appName),
 			DisplayName: (*CommonDisplayName)(&displayName),
-			ApiProducts: commonNames,
+			ApiProducts: appApiAproducts,
 			Credentials: credentials,
 			WebHooks:    &webhooks,
 			Attributes:  &connectorAppAttributes,
@@ -758,7 +766,7 @@ func (c *Access) PublishTeamApp(orgName string, teamName string, appName string,
 		payload = CreateTeamAppJSONRequestBody{
 			Name:        CommonName(appName),
 			DisplayName: (*CommonDisplayName)(&displayName),
-			ApiProducts: commonNames,
+			ApiProducts: appApiAproducts,
 			Credentials: credentials,
 			Attributes:  &connectorAppAttributes,
 		}
@@ -886,8 +894,8 @@ func (c *Access) PublishAPIProduct(orgName string, productName string, apiNames 
 		ApprovalType: &a,
 		Description:  &desc,
 		DisplayName:  CommonDisplayName(productName),
-		Environments: &commonNamesEnvironments,
-		Protocols:    &protocols,
+		Environments: commonNamesEnvironments,
+		Protocols:    protocols,
 		PubResources: make([]CommonTopic, 0),
 		SubResources: make([]CommonTopic, 0),
 		Attributes:   attributes,

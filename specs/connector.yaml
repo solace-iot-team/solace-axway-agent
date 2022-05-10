@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: Solace API Management Connector
   description: 'Solace API Management Connector API. Note: basic authentication security mechanism is deprecated.'
-  version: 0.5.3
+  version: 0.7.11
 servers:
   - url: /v1
 
@@ -27,7 +27,7 @@ components:
       required: true
       schema:
         type: string
-        pattern: "[a-zA-Z0-9_-]*"
+        pattern: "^[a-zA-Z0-9_-]*$"
         minLength: 4
         maxLength: 188
     app_name:
@@ -37,7 +37,7 @@ components:
       required: true
       schema:
         type: string
-        pattern: "[a-zA-Z0-9_-]*"
+        pattern: "^[a-zA-Z0-9_-]*$"
         minLength: 4
         maxLength: 188
     api_name:
@@ -46,10 +46,7 @@ components:
       in: path
       required: true
       schema:
-        type: string
-        pattern: "[a-zA-Z0-9_-]*"
-        minLength: 4
-        maxLength: 188
+        $ref: "#/components/schemas/CommonName"
     api_product_name:
       name: api_product_name
       description: the id of the api product
@@ -57,7 +54,7 @@ components:
       required: true
       schema:
         type: string
-        pattern: "[a-zA-Z0-9_-]*"
+        pattern: "^[a-zA-Z0-9_-]*$"
         minLength: 4
         maxLength: 188
     event_api_product_id:
@@ -67,7 +64,7 @@ components:
       required: true
       schema:
         type: string
-        pattern: "[a-z0-9]*"
+        pattern: "^[a-z0-9]*$"
         minLength: 4
         maxLength: 32
     developer_username:
@@ -84,7 +81,7 @@ components:
       required: true
       schema:
         type: string
-        pattern: "[a-zA-Z0-9_-]*"
+        pattern: "^[a-zA-Z0-9_-]*$"
         minLength: 4
         maxLength: 188
     env_name:
@@ -93,9 +90,18 @@ components:
       required: true
       schema:
         type: string
-        pattern: "[a-zA-Z0-9_-]*"
+        pattern: "^[a-zA-Z0-9_-]*$"
         minLength: 2
         maxLength: 188
+    webhook_name:
+      name: webhook_name
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^.*$"
+        minLength: 2
+        maxLength: 200
     page_size:
       name: pageSize
       in: query
@@ -134,7 +140,7 @@ components:
       required: false
       schema:
         type: string
-        pattern: "[a-zA-Z0-9_-]*"
+        pattern: "^[a-zA-Z0-9_-]*$"
         minLength: 2
         maxLength: 512
     topicSyntax:
@@ -157,7 +163,37 @@ components:
           - compact
           - summary
           - extended
+    ifMatchHeader:
+      name: If-Match
+      in: header
+      description: Provide the etag value for a previous GET request of a resource on update (PATCH) in order to avoid "lost updates"
+      schema:
+        type: string
+    filter:
+      name: filter
+      in: query
+      schema:
+        type: string
+      description: specify search terms to filter results on, multiple search terms can be supplied. Search will return results matching any of the terms (OR). Enclose search terms in quotes to limit results to recoirds matching ALL terms (AND).)
+    semver:
+      name: semver
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/SemVer'
+    version:
+      name: version
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/Version'
   responses:
+    PreconditionFailed:
+      description: PreConditon Failed, likely a mismatch between current etag and if-match header
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     BadRequest:
       description: Bad Request.
       content:
@@ -218,6 +254,12 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: Conflict.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
 
   schemas:
     ErrorResponse:
@@ -228,14 +270,14 @@ components:
           type: string
           minLength: 0
           maxLength: 1024
-          pattern: "[\\S]([\\S\\s]|[[:punct:]])*"
+          pattern: "^[\\S]([\\S\\s]|[[:punct:]])*$"
           example: "An error occurred"
         errorId:
           type: string
           example: "123e4567-e89b-12d3-a456-426655440000"
           minLength: 0
           maxLength: 64
-          pattern: "[a-zA-Z0-9_-]*"
+          pattern: "^[a-zA-Z0-9_-]*$"
         meta:
           type: object
           additionalProperties: true
@@ -269,7 +311,7 @@ components:
           example: IoT Sensor API
           minLength: 4
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         published:
           type: boolean
         publishedTime:
@@ -281,7 +323,7 @@ components:
           example: mqtt
           minLength: 2
           maxLength: 256
-          pattern: "[a-zA-z0-9\\-\\.]*"
+          pattern: "^[a-zA-z0-9\\-\\.]*$"
         summary:
           $ref: "#/components/schemas/CommonDescription"
         unpublishedTime:
@@ -304,7 +346,7 @@ components:
           type: string
           minLength: 0
           maxLength: 1024
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
           default: apiProduct
       required:
         - id
@@ -371,7 +413,7 @@ components:
           example: 7avdj5n26cq
           minLength: 0
           maxLength: 64
-          pattern: "[a-zA-Z0-9_-]*"
+          pattern: "^[a-zA-Z0-9_-]*$"
         createdTime:
           $ref: '#/components/schemas/CommonTimestampInteger'
         updatedTime:
@@ -412,7 +454,7 @@ components:
           example: 7avdj5n26cq
           minLength: 1
           maxLength: 128
-          pattern: "[a-zA-Z0-9_-]*"
+          pattern: "^[a-zA-Z0-9_-]*$"
         overwrite:
           description: indicates if an existing API entity shall be replaced
           type: boolean
@@ -426,6 +468,8 @@ components:
         - subResources
         - pubResources
         - apis
+        - environments
+        - protocols
       type: object
       description: "An API product consists of a list of API resources (URIs) and custom metadata required by the API provider. API products enable you to bundle and distribute your APIs to multiple developer groups simultaneously"
       additionalProperties: false
@@ -457,7 +501,7 @@ components:
           items:
             $ref: '#/components/schemas/CommonName'
           type: array
-          minItems: 0
+          minItems: 1
           maxItems: 32768
         name:
           $ref: "#/components/schemas/CommonName"
@@ -477,12 +521,16 @@ components:
           maxItems: 32768
         protocols:
           type: array
-          minItems: 0
+          minItems: 1
           maxItems: 255
           items:
             $ref: '#/components/schemas/Protocol'
         clientOptions:
           $ref: '#/components/schemas/ClientOptions'
+        accessLevel:
+          $ref: '#/components/schemas/APIProductAccessLevel'
+        meta:
+          $ref: '#/components/schemas/Meta'
 
     APIProductPatch:
       type: object
@@ -516,7 +564,7 @@ components:
           items:
             $ref: '#/components/schemas/CommonName'
           type: array
-          minItems: 0
+          minItems: 1
           maxItems: 32768
         pubResources:
           description: A comma separated list of Publish API resources to be bundled in the API Product.
@@ -534,12 +582,24 @@ components:
           maxItems: 32768
         protocols:
           type: array
-          minItems: 0
+          minItems: 1
           maxItems: 255
           items:
             $ref: '#/components/schemas/Protocol'
         clientOptions:
           $ref: '#/components/schemas/ClientOptions'
+        accessLevel:
+          $ref: '#/components/schemas/APIProductAccessLevel'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    APIProductAccessLevel:
+      type: string
+      enum:
+        - internal
+        - private
+        - public
+      default: public
 
     Developer:
       description: "A profile for a developer. After the developer is created, they can register an app and receive API credentials"
@@ -551,17 +611,17 @@ components:
           minLength: 1
           maxLength: 512
           format: email
-          pattern: ".*@.*\\.[a-zA-Z]*"
+          pattern: "^.*@.*\\.[a-zA-Z]*$"
         firstName:
           type: string
           minLength: 2
           maxLength: 128
-          pattern: "([[:punct:]]|[a-zA-Z])*"
+          pattern: "^([[:punct:]]|[a-zA-Z])*$"
         lastName:
           type: string
           minLength: 2
           maxLength: 128
-          pattern: "([[:punct:]]|[a-zA-Z])*"
+          pattern: "^([[:punct:]]|[a-zA-Z])*$"
         userName:
           $ref: "#/components/schemas/CommonUserName"
         attributes:
@@ -582,17 +642,17 @@ components:
           minLength: 1
           maxLength: 512
           format: email
-          pattern: ".*@.*\\.[a-zA-Z]*"
+          pattern: "^.*@.*\\.[a-zA-Z]*$"
         firstName:
           type: string
           minLength: 2
           maxLength: 128
-          pattern: "([[:punct:]]|[a-zA-Z])*"
+          pattern: "^([[:punct:]]|[a-zA-Z])*$"
         lastName:
           type: string
           minLength: 2
           maxLength: 128
-          pattern: "([[:punct:]]|[a-zA-Z])*"
+          pattern: "^([[:punct:]]|[a-zA-Z])*$"
         attributes:
           $ref: '#/components/schemas/attributes'
 
@@ -631,7 +691,7 @@ components:
             example:
               access
             type: string
-            pattern: "[a-zA-Z0-9_-]*"
+            pattern: "^[a-zA-Z0-9._-]*$"
             minLength: 2
             maxLength: 1024
           value:
@@ -639,7 +699,7 @@ components:
             example:
               'public, private, or internal'
             type: string
-            pattern: "[a-zA-Z0-9_\\-\\s,\\*]*"
+            pattern: "^.*$"
             minLength: 1
             maxLength: 1024
         required:
@@ -719,7 +779,22 @@ components:
           enum:
             - exclusive
             - non-exclusive
-
+        maxTtl:
+          type: integer
+          format: int64
+          maximum: 9007199254740991
+          minimum: 0
+          description: retention policy for message on the queue, in seconds
+          default: 86400
+          example: 3600
+        maxMsgSpoolUsage:
+          type: integer
+          format: int64
+          maximum: 9007199254740991
+          minimum: 0
+          description: The maximum message spool usage allowed by the Queue, in megabytes (MB). A value of 0 only allows spooling of the last message received and disables quota checking
+          default: 500
+          example: 50
     App:
       type: object
       description: "An app associated with an owner (developer, team etc). Associates the app with an API product, and auto-generates an API credentials for the app to use"
@@ -731,7 +806,7 @@ components:
           $ref: '#/components/schemas/CommonDisplayName'
         internalName:
           type: string
-          pattern: "[a-zA-Z0-9_]*"
+          pattern: "^[a-zA-Z0-9_]*$"
           minLength: 4
           maxLength: 32
           description: the internal name of the app used within the connector. This name is auto generated by default. Warning - should ONLY be set if a naming convention for broker objects must be imposed. This value can not be updated.
@@ -742,11 +817,7 @@ components:
           minimum: -1
           description: A setting, in milliseconds, for the lifetime of the consumer key that will be  generated for the developer app. The default value, -1, indicates an infinite validity period. Once set, the expiration can't be updated.
         apiProducts:
-          type: array
-          items:
-            $ref: '#/components/schemas/CommonName'
-          minItems: 0
-          maxItems: 255
+          $ref: '#/components/schemas/AppApiProducts'
         attributes:
           $ref: '#/components/schemas/attributes'
         callbackUrl:
@@ -771,15 +842,14 @@ components:
       properties:
         displayName:
           $ref: '#/components/schemas/CommonDisplayName'
+        expiresIn:
+          type: integer
+          format: int64
+          maximum: 9007199254740991
+          minimum: -1
+          description: A setting, in milliseconds, for the lifetime of the consumer key that will be  generated for the developer app. The default value, -1, indicates an infinite validity period. Once set, the expiration can't be updated.
         apiProducts:
-          type: array
-          items:
-            type: string
-            pattern: "[a-zA-Z0-9_-]*"
-            minLength: 4
-            maxLength: 188
-          minItems: 0
-          maxItems: 255
+          $ref: '#/components/schemas/AppApiProducts'
         attributes:
           $ref: '#/components/schemas/attributes'
         callbackUrl:
@@ -794,11 +864,13 @@ components:
           $ref: '#/components/schemas/Credentials'
         status:
           $ref: '#/components/schemas/AppStatus'
+
     AppStatus:
       type: string
       enum:
         - approved
         - pending
+        - revoked
     AppResponse:
       type: object
       description: "App Response Object - includes protocol binding information and app premissions. An app associated with a developer. Associates the app with an API product, and auto-generates an API credentials for the app to use."
@@ -810,7 +882,7 @@ components:
           $ref: '#/components/schemas/CommonDisplayName'
         internalName:
           type: string
-          pattern: "[a-zA-Z0-9_]*"
+          pattern: "^[a-zA-Z0-9_]*$"
           minLength: 4
           maxLength: 32
           description: the internal name of the app used within the connector. This name is auto generated by default. Warning - should ONLY be set if a naming convention for broker objects must be imposed. This value can not be updated.
@@ -821,14 +893,7 @@ components:
           maximum: 9007199254740991
           description: A setting, in milliseconds, for the lifetime of the consumer key that will be  generated for the developer app. The default value, -1, indicates an infinite validity period. Once set, the expiration can't be updated.
         apiProducts:
-          type: array
-          items:
-            type: string
-            pattern: "[a-zA-Z0-9_-]*"
-            minLength: 4
-            maxLength: 188
-          minItems: 0
-          maxItems: 255
+          $ref: '#/components/schemas/AppApiProducts'
         attributes:
           $ref: '#/components/schemas/attributes'
         clientInformation:
@@ -860,6 +925,71 @@ components:
         - apiProducts
         - credentials
 
+    AppResponseGeneric:
+      type: object
+      description: "App Response Object - includes protocol binding information and app premissions. An app associated with a developer. Associates the app with an API product, and auto-generates an API credentials for the app to use."
+      additionalProperties: false
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
+        internalName:
+          type: string
+          pattern: "^[a-zA-Z0-9_]*$"
+          minLength: 4
+          maxLength: 32
+          description: the internal name of the app used within the connector. This name is auto generated by default. Warning - should ONLY be set if a naming convention for broker objects must be imposed. This value can not be updated.
+        expiresIn:
+          type: integer
+          format: int64
+          minimum: -1
+          maximum: 9007199254740991
+          description: A setting, in milliseconds, for the lifetime of the consumer key that will be  generated for the developer app. The default value, -1, indicates an infinite validity period. Once set, the expiration can't be updated.
+        apiProducts:
+          $ref: '#/components/schemas/AppApiProducts'
+        attributes:
+          $ref: '#/components/schemas/attributes'
+        clientInformation:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/ClientInformation'
+        callbackUrl:
+          $ref: '#/components/schemas/CommonURL'
+        webHooks:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/WebHook'
+        credentials:
+          $ref: '#/components/schemas/Credentials'
+        environments:
+          type: array
+          minItems: 0
+          maxItems: 255
+          items:
+            $ref: '#/components/schemas/AppEnvironment'
+        status:
+          $ref: '#/components/schemas/AppStatus'
+        appType:
+          type: string
+          enum:
+            - developer
+            - team
+        ownerId:
+          type: string
+          example: "Developer-1"
+          pattern: ".*"
+          minLength: 4
+          maxLength: 188
+      required:
+        - name
+        - apiProducts
+        - credentials
+
     AppListItem:
       type: object
       additionalProperties: false
@@ -880,14 +1010,29 @@ components:
           minLength: 4
           maxLength: 188
         apiProducts:
-          type: array
-          items:
-            type: string
-            pattern: "[a-zA-Z0-9_-]*"
-            minLength: 4
-            maxLength: 188
-          minItems: 0
-          maxItems: 255
+          $ref: '#/components/schemas/AppApiProducts'
+        status:
+          $ref: '#/components/schemas/AppStatus'
+
+
+    AppApiProducts:
+      type: array
+      uniqueItems: true
+      items:
+        oneOf:
+          - $ref: '#/components/schemas/AppApiProductsComplex'
+          - $ref: '#/components/schemas/CommonName'
+      minItems: 0
+      maxItems: 255
+
+    AppApiProductsComplex:
+      type: object
+      additionalProperties: false
+      required:
+        - apiproduct
+      properties:
+        apiproduct:
+          $ref: '#/components/schemas/CommonName'
         status:
           $ref: '#/components/schemas/AppStatus'
 
@@ -897,6 +1042,8 @@ components:
       properties:
         name:
           $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: '#/components/schemas/CommonDisplayName'
         messagingProtocols:
           type: array
           minItems: 0
@@ -977,7 +1124,7 @@ components:
           type: string
           minLength: 1
           maxLength: 2048
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         isChannel:
           type: boolean
           default: true
@@ -985,12 +1132,9 @@ components:
     Credentials:
       description: Credentials object associated with an app
       type: object
-      required:
-        - expiresAt
       additionalProperties: false
       properties:
         expiresAt:
-          default: -1
           type: integer
           format: int64
           minimum: -1
@@ -1008,14 +1152,142 @@ components:
       properties:
         consumerKey:
           type: string
-          pattern: "[a-zA-Z0-9_-]*"
+          pattern: "^[a-zA-Z0-9_-]*$"
           minLength: 8
           maxLength: 64
         consumerSecret:
           type: string
-          pattern: "[a-zA-Z0-9_-]*"
+          pattern: "^[a-zA-Z0-9_-]*$"
           minLength: 8
           maxLength: 64
+
+    AppConnectionStatus:
+      description: provides status information on the app's connections to the Gateway Broker
+      type: object
+      properties:
+        environments:
+          type: array
+          minItems: 0
+          maxItems: 2048
+          items:
+            '$ref': '#/components/schemas/AppEnvironmentStatus'
+      additionalProperties: false
+
+    AppEnvironmentStatus:
+      description: provides status information on the app's connections to the Gateway Broker
+      type: object
+      properties:
+        name:
+          '$ref': '#/components/schemas/CommonName'
+        displayName:
+          '$ref': '#/components/schemas/CommonDisplayName'
+        connections:
+          type: array
+          minItems: 0
+          maxItems: 2048
+          items:
+            '$ref': '#/components/schemas/AppConnection'
+        webHooks:
+          type: array
+          minItems: 0
+          maxItems: 2048
+          items:
+            '$ref': '#/components/schemas/WebHookStatus'
+        queues:
+          type: array
+          minItems: 0
+          maxItems: 2048
+          items:
+            '$ref': '#/components/schemas/QueueStatus'
+      additionalProperties: false
+
+    WebHookStatus:
+      type: object
+      additionalProperties: false
+      properties:
+        uri:
+          type: string
+          pattern: "^https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+          minLength: 0
+          maxLength: 200
+        name:
+          type: string
+          minLength: 3
+          maxLength: 200
+          pattern: ^.*$
+        up:
+          description: indicates if the webhook is up and running
+          type: boolean
+          example: true
+        failureReason:
+          description: description if the webhook is down, otherwise empty string
+          type: string
+          pattern: ".*"
+          minLength: 0
+          maxLength: 1024
+        lastFailureTime:
+          description: time of last failure (seconds from epoch)
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+          maxLength: 1024
+        messagesQueued:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        messagesQueuedMB:
+          type: number
+          minimum: 0
+          maximum: 2147483647
+
+    QueueStatus:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          "$ref": "#/components/schemas/CommonName"
+        consumerCount:
+          type: number
+        messagesQueued:
+          type: integer
+          minimum: 0
+          maximum: 2147483647
+        messagesQueuedMB:
+          type: number
+          minimum: 0
+          maximum: 2147483647
+
+    AppConnection:
+      type: object
+      properties:
+        protocol:
+          "$ref": "#/components/schemas/Protocol"
+        state:
+          description: State of the connection (ESTABLISHED if up)
+          type: string
+          example: ESTABLISHED
+          minLength: 1
+          maxLength: 64
+          pattern: "^[A-Z]*$"
+        uptime:
+          description: uptime of connection in seconds
+          type: integer
+          example: 3601
+          minimum: 0
+          maximum: 2147483647
+        roundtripTime:
+          description: connection latency in nanoseconds
+          type: integer
+          example: 22000
+          minimum: 0
+          maximum: 2147483647
+        clientAddress:
+          description: client IP address and port
+          type: string
+          example: 127.0.0.1:561230
+          minLength: 9
+          maxLength: 24
+          pattern: ^(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d{1,5})$
     Environment:
       description: an environment
       type: object
@@ -1035,7 +1307,7 @@ components:
         serviceId:
           type: string
           example: xm7dc2dfas4
-          pattern: "[a-zA-Z0-9_-]*"
+          pattern: "^[a-zA-Z0-9_-]*$"
           minLength: 4
           maxLength: 64
         exposedProtocols:
@@ -1048,6 +1320,7 @@ components:
     EnvironmentListItem:
       description: a list item in the environmentslist
       type: object
+      additionalProperties: true
       properties:
         msgVpnName:
           $ref: '#/components/schemas/MsgVpnName'
@@ -1067,7 +1340,7 @@ components:
         serviceId:
           type: string
           example: xm7dc2dfas4
-          pattern: "[a-zA-Z0-9_-]*"
+          pattern: "^[a-zA-Z0-9_-]*$"
           minLength: 4
           maxLength: 64
         exposedProtocols:
@@ -1076,7 +1349,7 @@ components:
           maxItems: 255
           items:
             $ref: '#/components/schemas/Protocol'
-
+              
     EnvironmentResponse:
       description: an environment
       type: object
@@ -1113,34 +1386,34 @@ components:
           example: DEV-GW
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         msgVpnName:
           $ref: '#/components/schemas/MsgVpnName'
         datacenterId:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         datacenterProvider:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         serviceTypeId:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         serviceClassId:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         creationState:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         serviceClassDisplayedAttributes:
           $ref: '#/components/schemas/ServiceClassDisplayedAttributes'
 
@@ -1152,37 +1425,37 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         Network Speed:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         Storage:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         Message Broker Tenancy:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         Queues:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         Clients:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         Network Usage:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
       required:
         - High Availability
         - Network Speed
@@ -1206,7 +1479,7 @@ components:
           example: xm7dc2dfas4
           minLength: 1
           maxLength: 64
-          pattern: "[a-zA-Z0-9]*"
+          pattern: "^[a-zA-Z0-9]*$"
         exposedProtocols:
           description: The protocols that can be exposed for use with APIs
           type: array
@@ -1224,7 +1497,7 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         timestamp:
           $ref: '#/components/schemas/CommonTimestampInteger'
         userId:
@@ -1237,37 +1510,46 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         msgVpnName:
           $ref: '#/components/schemas/MsgVpnName'
         datacenterId:
-          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "^[\\s\\S]*$"
         datacenterProvider:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         serviceTypeId:
-          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "^[\\s\\S]*$"
         serviceClassId:
-          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "^[\\s\\S]*$"
         adminState:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         adminProgress:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         created:
           $ref: '#/components/schemas/CommonTimestampInteger'
         creationState:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         messagingProtocols:
           minItems: 0
           maxItems: 255
@@ -1288,9 +1570,12 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         servicePackageId:
-          $ref: "#/components/schemas/CommonSolaceCloudObjectId"
+          type: string
+          minLength: 1
+          maxLength: 256
+          pattern: "^[\\s\\S]*$"
         serviceClassDisplayedAttributes:
           $ref: '#/components/schemas/ServiceClassDisplayedAttributes'
         accountingLimits:
@@ -1310,12 +1595,12 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         unit:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         thresholds:
           type: array
           minItems: 0
@@ -1336,12 +1621,12 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         value:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
       required:
         - type
         - value
@@ -1354,12 +1639,12 @@ components:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         authenticationBasicEnabled:
           type: string
           minLength: 1
           maxLength: 256
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
       required:
         - authenticationClientCertEnabled
         - authenticationBasicEnabled
@@ -1368,7 +1653,7 @@ components:
       type: object
       required:
         - name
-      additionalProperties: false
+      additionalProperties: true
       properties:
         name:
           $ref: "#/components/schemas/CommonName"
@@ -1383,6 +1668,25 @@ components:
               description: a Solace Cloud API Token, requires "get services" and "event portal read" permissions
               example: eyXhbGciOiJSUzI1NiIsImtpZCI6Im1hYXNfcHJvZF8yMDIwMDMyNiIsInR5cCI6IkpXVCJ9.eyJvcmcifiJzb2xhY2Vpb3R0ZWFtIiwib3JnVHlwZSI6IkVOVEVSUFJJU0UiLCJzdWIiOiIzZTJvY214MTA1IiwicGVybWlzc2lvbnMiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQXdBQU09IiwiYXBpVG9rZW5JZCI6Inlhb2wzc2ZveG03IiwiaXNzIjoiU29sYWNlIENvcnBvcmF0aW9uIiwiaWF0IjoxNjAzODA3NzQ1fQ.QIBpi5_U6b1DnAwbDbJiFIT0pomqa4AyOLtmSOEF6zhoxKMm4Y27WbILZnxnh_gpdX-tvt18Ycuck4xs3T5JjFfU3qrczRHSuj2vEdsCpDQWdyZTPV4NQ-zPxRvigTjaTlcdXin8XwMGh8nZdylgRMlRQjvotomnXQxgbUol0Kl1ziFFMybqeD10qCDsUW6Jv-PKibBN3cnCsWwPZX6d_XYUECs1AHjgs5pk-A8v3DHcnvbXiAP4XXrry6ztopAWKMc5rVFoB_WFY4yi0reuTYjn6Sf0g7vZxFifRZZHZmqZtNQUiX6S80eQG4kF3YDKlr5PfLDNp4iRfe0-3svIPw
             - "$ref": "#/components/schemas/CloudToken"
+        integrations:
+          "$ref": "#/components/schemas/OrganizationIntegrations"
+
+    OrganizationResponse:
+      allOf:
+        - $ref: "#/components/schemas/Organization"
+      additionalProperties: true
+      properties:
+        status:
+          $ref: "#/components/schemas/OrganizationStatus"
+
+    OrganizationStatus:
+      type: object
+      additionalProperties: false
+      properties:
+        cloudConnectivity:
+          type: boolean
+        eventPortalConnectivity:
+          type: boolean
 
     SempV2Authentication:
       description: Specifies how requests to the SEMPv2 Management API are authenticated, defaults to BasicAuth. If APIKey is specified the username returned in the Services/Environments response is used as API Key.
@@ -1409,7 +1713,7 @@ components:
           type: string
           minLength: 4
           maxLength: 512
-          pattern: "[a-zA-Z0-9_-]*"
+          pattern: "^[a-zA-Z0-9_-]*$"
           description: the name of the query parameter or HTTP header for submitting the API Key
           example: X-API-KEY
 
@@ -1433,7 +1737,7 @@ components:
       properties:
         baseUrl:
           type: string
-          pattern: "https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+          pattern: "^https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
           example: https://solace.cloud/v1
           minLength: 0
           maxLength: 200
@@ -1443,6 +1747,97 @@ components:
           maxLength: 16384
           pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
           example: eyXhbGciOiJSUzI1NiIsImtpZCI6Im1hYXNfcHJvZF8yMDIwMDMyNiIsInR5cCI6IkpXVCJ9.eyJvcmcifiJzb2xhY2Vpb3R0ZWFtIiwib3JnVHlwZSI6IkVOVEVSUFJJU0UiLCJzdWIiOiIzZTJvY214MTA1IiwicGVybWlzc2lvbnMiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQXdBQU09IiwiYXBpVG9rZW5JZCI6Inlhb2wzc2ZveG03IiwiaXNzIjoiU29sYWNlIENvcnBvcmF0aW9uIiwiaWF0IjoxNjAzODA3NzQ1fQ.QIBpi5_U6b1DnAwbDbJiFIT0pomqa4AyOLtmSOEF6zhoxKMm4Y27WbILZnxnh_gpdX-tvt18Ycuck4xs3T5JjFfU3qrczRHSuj2vEdsCpDQWdyZTPV4NQ-zPxRvigTjaTlcdXin8XwMGh8nZdylgRMlRQjvotomnXQxgbUol0Kl1ziFFMybqeD10qCDsUW6Jv-PKibBN3cnCsWwPZX6d_XYUECs1AHjgs5pk-A8v3DHcnvbXiAP4XXrry6ztopAWKMc5rVFoB_WFY4yi0reuTYjn6Sf0g7vZxFifRZZHZmqZtNQUiX6S80eQG4kF3YDKlr5PfLDNp4iRfe0-3svIPw
+
+    OrganizationIntegrations:
+      type: object
+      properties:
+        importers:
+          type: array
+          items:
+            "$ref": "#/components/schemas/OrganizationImporter"
+          minItems: 0
+          maxItems: 16
+        notifications:
+          "$ref": "#/components/schemas/OrganizationNotifier"
+      additionalProperties: false
+    OrganizationImporter:
+      type: object
+      additionalProperties: false
+
+    OrganizationNotifier:
+      type: object
+      properties:
+        baseUrl:
+          $ref: "#/components/schemas/CommonURL"
+        authentication:
+          oneOf:
+            - "$ref": "#/components/schemas/BasicAuthentication"
+            - "$ref": "#/components/schemas/APIKeyAuthentication"
+            - "$ref": "#/components/schemas/BearerTokenAuthentication"
+      additionalProperties: false
+      required:
+        - baseUrl
+        - authentication
+
+    BasicAuthentication:
+      type: object
+      properties:
+        userName:
+          type: string
+          minLength: 3
+          maxLength: 512
+          pattern: "^.*$"
+        password:
+          type: string
+          minLength: 3
+          maxLength: 512
+          pattern: "^.*$"
+      additionalProperties: false
+      required:
+        - userName
+        - password
+    APIKeyAuthentication:
+      type: object
+      properties:
+        location:
+          type: string
+          enum:
+            - header
+            - query
+          default: query
+          example: header
+        name:
+          type: string
+          minLength: 4
+          maxLength: 512
+          pattern: "^[a-zA-Z0-9_-]*$"
+          description: the name of the query parameter or HTTP header for submitting the API Key
+          example: X-API-KEY
+        key:
+          type: string
+          minLength: 4
+          maxLength: 512
+          pattern: "^[a-zA-Z0-9_-]*$"
+          description: the api key value
+          example: abc-123-def-456
+      additionalProperties: false
+      required:
+        - location
+        - name
+        - key
+    BearerTokenAuthentication:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 2
+          maxLength: 16384
+          pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+          example: eyXhbGciOiJSUzI1NiIsImtpZCI6Im1hYXNfcHJvZF8yMDIwMDMyNiIsInR5cCI6IkpXVCJ9.eyJvcmcifiJzb2xhY2Vpb3R0ZWFtIiwib3JnVHlwZSI6IkVOVEVSUFJJU0UiLCJzdWIiOiIzZTJvY214MTA1IiwicGVybWlzc2lvbnMiOiJBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQXdBQU09IiwiYXBpVG9rZW5JZCI6Inlhb2wzc2ZveG03IiwiaXNzIjoiU29sYWNlIENvcnBvcmF0aW9uIiwiaWF0IjoxNjAzODA3NzQ1fQ.QIBpi5_U6b1DnAwbDbJiFIT0pomqa4AyOLtmSOEF6zhoxKMm4Y27WbILZnxnh_gpdX-tvt18Ycuck4xs3T5JjFfU3qrczRHSuj2vEdsCpDQWdyZTPV4NQ-zPxRvigTjaTlcdXin8XwMGh8nZdylgRMlRQjvotomnXQxgbUol0Kl1ziFFMybqeD10qCDsUW6Jv-PKibBN3cnCsWwPZX6d_XYUECs1AHjgs5pk-A8v3DHcnvbXiAP4XXrry6ztopAWKMc5rVFoB_WFY4yi0reuTYjn6Sf0g7vZxFifRZZHZmqZtNQUiX6S80eQG4kF3YDKlr5PfLDNp4iRfe0-3svIPw
+      additionalProperties: false
+      required:
+        - token
+
     History:
       type: object
       additionalProperties: false
@@ -1468,7 +1863,10 @@ components:
           description: UNIX timestamp when auditable event occurred
           example: 1610714525243
         user:
-          $ref: "#/components/schemas/CommonUserName"
+          type: string
+          pattern: ".*"
+          minLength: 0
+          maxLength: 256
         requestURI:
           type: string
           description: the request URI
@@ -1476,8 +1874,10 @@ components:
           maxLength: 1024
           pattern: ".*"
         requestBody:
-          type: object
-          additionalProperties: true
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - $ref: "#/components/schemas/String2MB"
         responseCode:
           type: integer
           format: int64
@@ -1525,7 +1925,7 @@ components:
           type: string
           minLength: 8
           maxLength: 256
-          pattern: "[\\S]*"
+          pattern: "^[\\S]*$"
 
       required:
         - username
@@ -1543,12 +1943,12 @@ components:
           type: string
           minLength: 1
           maxLength: 512
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
         headerValue:
           type: string
           minLength: 1
           maxLength: 16384
-          pattern: "[\\s\\S]*"
+          pattern: "^[\\s\\S]*$"
       required:
         - headerName
         - headerValue
@@ -1558,8 +1958,9 @@ components:
         - $ref: '#/components/schemas/WebHookBasicAuth'
         - $ref: '#/components/schemas/WebHookHeaderAuth'
     WebHookTLSOptions:
-      additionalProperties: false
+      type: object
       description: TLS options required to support older PS+ brokers.
+      additionalProperties: false
       deprecated: true
       properties:
         tlsTrustedCommonNames:
@@ -1579,9 +1980,11 @@ components:
       properties:
         uri:
           type: string
-          pattern: "https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+          pattern: "^https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
           minLength: 0
           maxLength: 200
+        name:
+          $ref: "#/components/schemas/CommonName"
         environments:
           type: array
           description: environments that this webhook serves, if absent webhook will be used for all environments
@@ -1621,7 +2024,7 @@ components:
           description: The protocol transport
           minLength: 1
           maxLength: 32
-          pattern: "[A-Za-z0-9\\/\\.]"
+          pattern: "^[A-Za-z0-9\\/\\.]*$"
         secure:
           type: string
           enum:
@@ -1636,7 +2039,7 @@ components:
           type: string
           minLength: 5
           maxLength: 2083
-          pattern: "[a-zA-Z0-9\\.\\-+]*:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+          pattern: "^[a-zA-Z0-9\\.\\-+]*:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
           example: "amqp://mr1i5g7tif6z9h.messaging.solace.cloud:5672"
     About:
       type: object
@@ -1651,6 +2054,17 @@ components:
           description: version information
           example: {"connector-version":"1.0"}
           additionalProperties: true
+
+    HealthCheck:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          default: ok
+          enum:
+            - ok
+            - failure
 
     APIList:
       type: array
@@ -1694,7 +2108,7 @@ components:
       type: string
       minLength: 1
       maxLength: 2000000
-      pattern: "[\\s\\S]*"
+      pattern: "^[\\s\\S]*$"
       example: |
         asyncapi: 2.0.0
           info:
@@ -1706,27 +2120,64 @@ components:
                 message:
                   payload:
                     type: string
+    
 
+    WebHookNameList:
+      description: Name and display name attribute of a webhook
+      type: array
+      minItems: 0
+      maxItems: 32768
+      items:
+        $ref: "#/components/schemas/WebHookNames"
+
+    WebHookNames:
+      description: Name and display name attribute of a webhook
+      type: object
+      properties:
+        uri:
+          $ref: "#/components/schemas/CommonURL"
+        name:
+          type: string
+          minLength: 3
+          maxLength: 200
+          pattern: ^.*$
+
+    CommonEntityNameList:
+      description: Name and display name attribute of an entity
+      type: array
+      minItems: 0
+      maxItems: 32768
+      items:
+        $ref: "#/components/schemas/CommonEntityNames"
+
+    CommonEntityNames:
+      description: Name and display name attribute of an entity
+      type: object
+      properties:
+        name:
+          $ref: "#/components/schemas/CommonName"
+        displayName:
+          $ref: "#/components/schemas/CommonName"
     CommonDisplayName:
       description: Friendly name of an object for display in UIs, Developer Portals. Can be changed after object creation
       example: 'A new IoT API / v2.0'
       type: string
       minLength: 1
       maxLength: 256
-      pattern: "[\\/\\sa-z.A-z0-9_-]*"
+      pattern: "^[\\/\\sa-z.A-z0-9_-]*$"
     CommonName:
       description: 'The internal name of an object. Characters you can use in the name are restricted to: A-Z0-9._-. Once the object is created the internal name can not be changed'
       example:
         '{name}'
       type: string
-      pattern: "[a-zA-Z0-9_-]*"
+      pattern: "^[a-zA-Z0-9_\\-]*(@[ |\\S]*)?$"
       minLength: 2
       maxLength: 188
     CommonUserName:
       type: string
       minLength: 1
       maxLength: 64
-      pattern: "[.a-zA-Z0-9@-_]*"
+      pattern: "^[.a-zA-Z0-9@_-]*$"
       example: tom
     CommonDescription:
       description: An overview of the object. Include key information about the object that is not captured by other fields..
@@ -1742,7 +2193,7 @@ components:
       type: string
       description: id as used/issued by the back end apis, alphanumeric characters only
       example: n8kg4fjka9r
-      pattern: "[a-zA-Z0-9]*"
+      pattern: "^[a-zA-Z0-9]*$"
       minLength: 2
       maxLength: 32
     CommonTimestampInteger:
@@ -1751,12 +2202,19 @@ components:
       example: 1620311683577
       maximum: 9007199254740991
       minimum: 0
+    CommonTimestampIntegerReadOnly:
+      type: integer
+      format: int64
+      readOnly: true
+      example: 1620311683577
+      maximum: 9007199254740991
+      minimum: 0
     CommonURL:
       type: string
       minLength: 8
       maxLength: 2083
       example: "https://solace.cloud/api/v0/eventPortal/apiProducts/abc123/asyncApi.json"
-      pattern: "https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
+      pattern: "^https?:\\/\\/[A-Za-z\\.:0-9\\-]*.*$"
     CommonTopic:
       type: string
       minLength: 2
@@ -1767,14 +2225,49 @@ components:
       type: string
       minLength: 1
       maxLength: 32
-      pattern: "[_\\-\\S\\.]*"
+      pattern: "^[_\\-\\S\\.]*$"
       example: "3.1.1-alpha"
+    Version:
+      type: string
+      example: 1.1.0
+      pattern: ^[ |\S]*$
+      minLength: 1
+      maxLength: 255
+
     MsgVpnName:
       type: string
       minLength: 1
       maxLength: 32
       example: "API-GW-EU:AWS:1"
       pattern: "^[^*^?]*$"
+
+    Meta:
+      type: object
+      description: meta information of an object. Will be returned by some resources. Can be set when patching or creating an object. Auto generated if not set.
+      additionalProperties: false
+      required:
+        - version
+      properties:
+        version:
+          $ref: "#/components/schemas/SemVer"
+        lastModified:
+          type: number
+          readOnly: true
+          description: The date and time the object was last modified
+        lastModifiedBy:
+          $ref: "#/components/schemas/CommonUserName"
+        created:
+          type: number
+          readOnly: true
+          description: The date and time the object was last modified
+        createdBy:
+          $ref: "#/components/schemas/CommonUserName"
+    SemVer:
+      type: string
+      description: a version number in semver (Semantic Versioning) format
+      example: 1.0.1
+      pattern: "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$"
+
 security:
   - OpenId: []
   - BasicAuth: []
@@ -1860,7 +2353,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Organization'
+                $ref: '#/components/schemas/OrganizationResponse'
         '400':
           description: "Bad request. Likely an invalid auth token provided."
           content:
@@ -1875,8 +2368,16 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '409':
+          $ref: '#/components/responses/Conflict'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: "Duplicate organization"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1899,7 +2400,7 @@ paths:
           content:
             application/json:
               schema:
-                "$ref": "#/components/schemas/Organization"
+                "$ref": "#/components/schemas/OrganizationResponse"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -1922,6 +2423,8 @@ paths:
       operationId: updateOrganization
       tags:
         - administration
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
       requestBody:
         description: "Organization"
         content:
@@ -1934,7 +2437,7 @@ paths:
           content:
             "application/json":
               schema:
-                $ref: '#/components/schemas/Organization'
+                $ref: '#/components/schemas/OrganizationResponse'
         '400':
           description: "Bad request. Likely an invalid auth token provided."
           content:
@@ -1949,6 +2452,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1997,15 +2502,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: false
-                properties:
-                  status:
-                    type: string
-                    default: ok
-                    enum:
-                      - ok
-                      - failure
+                $ref: '#/components/schemas/HealthCheck'
         '503':
           description: "Service Unavailable."
           content:
@@ -2019,7 +2516,7 @@ paths:
                     default: error
                     minLength: 1
                     maxLength: 128
-                    pattern: "[\\S]*"
+                    pattern: "^[\\S]*$"
                   error:
                     type: array
                     minItems: 0
@@ -2033,7 +2530,7 @@ paths:
                           minLength: 0
                           maxLength: 1024
                           example: NO_DB_CONNECTION
-                          pattern: "[\\S\\s]*"
+                          pattern: "^[\\S\\s]*$"
                   details:
                     type: array
                     minItems: 0
@@ -2047,7 +2544,7 @@ paths:
                           example: NO_DB_CONNECTION
                           minLength: 0
                           maxLength: 1024
-                          pattern: "[\\S\\s]*"
+                          pattern: "^[\\S\\s]*$"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2157,6 +2654,9 @@ paths:
                 pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
                 minLength: 1
                 maxLength: 16384
+            "application/json":
+              schema:
+                $ref: '#/components/schemas/CloudToken'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2188,16 +2688,22 @@ paths:
               minLength: 100
               maxLength: 16384
               pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+          "application/json":
+            schema:
+              $ref: '#/components/schemas/CloudToken'
       responses:
         '201':
           description: The cloud token
           content:
-            application/json:
+            "text/plain":
               schema:
                 type: string
                 minLength: 1
                 maxLength: 16384
                 pattern: "^[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*$"
+            "application/json":
+              schema:
+                $ref: '#/components/schemas/CloudToken'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2232,6 +2738,7 @@ paths:
         - $ref: '#/components/parameters/sort_field_name'
         - $ref: '#/components/parameters/sort_direction'
         - $ref: '#/components/parameters/api_list_format'
+        - $ref: '#/components/parameters/filter'
       responses:
         '200':
           description: list of APIs
@@ -2401,6 +2908,8 @@ paths:
       operationId: updateApi
       tags:
         - apis
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
       requestBody:
         description: "async api specification"
         content:
@@ -2424,6 +2933,18 @@ paths:
             "application/json":
               schema:
                 "$ref": "#/components/schemas/ErrorResponse"
+        '409':
+          description: "Invalid API version provided"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '422':
+          description: "Duplicate API"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '401':
           $ref: '#/components/responses/Unauthorized'
         '403':
@@ -2432,6 +2953,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '429':
@@ -2459,6 +2982,12 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '409':
+          description: "Can't delete, API Product is still referenced."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -2500,6 +3029,128 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apis/{api_name}/revisions:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_name'
+    get:
+      operationId: listApiRevisions
+      tags:
+        - apis
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description:  revisions of the api
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: "#/components/schemas/CommonVersion"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apis/{api_name}/revisions/{version}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_name'
+      - $ref: '#/components/parameters/version'
+    get:
+      operationId: getApiRevision
+      tags:
+        - apis
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum:
+              - application/json
+              - application/x-yaml
+      responses:
+        '200':
+          description:  async api sepc
+          content:
+            application/json:
+              schema:
+                type: object
+            application/x-yaml:
+              schema:
+                $ref: "#/components/schemas/String2MB"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/apis/{api_name}/apiProducts:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_name'
+    get:
+      operationId: getApiReferencedByAPIProducts
+      tags:
+        - apis
+      responses:
+        '200':
+          description: API Products that reference this API
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/CommonEntityNameList"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
   /{organization_name}/apiProducts:
     parameters:
       - $ref: '#/components/parameters/orgparameter'
@@ -2512,6 +3163,7 @@ paths:
         - $ref: '#/components/parameters/page_number'
         - $ref: '#/components/parameters/sort_field_name'
         - $ref: '#/components/parameters/sort_direction'
+        - $ref: '#/components/parameters/filter'
       responses:
         '200':
           description: list of API Products
@@ -2622,6 +3274,8 @@ paths:
       operationId: updateApiProduct
       tags:
         - apiProducts
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
       requestBody:
         description: "Application domains have a name and topic domain."
         content:
@@ -2635,6 +3289,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/APIProduct'
+        '409':
+          description: "The API Product is not valid. For example the object version provided is not greater than the current version."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '422':
           description: "Duplicate API Product or invalid object reference e.g. invalid environment name"
           content:
@@ -2651,6 +3311,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '429':
@@ -2699,7 +3361,7 @@ paths:
     get:
       operationId: listApiProductApis
       tags:
-        - apps
+        - apiProducts
       parameters:
         - $ref: '#/components/parameters/page_size'
         - $ref: '#/components/parameters/page_number'
@@ -2715,10 +3377,7 @@ paths:
                 minItems: 0
                 maxItems: 32768
                 items:
-                  type: string
-                  minLength: 4
-                  maxLength: 188
-                  pattern: "[a-zA-Z0-9_-]*"
+                  $ref: "#/components/schemas/CommonName"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -2745,7 +3404,7 @@ paths:
     get:
       operationId: getApiProductApiSpecification
       tags:
-        - apps
+        - apiProducts
       parameters:
         - name: format
           in: query
@@ -2783,6 +3442,121 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apiProducts/{api_product_name}/apps:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_product_name'
+    get:
+      operationId: listAppReferencesToAPIProducts
+      tags:
+        - apiProducts
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description:  api names associated with the api product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommonEntityNameList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apiProducts/{api_product_name}/revisions:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_product_name'
+    get:
+      operationId: listApiProductRevisions
+      tags:
+        - apiProducts
+      parameters:
+        - $ref: '#/components/parameters/page_size'
+        - $ref: '#/components/parameters/page_number'
+        - $ref: '#/components/parameters/sort_field_name'
+        - $ref: '#/components/parameters/sort_direction'
+      responses:
+        '200':
+          description:  revisions of the api product
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 0
+                maxItems: 32768
+                items:
+                  $ref: "#/components/schemas/SemVer"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+  /{organization_name}/apiProducts/{api_product_name}/revisions/{semver}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/api_product_name'
+      - $ref: '#/components/parameters/semver'
+    get:
+      operationId: getApiProductRevision
+      tags:
+        - apiProducts
+      responses:
+        '200':
+          description: revision of the API Product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/APIProduct"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
 
   /{organization_name}/developers:
     parameters:
@@ -2899,6 +3673,8 @@ paths:
       operationId: updateDeveloper
       tags:
         - developers
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
       requestBody:
         description: "Application domains have a name and topic domain."
         content:
@@ -2922,6 +3698,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '429':
@@ -2991,7 +3769,7 @@ paths:
                 minItems: 0
                 maxItems: 32768
                 items:
-                  $ref: '#/components/schemas/App'
+                  $ref: '#/components/schemas/AppResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3104,6 +3882,8 @@ paths:
       tags:
         - apps
         - developers
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
       requestBody:
         description: ""
         content:
@@ -3123,6 +3903,8 @@ paths:
             "application/json":
               schema:
                 "$ref": "#/components/schemas/ErrorResponse"
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '422':
           description: "Duplicate app or invalid object reference e.g. invalid API product name"
           content:
@@ -3177,6 +3959,216 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/developers/{developer_username}/apps/{app_name}/webHooks:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/developer_username'
+      - $ref: '#/components/parameters/app_name'
+    get:
+      operationId: listDeveloperAppWebHooks
+      tags:
+        - apps
+        - developers
+      responses:
+        '200':
+          description:  list of webhooks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebHookNameList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createDeveloperAppWebHook
+      tags:
+        - apps
+        - developers
+      requestBody:
+        description: "new webhook"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/WebHook"
+      responses:
+        '201':
+          description: new webhook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebHook'
+        '400':
+          description: "Bad request, contains information about failed back end calls when the app is  provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          description: "Duplicate app or invalid object reference e.g. invalid API product name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '500':
+          description: "Internal Server error, contains information about failed back end calls when the  app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/developers/{developer_username}/apps/{app_name}/webHooks/{webhook_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/developer_username'
+      - $ref: '#/components/parameters/app_name'
+      - $ref: '#/components/parameters/webhook_name'
+    get:
+      operationId: getDeveloperAppWebHook
+      tags:
+        - apps
+        - developers
+      responses:
+        '200':
+          description:  the webhook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebHook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateDeveloperAppWebHook
+      tags:
+        - apps
+        - developers
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
+      requestBody:
+        description: webhook
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/WebHook"
+      responses:
+        '200':
+          description: WebHook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebHook'
+        '400':
+          description: "Bad request, contains information about failed back end calls when the app is  provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          description: "Duplicate app or invalid object reference e.g. invalid API product name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '500':
+          description: "Internal Server error, contains information about failed back end calls when the  app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteDeveloperAppWebHook
+      tags:
+        - apps
+        - developers
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
   /{organization_name}/teams:
     parameters:
       - $ref: '#/components/parameters/orgparameter'
@@ -3292,6 +4284,8 @@ paths:
       operationId: updateTeam
       tags:
         - teams
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
       requestBody:
         description: "An updated team object."
         content:
@@ -3315,6 +4309,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '429':
@@ -3498,6 +4494,8 @@ paths:
       tags:
         - apps
         - teams
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
       requestBody:
         description: ""
         content:
@@ -3517,6 +4515,8 @@ paths:
             "application/json":
               schema:
                 "$ref": "#/components/schemas/ErrorResponse"
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '422':
           description: "Duplicate app or invalid object reference e.g. invalid API product name"
           content:
@@ -3572,6 +4572,215 @@ paths:
         '504':
           $ref: '#/components/responses/GatewayTimeout'
 
+  /{organization_name}/teams/{team_name}/apps/{app_name}/webHooks:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/team_name'
+      - $ref: '#/components/parameters/app_name'
+    get:
+      operationId: listTeamAppWebHooks
+      tags:
+        - apps
+        - teams
+      responses:
+        '200':
+          description:  list of webhooks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebHookNameList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    post:
+      operationId: createTeamAppWebHook
+      tags:
+        - apps
+        - teams
+      requestBody:
+        description: "new webhook"
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/WebHook"
+      responses:
+        '201':
+          description: new webhook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebHook'
+        '400':
+          description: "Bad request, contains information about failed back end calls when the app is  provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          description: "Duplicate app or invalid object reference e.g. invalid API product name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '500':
+          description: "Internal Server error, contains information about failed back end calls when the  app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/teams/{team_name}/apps/{app_name}/webHooks/{webhook_name}:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/team_name'
+      - $ref: '#/components/parameters/app_name'
+      - $ref: '#/components/parameters/webhook_name'
+    get:
+      operationId: getTeamAppWebHook
+      tags:
+        - apps
+        - teams
+      responses:
+        '200':
+          description:  the webhook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebHook'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    patch:
+      operationId: updateTeamAppWebHook
+      tags:
+        - apps
+        - teams
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
+      requestBody:
+        description: ""
+        content:
+          "application/json":
+            schema:
+              "$ref": "#/components/schemas/WebHook"
+      responses:
+        '200':
+          description: WebHook
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebHook'
+        '400':
+          description: "Bad request, contains information about failed back end calls when the app is  provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+        '422':
+          description: "Duplicate app or invalid object reference e.g. invalid API product name"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '500':
+          description: "Internal Server error, contains information about failed back end calls when the  app is provisioned"
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+    delete:
+      operationId: deleteTeamAppWebHook
+      tags:
+        - apps
+        - teams
+      responses:
+        '204':
+          description: No content
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
   /{organization_name}/apps:
     parameters:
       - $ref: '#/components/parameters/orgparameter'
@@ -3588,6 +4797,7 @@ paths:
         - $ref: '#/components/parameters/page_number'
         - $ref: '#/components/parameters/sort_field_name'
         - $ref: '#/components/parameters/sort_direction'
+        - $ref: '#/components/parameters/filter'
       responses:
         '200':
           description: list of apps
@@ -3633,7 +4843,41 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AppResponse'
+                $ref: '#/components/schemas/AppResponseGeneric'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/apps/{app_name}/status:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/app_name'
+    get:
+      operationId: getAppStatus
+      tags:
+        - apps
+      responses:
+        '200':
+          description:  status of the app - connections, webhooks, associated queues
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppConnectionStatus'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3668,7 +4912,7 @@ paths:
         - $ref: '#/components/parameters/sort_direction'
       responses:
         '200':
-          description:  api names associated with the app
+          description: api names associated with the app
           content:
             application/json:
               schema:
@@ -3676,10 +4920,7 @@ paths:
                 minItems: 0
                 maxItems: 32768
                 items:
-                  type: string
-                  minLength: 4
-                  maxLength: 188
-                  pattern: "[a-zA-Z0-9_-]*"
+                  $ref: "#/components/schemas/CommonName"
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -3880,6 +5121,8 @@ paths:
       operationId: updateEnvironment
       tags:
         - environments
+      parameters:
+        - $ref: '#/components/parameters/ifMatchHeader'
       requestBody:
         description: "Application domains have a name and topic domain."
         content:
@@ -3909,6 +5152,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '429':
@@ -3936,6 +5181,12 @@ paths:
           $ref: '#/components/responses/NotFound'
         '406':
           $ref: '#/components/responses/NotAcceptable'
+        '409':
+          description: "Can't delete, Environment is still referenced."
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -3944,6 +5195,41 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
         '504':
           $ref: '#/components/responses/GatewayTimeout'
+
+  /{organization_name}/environments/{env_name}/apiProducts:
+    parameters:
+      - $ref: '#/components/parameters/orgparameter'
+      - $ref: '#/components/parameters/env_name'
+    get:
+      operationId: getEnvironmentReferencedByAPIProducts
+      tags:
+        - environments
+      responses:
+        '200':
+          description: API Products that reference this environment
+          content:
+            "application/json":
+              schema:
+                "$ref": "#/components/schemas/CommonEntityNameList"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '406':
+          $ref: '#/components/responses/NotAcceptable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/GatewayTimeout'
+
   /{organization_name}/services:
     parameters:
       - $ref: '#/components/parameters/orgparameter'

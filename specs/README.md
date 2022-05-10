@@ -12,6 +12,40 @@ Codegenerator used to create clients: [https://github.com/deepmap/oapi-codegen](
   * `EnvironmentListItem`
 * `anyOf` is not getting handled by code generator. 
 
+* add schema element
+  ```yaml
+    HealthCheck:
+      type: object
+      additionalProperties: false
+      properties:
+        status:
+          type: string
+          default: ok
+          enum:
+            - ok
+            - failure
+   ```
+* adjust `get healthcheck` 
+
+  ```yaml
+  /healthcheck:
+    get:
+      operationId: healthcheck
+      description: Checks the health of the API. Returns ststuas code 200 if healthy, status code 503 if unhleathy
+      security:
+        - OpenId:
+            - org-admin
+      tags:
+        - administration
+      responses:
+        '200':
+          description: health of the API
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthCheck'
+  ```
+  
 ### Step 2: Generate Code
 `oapi-codegen -generate types,client connector.yaml > connector.gen.go`
 

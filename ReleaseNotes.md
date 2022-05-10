@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 0.0.21
+
+### Features
+
+* **Utilizing Connector API v0.7.11**
+  * Connector client is now utilizing Connector API v0.7.11
+
+### Fixes
+
+* no bug fixes
+ 
 ## Version 0.0.20
 
 ### Features

@@ -659,7 +659,7 @@ func (c *Access) GetAppAPINames(orgName string, appName string) (*[]string, erro
 	if result.JSON200 == nil {
 		return nil, nil
 	}
-	apiNames := make([]string, len(*result.JSON200))
+	apiNames := make([]string, 0)
 	for _, cn := range *result.JSON200 {
 		apiNames = append(apiNames, string(cn))
 	}
